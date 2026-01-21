@@ -97,7 +97,8 @@ export function Car() {
     const BODY_COLOR = "#D12020";
 
     return (
-        <group scale={1.2}>
+        // FLIP FIX: Rotate Z 180 (Math.PI) to put wheels down
+        <group scale={1.2} rotation={[0, 0, Math.PI]}>
             {/* 
          ORIENTATION:
          +Z is Forward (Hood)
