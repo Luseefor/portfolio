@@ -3,9 +3,11 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useScroll } from '@react-three/drei';
 import * as THREE from 'three';
-import { useRef, useMemo } from 'react';
+import { useRef, useEffect } from 'react';
 import { useStore } from '@/utils/store';
 import { Car } from './Car';
+import { mapScrollToCurve } from '@/utils/curve';
+import { runCurveTests } from '@/utils/test';
 
 interface CameraRigProps {
     curve: THREE.CatmullRomCurve3;
@@ -25,103 +27,83 @@ export function CameraRig({ curve }: CameraRigProps) {
 
     const carRef = useRef<THREE.Group>(null);
 
-    // Vectors for calculation - useMemo to prevent re-creation
-    const vectors = useMemo(() => ({
-        vec: new THREE.Vector3(),
-        target: new THREE.Vector3()
-    }), []);
-
-    // Raycaster for physics snapping
-    const raycaster = useMemo(() => new THREE.Raycaster(), []);
-    const down = useMemo(() => new THREE.Vector3(0, -1, 0), []);
+    // Run curve tests in development mode
+    useEffect(() => {
+        if (process.env.NODE_ENV === 'development') {
+            runCurveTests();
+        }
+    }, []);
 
     useFrame((state, delta) => {
         if (!curve || !curve.points || curve.points.length < 2) return;
 
-        // 1. Update Car Position based on Scroll
-        const t = Math.max(0, Math.min(1, scroll.offset ?? 0));
-        if (isNaN(t)) return;
+        // 1. Map scroll to trimmed curve range (10% buffer on each end)
+        const rawT = Math.max(0, Math.min(1, scroll.offset ?? 0));
+        if (isNaN(rawT)) return;
 
-        // Get ideal curve position (XZ)
-        curve.getPointAt(t, vectors.vec);
-        const lookAtT = Math.min(t + 0.001, 1);
-        curve.getPointAt(lookAtT, vectors.target);
+        const t = mapScrollToCurve(rawT);
 
-        // PHYSICS SNAP: Raycast down to find actual road surface
-        // Start high up and cast down
-        raycaster.set(new THREE.Vector3(vectors.vec.x, 50, vectors.vec.z), down);
-        const intersects = raycaster.intersectObjects(state.scene.children, true);
-        const roadHit = intersects.find(hit => hit.object.name === 'road');
+        // Sample curve positions for current, forward, and backward points
+        const tForward = Math.min(t + 0.002, 0.999);
+        const tBackward = Math.max(t - 0.002, 0.001);
 
-        // Update Car
+        // Get curve positions - these ARE the road surface positions
+        const currentPos = new THREE.Vector3();
+        const forwardPos = new THREE.Vector3();
+        const backwardPos = new THREE.Vector3();
+
+        curve.getPointAt(t, currentPos);
+        curve.getPointAt(tForward, forwardPos);
+        curve.getPointAt(tBackward, backwardPos);
+
+        // Update Car position directly from curve
         if (carRef.current) {
-            const pos = vectors.vec.clone();
+            // Car height offset calculation:
+            // 1. Road tube geometry: radius=9, Y-scale=0.05, so road surface = curveY + (9 * 0.05) = curveY + 0.45
+            // 2. Car model is centered, so we need to add half its height to place wheels on ground
+            // 3. The car is scaled to ~4.5 units max. Height is roughly 1/4 of that = ~1.1 units
+            // 4. Half height = 0.55. Plus road offset 0.45 = 1.0
+            const roadSurfaceOffset = 0.45; // tube radius (9) * Y-scale (0.05)
+            const carCenterOffset = 0.55;   // half of car's height (~1.1 units)
+            const carHeight = roadSurfaceOffset + carCenterOffset;
 
-            if (roadHit) {
-                // Found the road! Snap exactly to surface + offset
-                // 0.35 (Wheel Radius) + 0.1 (Suspension Margin) = 0.45
-                pos.y = roadHit.point.y + 0.45;
-            } else {
-                // Fallback if ray misses (shouldn't happen on road)
-                pos.y += 0.42;
-            }
+            // Position car exactly on the curve with height offset
+            carRef.current.position.set(currentPos.x, currentPos.y + carHeight, currentPos.z);
 
-            carRef.current.position.copy(pos);
+            // === CALCULATE HEADING AND PITCH FROM CURVE TANGENT ===
+            // The curve tangent gives us both heading (XZ) and pitch (Y component)
+            const tangent = curve.getTangentAt(t).normalize();
 
-            // LookAt Logic (Heading)
-            const lookTarget = vectors.target.clone();
-            if (roadHit) lookTarget.y = pos.y;
-            carRef.current.lookAt(lookTarget);
+            // Heading (Yaw): direction in XZ plane
+            const heading = Math.atan2(tangent.x, tangent.z);
 
-            // BANKING (Click-to-Surface Logic)
-            // Raycast Left and Right to find road slope
-            const tangent = vectors.target.clone().sub(vectors.vec).normalize();
-            const right = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 1, 0)).normalize();
+            // Pitch: calculated from tangent Y component
+            // tangent.y gives the slope - positive = going up, negative = going down
+            const pitchAngle = Math.asin(THREE.MathUtils.clamp(tangent.y, -1, 1));
 
-            // Width of sampling (approx car width)
-            const sideOffset = 1.2;
+            // === ROLL: Sample left/right points at same curve position ===
+            // For a flat road with banking, we need to check the tube's cross-section
+            // Since the road is flat (tube squashed to 0.05 Y), roll should be minimal
+            // But we can estimate banking from curve curvature
+            const tAhead = Math.min(t + 0.01, 0.999);
+            const tBehind = Math.max(t - 0.01, 0.001);
+            const aheadPos = new THREE.Vector3();
+            const behindPos = new THREE.Vector3();
+            curve.getPointAt(tAhead, aheadPos);
+            curve.getPointAt(tBehind, behindPos);
 
-            const leftOrigin = vectors.vec.clone().sub(right.clone().multiplyScalar(sideOffset));
-            const rightOrigin = vectors.vec.clone().add(right.clone().multiplyScalar(sideOffset));
+            // Calculate curvature for banking effect
+            const direction1 = new THREE.Vector3().subVectors(currentPos, behindPos).normalize();
+            const direction2 = new THREE.Vector3().subVectors(aheadPos, currentPos).normalize();
+            // Cross product Y component indicates turning direction
+            const turnDirection = direction1.x * direction2.z - direction1.z * direction2.x;
+            // Apply banking based on turn (lean into turns like a real car)
+            const rollAngle = turnDirection * 0.5; // Adjust multiplier for bank intensity
 
-            leftOrigin.y += 50;
-            rightOrigin.y += 50;
-
-            // Reuse raycaster for left/right
-            raycaster.set(leftOrigin, down);
-            const leftHit = raycaster.intersectObjects(state.scene.children, true).find(h => h.object.name === 'road');
-
-            raycaster.set(rightOrigin, down);
-            const rightHit = raycaster.intersectObjects(state.scene.children, true).find(h => h.object.name === 'road');
-
-            if (leftHit && rightHit) {
-                const dy = rightHit.point.y - leftHit.point.y;
-                const dist = 2 * sideOffset;
-                // Angle = atan(dy / dist)
-                // If Right is higher (dy > 0), we should tilt Left?
-                // Standard Z rotation: + is visible CCW?
-                // Let's visualize: 
-                // Right high -> Car should roll Left (Counter-Clockwise if facing forward?)
-                // Actually, if we look from back:
-                // Right Up -> Car should rotate CCW (Left). 
-                // In Three.js, +Z is axis out of screen (if Y up).
-                // Let's rely on simple geometry calculation.
-                // rotation.z should align local X with the slope.
-
-                const bankAngle = Math.atan2(dy, dist);
-
-                // Damping/Smoothing
-                // We can't easily lerp `rotation.z` directly without state, 
-                // but since it runs every frame on a smooth curve, it should be naturally smooth.
-                // NOTE check Sign:
-                // If dy is positive (Right higher), bankAngle is positive.
-                // A positive Z rotation usually tilts Left (CCW) in right-handed Y-up?
-                // Let's try direct application.
-
-                carRef.current.rotation.z = bankAngle;
-            } else {
-                carRef.current.rotation.z = 0;
-            }
+            // === COMPOSE ROTATION: Heading → Pitch → Roll ===
+            // Adding Math.PI to roll to account for car model's base Z-flip
+            const euler = new THREE.Euler(pitchAngle, heading, rollAngle + Math.PI, 'YXZ');
+            carRef.current.quaternion.setFromEuler(euler);
         }
 
         // 2. Update Camera (Follow Logic)
@@ -145,18 +127,17 @@ export function CameraRig({ curve }: CameraRigProps) {
             if (activeSection !== null) setActiveSection(null);
 
             // DRIVING FOLLOW LOGIC
-
-            const tangent = vectors.target.clone().sub(vectors.vec).normalize();
+            const tangent = new THREE.Vector3().subVectors(forwardPos, currentPos).normalize();
 
             // Ideal Camera Position: Chase View
-            const idealPos = vectors.vec.clone()
+            const idealPos = currentPos.clone()
                 .sub(tangent.clone().multiplyScalar(9)) // 9 units behind (Chase)
                 .add(new THREE.Vector3(0, 4, 0));       // 4 units up (Classic Arcades)
             // Smoothly move camera there
             camera.position.lerp(idealPos, 0.1);
 
             // Look at the Car
-            const idealLookAt = vectors.vec.clone().add(tangent.clone().multiplyScalar(5));
+            const idealLookAt = currentPos.clone().add(tangent.clone().multiplyScalar(5));
             camera.lookAt(idealLookAt);
         }
     });

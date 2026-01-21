@@ -11,15 +11,20 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing';
 function ExperienceContent() {
     return (
         <>
-            {/* Lights - Cyberpunk feel */}
-            <ambientLight intensity={0.2} />
+            {/* Daytime Lighting */}
+            <ambientLight intensity={0.6} color="#ffffff" />
             <directionalLight
-                position={[10, 10, 5]}
-                intensity={1.5}
-                color="#ffaa00"
+                position={[50, 100, 30]}
+                intensity={2}
+                color="#fffaf0"
                 castShadow
+                shadow-mapSize-width={2048}
+                shadow-mapSize-height={2048}
             />
-            <pointLight position={[-10, 5, -10]} intensity={2} color="#00ffff" />
+            {/* Hemisphere light for natural sky/ground gradient */}
+            <hemisphereLight
+                args={['#87CEEB', '#8B7355', 0.8]}
+            />
 
             {/* The City & Road */}
             <MotherboardCity />
@@ -35,7 +40,7 @@ function ExperienceContent() {
                 <Bloom
                     luminanceThreshold={1}
                     mipmapBlur
-                    intensity={1.5}
+                    intensity={0.5}
                     radius={0.4}
                 />
             </EffectComposer>
@@ -46,15 +51,14 @@ function ExperienceContent() {
 export function Experience() {
     return (
         <>
-            {/* Cyber-sunset Environment - Darker for Bloom pop */}
-            <color attach="background" args={['#100018']} />
-            <fogExp2 attach="fog" args={['#100018', 0.015]} />
+            {/* Daytime Sky Background */}
+            <color attach="background" args={['#87CEEB']} />
+            <fogExp2 attach="fog" args={['#c8e6ff', 0.008]} />
 
-            {/* Infinite Ground Grid */}
-            <gridHelper args={[200, 100, 0xff0055, 0x220044]} position={[0, -1, 0]} />
+            {/* Ground Plane */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.1, 0]}>
                 <planeGeometry args={[500, 500]} />
-                <meshBasicMaterial color="#110022" />
+                <meshStandardMaterial color="#4a7c59" />
             </mesh>
 
             {/* SCROLL CONTROLS: Longer duration for extended path */}
