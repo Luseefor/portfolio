@@ -11,11 +11,10 @@ interface CameraRigProps {
     curve: THREE.CatmullRomCurve3;
 }
 
-// Stop points configuration
-const STOPS = [
-    { offset: 0.2, target: new THREE.Vector3(5, 2, -20), name: "RAM" },
-    { offset: 0.5, target: new THREE.Vector3(-5, 3, -50), name: "GPU" },
-    { offset: 1.0, target: new THREE.Vector3(0, 11, -120), name: "CPU" },
+// Stop points configuration (Placeholder for now)
+const STOPS: { offset: number; target: THREE.Vector3; name: string }[] = [
+    // Examples: Re-enable when sections are placed
+    // { offset: 0.1, target: new THREE.Vector3(0, 5, -50), name: "ABOUT" },
 ];
 
 export function CameraRig({ curve }: CameraRigProps) {
@@ -79,8 +78,8 @@ export function CameraRig({ curve }: CameraRigProps) {
 
             // Ideal Camera Position: CarPos - (Tangent * Distance) + (Up * Height)
             const idealPos = vec.clone()
-                .sub(tangent.clone().multiplyScalar(5)) // 5 units behind
-                .add(new THREE.Vector3(0, 3, 0));       // 3 units up
+                .sub(tangent.clone().multiplyScalar(6)) // 6 units behind
+                .add(new THREE.Vector3(0, 5, 0));       // 5 units up (Higher Angle)
 
             // Smoothly move camera there
             camera.position.lerp(idealPos, 0.1);

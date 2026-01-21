@@ -6,22 +6,31 @@ import { ToonMaterial } from './ToonMaterial';
 import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 
+import { useScroll } from '@react-three/drei';
+
 function ExhaustSmoke() {
+    const scroll = useScroll();
     const particles = useMemo(() => {
         return new Array(20).fill(0).map(() => ({
             ref: React.createRef<THREE.Mesh>(),
             offset: Math.random() * 100,
-            speed: 0.5 + Math.random() * 0.5
+            baseSpeed: 0.5 + Math.random() * 0.5
         }));
     }, []);
 
     useFrame((state, delta) => {
+        // Smoke should always emit a little bit ("idling"), but more when moving?
+        // User asked for "wheels only move when scrolled", implies smoke too?
+        // Let's keep smoke constant as "idle" engine, but maybe wheels strict.
+        // Actually, user said "wheels only move when scrolled".
+
+        // Let's make smoke emitted based on time (idle) + scroll (burst).
+        // For simplicity and "perfection", let's keep smoke idling nicely.
+
         particles.forEach((p, i) => {
             if (p.ref.current) {
-                const time = state.clock.elapsedTime * p.speed + p.offset;
+                const time = state.clock.elapsedTime * p.baseSpeed + p.offset;
                 const t = time % 2;
-                // Emitting from -Z (Rear) and moving further -Z (Behind)
-                // Start at -2.2 (Bumper), Move to -6.0
                 p.ref.current.position.z = -2.2 - t * 4;
                 p.ref.current.position.y = 0.3 + t * 1;
                 p.ref.current.scale.setScalar(0.1 + t * 0.4);
@@ -44,9 +53,14 @@ function ExhaustSmoke() {
 
 function WindUpKey() {
     const keyRef = useRef<THREE.Group>(null);
+    const scroll = useScroll();
+
     useFrame((state, delta) => {
         if (keyRef.current) {
-            keyRef.current.rotation.x += delta * 3;
+            // Spin based on SCROLL VELOCITY
+            const velocity = scroll.delta * 1000; // Delta is small, scale it up
+            // Always spin a tiny bit (idle) + movement
+            keyRef.current.rotation.x += delta * 2 + velocity * delta;
         }
     });
 
@@ -67,11 +81,16 @@ function WindUpKey() {
 
 export function Car() {
     const wheelRefs = useRef<(THREE.Object3D | null)[]>([]);
+    const scroll = useScroll();
 
     useFrame((state, delta) => {
-        const speed = 12 * delta;
+        // Spin wheels ONLY based on scroll delta
+        // scroll.delta is the change in offset 0..1 per frame
+        // We need to scale it to rotation.
+        const moveSpeed = scroll.delta * 2000; // Arbitrary scale factor for wheel spin
+
         wheelRefs.current.forEach(w => {
-            if (w) w.rotation.x += speed;
+            if (w) w.rotation.x += moveSpeed * delta;
         });
     });
 

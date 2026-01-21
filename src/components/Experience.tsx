@@ -49,34 +49,6 @@ export function Experience() {
             <color attach="background" args={['#100018']} />
             <fogExp2 attach="fog" args={['#100018', 0.015]} />
 
-            <mesh scale={[100, 100, 100]} position={[0, 0, 0]}>
-                <sphereGeometry args={[1, 64, 64]} />
-                <shaderMaterial
-                    side={2} // DoubleSide
-                    uniforms={{
-                        colorTop: { value: { r: 0.05, g: 0.0, b: 0.1 } },
-                        colorBottom: { value: { r: 0.2, g: 0.1, b: 0.4 } },
-                    }}
-                    vertexShader={`
-            varying vec3 vWorldPosition;
-            void main() {
-              vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
-              vWorldPosition = worldPosition.xyz;
-              gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-            }
-          `}
-                    fragmentShader={`
-            uniform vec3 colorTop;
-            uniform vec3 colorBottom;
-            varying vec3 vWorldPosition;
-            void main() {
-              float h = normalize(vWorldPosition + vec3(0, 20, 0)).y;
-              gl_FragColor = vec4( mix( colorBottom, colorTop, max( h, 0.0 ) ), 1.0 );
-            }
-          `}
-                />
-            </mesh>
-
             {/* Infinite Ground Grid */}
             <gridHelper args={[200, 100, 0xff0055, 0x220044]} position={[0, -1, 0]} />
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.1, 0]}>
@@ -84,7 +56,8 @@ export function Experience() {
                 <meshBasicMaterial color="#110022" />
             </mesh>
 
-            <ScrollControls pages={5} damping={0.2}>
+            {/* SCROLL CONTROLS: Longer duration for extended path */}
+            <ScrollControls pages={20} damping={0.2}>
                 <ExperienceContent />
             </ScrollControls>
         </>
