@@ -193,11 +193,11 @@ export function Car() {
         }
 
         // 2. Chassis Suspension / Body Roll
-        // Add subtle bounce
-        clone.position.y = (Math.sin(state.clock.elapsedTime * 10) * 0.02) - (0.02)
-        // Add sway
-        clone.rotation.z = Math.sin(state.clock.elapsedTime * 2) * 0.02
-        clone.rotation.x = Math.sin(state.clock.elapsedTime * 3) * 0.01
+        // Add subtle bounce (Smoother, heavier feel)
+        clone.position.y = (Math.sin(state.clock.elapsedTime * 2) * 0.02) - (0.02)
+        // Add sway (Smoother turn simulation)
+        clone.rotation.z = Math.sin(state.clock.elapsedTime * 0.5) * 0.02
+        clone.rotation.x = Math.sin(state.clock.elapsedTime * 0.5) * 0.005
     })
 
     return (

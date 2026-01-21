@@ -23,15 +23,61 @@ export function MotherboardCity() {
         return c;
     }, []);
 
+    const roadTexture = useMemo(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            // Background: Asphalt
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Center Line (Dashed)
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 4; // Thin line
+            ctx.setLineDash([20, 30]); // Dash pattern
+            ctx.beginPath();
+            ctx.moveTo(256, 0);
+            ctx.lineTo(256, 512);
+            ctx.stroke();
+
+            // Border Lines (Solid)
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 6;
+            ctx.setLineDash([]); // Solid
+            // Left
+            ctx.beginPath();
+            ctx.moveTo(20, 0);
+            ctx.lineTo(20, 512);
+            ctx.stroke();
+            // Right
+            ctx.beginPath();
+            ctx.moveTo(492, 0);
+            ctx.lineTo(492, 512);
+            ctx.stroke();
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        // Repeat texture many times along the length (Y-axis of texture maps to U or V depending on tube unwrap)
+        // Usually TubeGeometry maps U along the tube length.
+        // Let's test repeats. 200 along length, 1 across width.
+        tex.repeat.set(1, 400);
+        tex.anisotropy = 16;
+        return tex;
+    }, []);
+
     return (
         <group>
-            {/* THE ROAD: Black Asphalt */}
-            <mesh name="road" position={[0, 0, 0]} scale={[1, 0.05, 1]}>
+            {/* THE ROAD: Black Asphalt with Markings */}
+            <mesh name="road" position={[0, 0, 0]} scale={[1.5, 0.05, 1.5]}>
                 <tubeGeometry args={[visualCurve, 1000, 6, 12, false]} />
                 <meshStandardMaterial
-                    color="#1a1a1a"
+                    map={roadTexture}
+                    color="#ffffff" // Tint white so texture color shows true
                     roughness={0.8}
-                    metalness={0.2}
+                    metalness={0.1}
                 />
             </mesh>
         </group>
