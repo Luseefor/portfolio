@@ -11,30 +11,37 @@ import { useScroll } from '@react-three/drei';
 function ExhaustSmoke() {
     const scroll = useScroll();
     const particles = useMemo(() => {
-        return new Array(20).fill(0).map(() => ({
+        return new Array(60).fill(0).map(() => ({
             ref: React.createRef<THREE.Mesh>(),
-            offset: Math.random() * 100,
-            baseSpeed: 0.5 + Math.random() * 0.5
+            offset: Math.random() * 10,
+            baseSpeed: 1.0 + Math.random() * 1.0 // Faster
         }));
     }, []);
 
     useFrame((state, delta) => {
-        // Smoke should always emit a little bit ("idling"), but more when moving?
-        // User asked for "wheels only move when scrolled", implies smoke too?
-        // Let's keep smoke constant as "idle" engine, but maybe wheels strict.
-        // Actually, user said "wheels only move when scrolled".
-
-        // Let's make smoke emitted based on time (idle) + scroll (burst).
-        // For simplicity and "perfection", let's keep smoke idling nicely.
-
+        // Continuous emission logic
         particles.forEach((p, i) => {
             if (p.ref.current) {
-                const time = state.clock.elapsedTime * p.baseSpeed + p.offset;
-                const t = time % 2;
-                p.ref.current.position.z = -2.2 - t * 4;
-                p.ref.current.position.y = 0.3 + t * 1;
-                p.ref.current.scale.setScalar(0.1 + t * 0.4);
-                if (t > 1.8) p.ref.current.scale.setScalar(0);
+                // Cycle based on index to create stream
+                const time = state.clock.elapsedTime * p.baseSpeed + p.offset + (i * 0.1);
+                const t = time % 1.5; // Faster cycle (1.5s life)
+
+                // Emitting from -Z (Rear)
+                // Start at -2.2, Move back to -8
+                p.ref.current.position.z = -2.2 - t * 8;
+                // Rise slightly
+                p.ref.current.position.y = 0.3 + t * 0.5 + Math.sin(time * 5) * 0.1;
+
+                // Grow
+                p.ref.current.scale.setScalar(0.1 + t * 0.5);
+
+                // Opacity fade (requires transparent material)
+                if (p.ref.current.material instanceof THREE.MeshBasicMaterial) {
+                    p.ref.current.material.opacity = Math.max(0, 0.8 * (1 - t / 1.5));
+                }
+
+                // Reset if done (handled by modulo, but ensure scale 0 if wrapping)
+                if (t > 1.4) p.ref.current.scale.setScalar(0);
             }
         });
     });
@@ -43,40 +50,12 @@ function ExhaustSmoke() {
         <group>
             {particles.map((p, i) => (
                 <mesh key={i} ref={p.ref}>
-                    <sphereGeometry args={[0.3, 8, 8]} />
-                    <meshBasicMaterial color="#aaaaaa" transparent opacity={0.4} />
+                    <sphereGeometry args={[0.2, 8, 8]} />
+                    <meshBasicMaterial color="#cccccc" transparent opacity={0.6} depthWrite={false} />
                 </mesh>
             ))}
         </group>
     )
-}
-
-function WindUpKey() {
-    const keyRef = useRef<THREE.Group>(null);
-    const scroll = useScroll();
-
-    useFrame((state, delta) => {
-        if (keyRef.current) {
-            // Spin based on SCROLL VELOCITY
-            const velocity = scroll.delta * 1000; // Delta is small, scale it up
-            // Always spin a tiny bit (idle) + movement
-            keyRef.current.rotation.x += delta * 2 + velocity * delta;
-        }
-    });
-
-    // Rear Deck is at -Z
-    return (
-        <group ref={keyRef} position={[0, 0.9, -1.6]} rotation={[0, 0, 0]}>
-            <mesh rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.08, 0.08, 0.6, 8]} />
-                <meshStandardMaterial color="#ecc" metalness={1.0} roughness={0.2} />
-            </mesh>
-            <mesh position={[0.4, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-                <torusGeometry args={[0.3, 0.08, 8, 16]} />
-                <meshStandardMaterial color="#ecc" metalness={1.0} roughness={0.2} />
-            </mesh>
-        </group>
-    );
 }
 
 export function Car() {
@@ -112,22 +91,22 @@ export function Car() {
                 </RoundedBox>
             </mesh>
 
-            {/* 2. Roof / Greenhouse */}
-            <mesh position={[0, 1.1, -0.1]}>
-                <RoundedBox args={[1.3, 0.6, 1.4]} radius={0.3} smoothness={4}>
+            {/* 2. Roof / Greenhouse (Extended down to merge with body) */}
+            <mesh position={[0, 1.0, -0.1]}>
+                <RoundedBox args={[1.25, 0.7, 1.3]} radius={0.3} smoothness={4}>
                     <ToonMaterial color="#eee" outlineColor="black" />
                 </RoundedBox>
             </mesh>
 
-            {/* 3. Hood (Front +Z) */}
-            <mesh position={[0, 0.55, 1.4]} rotation={[0.2, 0, 0]}>
-                <RoundedBox args={[1.4, 0.4, 1.2]} radius={0.2} smoothness={4}>
+            {/* 3. Hood (Front +Z) - Smoother fit */}
+            <mesh position={[0, 0.55, 1.35]} rotation={[0.15, 0, 0]}>
+                <RoundedBox args={[1.4, 0.4, 1.1]} radius={0.2} smoothness={4}>
                     <ToonMaterial color={BODY_COLOR} outlineColor="black" />
                 </RoundedBox>
             </mesh>
 
-            {/* 4. Trunk (Rear -Z) */}
-            <mesh position={[0, 0.55, -1.4]} rotation={[-0.1, 0, 0]}>
+            {/* 4. Trunk (Rear -Z) - Smoother fit */}
+            <mesh position={[0, 0.55, -1.35]} rotation={[-0.1, 0, 0]}>
                 <RoundedBox args={[1.4, 0.5, 1.0]} radius={0.2} smoothness={4}>
                     <ToonMaterial color={BODY_COLOR} outlineColor="black" />
                 </RoundedBox>
@@ -148,24 +127,24 @@ export function Car() {
                 </mesh>
             ))}
 
-            {/* 6. Windows */}
+            {/* 6. Windows (Embedded properly) */}
             {/* Windshield (+Z) */}
-            <mesh position={[0, 1.15, 0.65]} rotation={[-0.2, 0, 0]}>
-                <boxGeometry args={[1.1, 0.5, 0.05]} />
+            <mesh position={[0, 1.05, 0.58]} rotation={[-0.2, 0, 0]}>
+                <boxGeometry args={[1.0, 0.4, 0.05]} />
                 <meshBasicMaterial color="#334455" />
             </mesh>
             {/* Rear Window (-Z) */}
-            <mesh position={[0, 1.15, -0.85]} rotation={[0.2, 0, 0]}>
-                <boxGeometry args={[1.1, 0.4, 0.05]} />
+            <mesh position={[0, 1.05, -0.78]} rotation={[0.2, 0, 0]}>
+                <boxGeometry args={[1.0, 0.35, 0.05]} />
                 <meshBasicMaterial color="#334455" />
             </mesh>
             {/* Side Windows */}
-            <mesh position={[0.66, 1.15, -0.1]}>
-                <boxGeometry args={[0.05, 0.45, 1.0]} />
+            <mesh position={[0.63, 1.05, -0.1]}>
+                <boxGeometry args={[0.05, 0.35, 0.9]} />
                 <meshBasicMaterial color="#222" />
             </mesh>
-            <mesh position={[-0.66, 1.15, -0.1]}>
-                <boxGeometry args={[0.05, 0.45, 1.0]} />
+            <mesh position={[-0.63, 1.05, -0.1]}>
+                <boxGeometry args={[0.05, 0.35, 0.9]} />
                 <meshBasicMaterial color="#222" />
             </mesh>
 
@@ -195,9 +174,6 @@ export function Car() {
                 <meshStandardMaterial color="#eee" metalness={0.8} roughness={0.2} />
             </mesh>
 
-
-            {/* Wind-Up Key (Moved to REAR -Z) */}
-            <WindUpKey />
 
             {/* WHEELS (Tucked Inward) */}
             {/* Fenders are at +/- 0.85. Wheels moved to +/- 0.70 to sit inside */}

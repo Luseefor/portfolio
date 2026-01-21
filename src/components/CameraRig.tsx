@@ -50,9 +50,9 @@ export function CameraRig({ curve }: CameraRigProps) {
         // Update Car
         if (carRef.current) {
             const pos = vectors.vec.clone();
-            pos.y += 0.35; // Lift car
+            pos.y += 0.42; // Prevent sinking: Increased offset to sit clearly on geometry
             carRef.current.position.copy(pos);
-            carRef.current.lookAt(vectors.target.clone().add(new THREE.Vector3(0, 0.35, 0)));
+            carRef.current.lookAt(vectors.target.clone().add(new THREE.Vector3(0, 0.42, 0))); // Match target height
 
             // Disable banking
             carRef.current.rotation.z = 0;
@@ -82,11 +82,10 @@ export function CameraRig({ curve }: CameraRigProps) {
 
             const tangent = vectors.target.clone().sub(vectors.vec).normalize();
 
-            // Ideal Camera Position: CarPos - (Tangent * Distance) + (Up * Height)
+            // Ideal Camera Position: Chase View
             const idealPos = vectors.vec.clone()
-                .sub(tangent.clone().multiplyScalar(6))
-                .add(new THREE.Vector3(0, 5, 0));
-
+                .sub(tangent.clone().multiplyScalar(9)) // 9 units behind (Chase)
+                .add(new THREE.Vector3(0, 4, 0));       // 4 units up (Classic Arcades)
             // Smoothly move camera there
             camera.position.lerp(idealPos, 0.1);
 
