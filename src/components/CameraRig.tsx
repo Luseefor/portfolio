@@ -68,14 +68,60 @@ export function CameraRig({ curve }: CameraRigProps) {
 
             carRef.current.position.copy(pos);
 
-            // LookAt Logic with matching height
+            // LookAt Logic (Heading)
             const lookTarget = vectors.target.clone();
-            if (roadHit) lookTarget.y = pos.y; // Look parallel to where we are
-
+            if (roadHit) lookTarget.y = pos.y;
             carRef.current.lookAt(lookTarget);
 
-            // Disable banking
-            carRef.current.rotation.z = 0;
+            // BANKING (Click-to-Surface Logic)
+            // Raycast Left and Right to find road slope
+            const tangent = vectors.target.clone().sub(vectors.vec).normalize();
+            const right = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 1, 0)).normalize();
+
+            // Width of sampling (approx car width)
+            const sideOffset = 1.2;
+
+            const leftOrigin = vectors.vec.clone().sub(right.clone().multiplyScalar(sideOffset));
+            const rightOrigin = vectors.vec.clone().add(right.clone().multiplyScalar(sideOffset));
+
+            leftOrigin.y += 50;
+            rightOrigin.y += 50;
+
+            // Reuse raycaster for left/right
+            raycaster.set(leftOrigin, down);
+            const leftHit = raycaster.intersectObjects(state.scene.children, true).find(h => h.object.name === 'road');
+
+            raycaster.set(rightOrigin, down);
+            const rightHit = raycaster.intersectObjects(state.scene.children, true).find(h => h.object.name === 'road');
+
+            if (leftHit && rightHit) {
+                const dy = rightHit.point.y - leftHit.point.y;
+                const dist = 2 * sideOffset;
+                // Angle = atan(dy / dist)
+                // If Right is higher (dy > 0), we should tilt Left?
+                // Standard Z rotation: + is visible CCW?
+                // Let's visualize: 
+                // Right high -> Car should roll Left (Counter-Clockwise if facing forward?)
+                // Actually, if we look from back:
+                // Right Up -> Car should rotate CCW (Left). 
+                // In Three.js, +Z is axis out of screen (if Y up).
+                // Let's rely on simple geometry calculation.
+                // rotation.z should align local X with the slope.
+
+                const bankAngle = Math.atan2(dy, dist);
+
+                // Damping/Smoothing
+                // We can't easily lerp `rotation.z` directly without state, 
+                // but since it runs every frame on a smooth curve, it should be naturally smooth.
+                // NOTE check Sign:
+                // If dy is positive (Right higher), bankAngle is positive.
+                // A positive Z rotation usually tilts Left (CCW) in right-handed Y-up?
+                // Let's try direct application.
+
+                carRef.current.rotation.z = bankAngle;
+            } else {
+                carRef.current.rotation.z = 0;
+            }
         }
 
         // 2. Update Camera (Follow Logic)

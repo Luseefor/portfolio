@@ -61,8 +61,6 @@ export function MotherboardCity() {
         tex.wrapS = THREE.RepeatWrapping;
         tex.wrapT = THREE.RepeatWrapping;
         // Repeat texture many times along the length (Y-axis of texture maps to U or V depending on tube unwrap)
-        // Usually TubeGeometry maps U along the tube length.
-        // Let's test repeats. 200 along length, 1 across width.
         tex.repeat.set(1, 400);
         tex.anisotropy = 16;
         return tex;
@@ -71,8 +69,13 @@ export function MotherboardCity() {
     return (
         <group>
             {/* THE ROAD: Black Asphalt with Markings */}
-            <mesh name="road" position={[0, 0, 0]} scale={[1.5, 0.05, 1.5]}>
-                <tubeGeometry args={[visualCurve, 1000, 6, 12, false]} />
+            {/* 
+                CRITICAL FIX: Do NOT scale X/Z. Use scale 1 to keep road spine aligned with car path.
+                We widen the road by increasing the TubeGeometry radius instead.
+            */}
+            <mesh name="road" position={[0, 0, 0]} scale={[1, 0.05, 1]}>
+                {/* Visual Curve (Y scaled 20x), Segments 1000, Radius 9 (Wider), RadialSegs 12, Closed false */}
+                <tubeGeometry args={[visualCurve, 1000, 9, 12, false]} />
                 <meshStandardMaterial
                     map={roadTexture}
                     color="#ffffff" // Tint white so texture color shows true
