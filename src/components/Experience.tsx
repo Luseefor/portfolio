@@ -5,6 +5,7 @@ import { MotherboardCity } from './MotherboardCity';
 import { CameraRig } from './CameraRig';
 import { WindStreaks } from './WindStreaks';
 import { cityCurve } from '@/utils/curve';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 
 function ExperienceContent() {
     return (
@@ -27,6 +28,16 @@ function ExperienceContent() {
 
             {/* Particles */}
             <WindStreaks />
+
+            {/* Post Processing */}
+            <EffectComposer>
+                <Bloom
+                    luminanceThreshold={1}
+                    mipmapBlur
+                    intensity={1.5}
+                    radius={0.4}
+                />
+            </EffectComposer>
         </>
     );
 }
@@ -34,17 +45,17 @@ function ExperienceContent() {
 export function Experience() {
     return (
         <>
-            {/* Cyber-sunset Environment */}
-            <color attach="background" args={['#200020']} />
-            <fogExp2 attach="fog" args={['#200020', 0.02]} />
+            {/* Cyber-sunset Environment - Darker for Bloom pop */}
+            <color attach="background" args={['#100018']} />
+            <fogExp2 attach="fog" args={['#100018', 0.015]} />
 
             <mesh scale={[100, 100, 100]} position={[0, 0, 0]}>
                 <sphereGeometry args={[1, 64, 64]} />
                 <shaderMaterial
                     side={2} // DoubleSide
                     uniforms={{
-                        colorTop: { value: { r: 0.1, g: 0.0, b: 0.2 } },
-                        colorBottom: { value: { r: 1.0, g: 0.4, b: 0.0 } },
+                        colorTop: { value: { r: 0.05, g: 0.0, b: 0.1 } },
+                        colorBottom: { value: { r: 0.2, g: 0.1, b: 0.4 } },
                     }}
                     vertexShader={`
             varying vec3 vWorldPosition;

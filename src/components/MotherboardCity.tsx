@@ -5,65 +5,89 @@ import { cityCurve as curve } from '@/utils/curve';
 import { CPUPalace } from './CPUPalace';
 import { ToonMaterial } from './ToonMaterial';
 import { RamStick, Capacitor, Microchip, CoolingFan } from './HardwareAssets';
+import * as THREE from 'three';
+import { useTexture } from '@react-three/drei';
 
 export function MotherboardCity() {
-    // Use the shared curve for the road
-    const linePoints = useMemo(() => curve.getPoints(300), []);
+
+    // Revert to TubeGeometry but FLATTEN it to make a road
+    // ExtrudeGeometry was causing vertical wall issues due to frame orientation
 
     return (
         <group>
-            {/* The Road (Circuit Trace) */}
-            <mesh position={[0, -0.9, 0]}>
-                <tubeGeometry args={[curve, 300, 2, 8, false]} />
-                <ToonMaterial color="#222" emissive="#00ffff" emissiveIntensity={0.2} outlineColor="#004444" />
+            {/* THE ROAD: Black Asphalt */}
+            {/* We use a large tube and scale it down on Y to make a flat ribbon */}
+            <mesh position={[0, -1, 0]} scale={[1, 0.05, 1]}>
+                <tubeGeometry args={[curve, 400, 3, 8, false]} />
+                <meshStandardMaterial
+                    color="#1a1a1a"
+                    roughness={0.9}
+                    metalness={0.1}
+                />
             </mesh>
 
-            {/* --- START: RAM DISTRICT (0 to -30) --- */}
-            {/* Left Side Skyscrapers */}
-            <RamStick position={[-8, 0, 0]} scale={2} color="#ff0055" />
-            <RamStick position={[-8, 0, -8]} scale={1.8} color="#ff0055" />
-            <RamStick position={[-10, 0, -15]} scale={2.2} color="#ff0055" />
+            {/* --- CITY INFRASTRUCTURE --- */}
 
-            {/* Right Side Skyscrapers */}
-            <RamStick position={[8, 0, -2]} scale={2} color="#00aaff" />
-            <RamStick position={[8, 0, -12]} scale={2.1} color="#00aaff" />
-            <RamStick position={[10, 0, -25]} scale={1.5} color="#00aaff" />
+            {/* DISTRICT 1: MEMORY LANE (Starts) */}
+            <group>
+                {/* Left Block */}
+                <mesh position={[-12, -1, 0]}>
+                    <boxGeometry args={[10, 0.5, 40]} />
+                    <meshStandardMaterial color="#0a0a0a" />
+                </mesh>
+                <RamStick position={[-10, 0, 0]} scale={3} color="#D12020" />
+                <RamStick position={[-10, 0, -8]} scale={3} color="#D12020" />
+                <RamStick position={[-14, 0, -4]} scale={4} color="#D12020" />
+                <RamStick position={[-10, 0, -16]} scale={3} color="#D12020" />
 
-            {/* Scatter Capacitors around start */}
-            <Capacitor position={[-4, 0, -5]} />
-            <Capacitor position={[-5, 0, -2]} scale={0.8} />
-            <Capacitor position={[4, 0, -8]} />
-            <Capacitor position={[5, 0, -4]} scale={1.2} />
+                {/* Right Block */}
+                <mesh position={[12, -1, -5]}>
+                    <boxGeometry args={[10, 0.5, 50]} />
+                    <meshStandardMaterial color="#0a0a0a" />
+                </mesh>
+                <RamStick position={[10, 0, -5]} scale={3} color="#00aaff" />
+                <RamStick position={[10, 0, -15]} scale={3.5} color="#00aaff" />
+                <RamStick position={[14, 0, -10]} scale={2.5} color="#00aaff" />
+            </group>
 
+            {/* DISTRICT 2: POWER PLANT (Capacitors) */}
+            <group>
+                {/* Massive Capacitor Cluster */}
+                <mesh position={[-15, -1, -50]}>
+                    <boxGeometry args={[15, 0.5, 30]} />
+                    <meshStandardMaterial color="#0a0a0a" />
+                </mesh>
+                <Capacitor position={[-12, 0, -45]} scale={2} />
+                <Capacitor position={[-16, 0, -45]} scale={2.5} />
+                <Capacitor position={[-14, 0, -55]} scale={3} />
+            </group>
 
-            {/* --- MIDDLE: GPU DISTRICT (-30 to -80) --- */}
-            {/* The "Main" GPU Building at the stop point (-50) */}
-            <mesh position={[-5, 3, -50]}>
-                <boxGeometry args={[10, 1, 15]} />
-                <ToonMaterial color="#222" outlineColor="black" />
-            </mesh>
-            <CoolingFan position={[-5, 4, -50]} scale={3} />
-            <CoolingFan position={[-5, 4, -45]} scale={2} />
-            <CoolingFan position={[-5, 4, -55]} scale={2} />
+            {/* DISTRICT 3: GPU FACTORY (Fans) */}
+            <group>
+                <mesh position={[15, 3, -60]}>
+                    <boxGeometry args={[10, 1, 20]} />
+                    <ToonMaterial color="#222" outlineColor="cyan" />
+                </mesh>
+                <CoolingFan position={[15, 4, -60]} scale={4} rotation={[Math.PI / 2, 0, 0]} />
+                <CoolingFan position={[15, 4, -55]} scale={3} rotation={[Math.PI / 2, 0, 0]} />
 
-            {/* Surrounding Components */}
-            <Microchip position={[8, 0, -40]} scale={2} rotation={[0, 0.5, 0]} />
-            <Microchip position={[12, 0, -50]} scale={3} />
-            <Capacitor position={[6, 0, -45]} scale={1.5} />
-            <Capacitor position={[5, 0, -55]} scale={1.5} />
+                {/* Ground Scatter */}
+                <Microchip position={[8, 0, -50]} scale={2} />
+                <Microchip position={[8, 0, -65]} scale={2} />
+            </group>
 
-
-            {/* --- CONTACT: IO LANE (-80 to -120) --- */}
-            {/* Process of rising up to CPU */}
-            {Array.from({ length: 10 }).map((_, i) => (
-                <Capacitor key={i} position={[i % 2 === 0 ? 5 : -5, 0, -80 - i * 3]} scale={0.5 + Math.random()} />
+            {/* DISTRICT 4: THE CORE APPROACH */}
+            {/* Lining the path to CPU */}
+            {Array.from({ length: 8 }).map((_, i) => (
+                <group key={i}>
+                    <RamStick position={[-8, 0, -90 - i * 4]} scale={2} color="#cc00ff" />
+                    <RamStick position={[8, 0, -90 - i * 4]} scale={2} color="#cc00ff" />
+                </group>
             ))}
-            <Microchip position={[-8, 0, -90]} scale={1.5} />
-            <Microchip position={[8, 0, -100]} scale={1.5} />
 
 
             {/* The Final Destination: CPU Palace */}
-            <CPUPalace position={[0, 11, -120]} />
+            <CPUPalace position={[0, 11, -130]} />
         </group>
     );
 }

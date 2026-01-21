@@ -29,8 +29,6 @@ export function CameraRig({ curve }: CameraRigProps) {
     // Vectors for calculation
     const vec = new THREE.Vector3(); // Car Position
     const target = new THREE.Vector3(); // Car LookAt
-    const camPos = new THREE.Vector3(); // Camera Position
-    const camTarget = new THREE.Vector3(); // Camera LookAt
 
     useFrame((state, delta) => {
         // 1. Update Car Position based on Scroll
@@ -48,11 +46,9 @@ export function CameraRig({ curve }: CameraRigProps) {
             carRef.current.position.copy(vec);
             carRef.current.lookAt(target);
 
-            // Banking logic applied to Car 
-            // We can just tilt the car mesh inside the group if we want
-            // For now, let's just place it correctly
-            const tangent = curve.getTangentAt(t);
-            carRef.current.rotation.z = -tangent.x * 0.5;
+            // Disable banking to ensure car stays upright
+            // The default up vector (0,1,0) usage by lookAt should generally work 
+            // unless the curve is extreme, but we can enforce it.
         }
 
         // 2. Update Camera (Follow Logic)
@@ -65,19 +61,10 @@ export function CameraRig({ curve }: CameraRigProps) {
 
             // SNAP LOGIC
             // Camera moves to a fixed position relative to the SCENE, looking at the BUILDING
-
-            // Lerp camera to: Target Position + standard offset? 
-            // No, usually we want a specific "Hero Shot" of the building.
-            // Let's position camera relative to the Building Target.
-            // e.g. 10 units back, 5 units up from the target.
             const stopCamPos = activeStop.target.clone().add(new THREE.Vector3(0, 5, 10)); // Simple offset
 
             camera.position.lerp(stopCamPos, 0.05);
 
-            // Look at the building
-            // We need smooth lookAt. camera.lookAt is instant.
-            // We can manually lerp the quaternion or use a dummy target vector.
-            // Simple manual lerp of lookAt point:
             const currentLookAt = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).add(camera.position);
             currentLookAt.lerp(activeStop.target, 0.05);
             camera.lookAt(currentLookAt);
@@ -87,8 +74,6 @@ export function CameraRig({ curve }: CameraRigProps) {
 
             // DRIVING FOLLOW LOGIC
             // Camera should be behind and above the car
-            // Car Position: vec
-            // Car Tangent: (target - vec).normalize()
 
             const tangent = target.clone().sub(vec).normalize();
 
@@ -103,9 +88,6 @@ export function CameraRig({ curve }: CameraRigProps) {
             // Look at the Car (or slightly ahead of it)
             const idealLookAt = vec.clone().add(tangent.clone().multiplyScalar(5)); // Look ahead
             camera.lookAt(idealLookAt);
-
-            // Apply Roll to Camera for dynamic feel?
-            // camera.rotation.z = ... (already handled by lookAt mostly, but we can add bank)
         }
     });
 
