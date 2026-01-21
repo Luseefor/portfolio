@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { ScrollControls } from '@react-three/drei';
 import { MotherboardCity } from './MotherboardCity';
 import { CameraRig } from './CameraRig';
@@ -57,9 +58,35 @@ export function Experience() {
             </mesh>
 
             {/* SCROLL CONTROLS: Longer duration for extended path */}
-            <ScrollControls pages={20} damping={0.2}>
+            {/* Damping 0.5 for smoother "floaty" feel */}
+            <ScrollControls pages={20} damping={0.5}>
                 <ExperienceContent />
+                <InvertedControls />
             </ScrollControls>
         </>
     );
+}
+
+function InvertedControls() {
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Invert Arrow Keys: 
+            // Up Arrow -> Scroll Down (Forward)
+            // Down Arrow -> Scroll Up (Backward)
+
+            const scrollAmount = 50; // Step size
+
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                window.scrollBy({ top: scrollAmount, behavior: 'auto' }); // 'auto' allows damping to handle smoothing
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                window.scrollBy({ top: -scrollAmount, behavior: 'auto' });
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown, { passive: false });
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+    return null;
 }
