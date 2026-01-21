@@ -3,7 +3,7 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useScroll } from '@react-three/drei';
 import * as THREE from 'three';
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useStore } from '@/utils/store';
 import { Car } from './Car';
 
@@ -25,29 +25,37 @@ export function CameraRig({ curve }: CameraRigProps) {
 
     const carRef = useRef<THREE.Group>(null);
 
-    // Vectors for calculation
-    const vec = new THREE.Vector3(); // Car Position
-    const target = new THREE.Vector3(); // Car LookAt
+    // Vectors for calculation - useMemo to prevent re-creation
+    const vectors = useMemo(() => ({
+        vec: new THREE.Vector3(),
+        target: new THREE.Vector3()
+    }), []);
 
     useFrame((state, delta) => {
+        if (!curve || !curve.points || curve.points.length < 2) return;
+
         // 1. Update Car Position based on Scroll
-        const t = scroll.offset;
+        // Safe clamp to ensure t is always valid [0, 1]
+        const t = Math.max(0, Math.min(1, scroll.offset ?? 0));
+
+        if (isNaN(t)) return;
 
         // Get car position on curve
-        curve.getPointAt(t, vec);
+        curve.getPointAt(t, vectors.vec);
 
         // Get car forward direction
         const lookAtT = Math.min(t + 0.001, 1);
-        curve.getPointAt(lookAtT, target);
+        curve.getPointAt(lookAtT, vectors.target);
 
         // Update Car
         if (carRef.current) {
-            carRef.current.position.copy(vec);
-            carRef.current.lookAt(target);
+            const pos = vectors.vec.clone();
+            pos.y += 0.35; // Lift car
+            carRef.current.position.copy(pos);
+            carRef.current.lookAt(vectors.target.clone().add(new THREE.Vector3(0, 0.35, 0)));
 
-            // Disable banking to ensure car stays upright
-            // The default up vector (0,1,0) usage by lookAt should generally work 
-            // unless the curve is extreme, but we can enforce it.
+            // Disable banking
+            carRef.current.rotation.z = 0;
         }
 
         // 2. Update Camera (Follow Logic)
@@ -59,8 +67,7 @@ export function CameraRig({ curve }: CameraRigProps) {
             if (activeSection !== activeStop.name) setActiveSection(activeStop.name);
 
             // SNAP LOGIC
-            // Camera moves to a fixed position relative to the SCENE, looking at the BUILDING
-            const stopCamPos = activeStop.target.clone().add(new THREE.Vector3(0, 5, 10)); // Simple offset
+            const stopCamPos = activeStop.target.clone().add(new THREE.Vector3(0, 5, 10));
 
             camera.position.lerp(stopCamPos, 0.05);
 
@@ -72,20 +79,19 @@ export function CameraRig({ curve }: CameraRigProps) {
             if (activeSection !== null) setActiveSection(null);
 
             // DRIVING FOLLOW LOGIC
-            // Camera should be behind and above the car
 
-            const tangent = target.clone().sub(vec).normalize();
+            const tangent = vectors.target.clone().sub(vectors.vec).normalize();
 
             // Ideal Camera Position: CarPos - (Tangent * Distance) + (Up * Height)
-            const idealPos = vec.clone()
-                .sub(tangent.clone().multiplyScalar(6)) // 6 units behind
-                .add(new THREE.Vector3(0, 5, 0));       // 5 units up (Higher Angle)
+            const idealPos = vectors.vec.clone()
+                .sub(tangent.clone().multiplyScalar(6))
+                .add(new THREE.Vector3(0, 5, 0));
 
             // Smoothly move camera there
             camera.position.lerp(idealPos, 0.1);
 
-            // Look at the Car (or slightly ahead of it)
-            const idealLookAt = vec.clone().add(tangent.clone().multiplyScalar(5)); // Look ahead
+            // Look at the Car
+            const idealLookAt = vectors.vec.clone().add(tangent.clone().multiplyScalar(5));
             camera.lookAt(idealLookAt);
         }
     });
