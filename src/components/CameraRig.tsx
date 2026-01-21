@@ -31,28 +31,48 @@ export function CameraRig({ curve }: CameraRigProps) {
         target: new THREE.Vector3()
     }), []);
 
+    // Raycaster for physics snapping
+    const raycaster = useMemo(() => new THREE.Raycaster(), []);
+    const down = useMemo(() => new THREE.Vector3(0, -1, 0), []);
+
     useFrame((state, delta) => {
         if (!curve || !curve.points || curve.points.length < 2) return;
 
         // 1. Update Car Position based on Scroll
-        // Safe clamp to ensure t is always valid [0, 1]
         const t = Math.max(0, Math.min(1, scroll.offset ?? 0));
-
         if (isNaN(t)) return;
 
-        // Get car position on curve
+        // Get ideal curve position (XZ)
         curve.getPointAt(t, vectors.vec);
-
-        // Get car forward direction
         const lookAtT = Math.min(t + 0.001, 1);
         curve.getPointAt(lookAtT, vectors.target);
+
+        // PHYSICS SNAP: Raycast down to find actual road surface
+        // Start high up and cast down
+        raycaster.set(new THREE.Vector3(vectors.vec.x, 50, vectors.vec.z), down);
+        const intersects = raycaster.intersectObjects(state.scene.children, true);
+        const roadHit = intersects.find(hit => hit.object.name === 'road');
 
         // Update Car
         if (carRef.current) {
             const pos = vectors.vec.clone();
-            pos.y += 0.42; // Prevent sinking: Increased offset to sit clearly on geometry
+
+            if (roadHit) {
+                // Found the road! Snap exactly to surface + offset
+                // 0.35 (Wheel Radius) + 0.1 (Suspension Margin) = 0.45
+                pos.y = roadHit.point.y + 0.45;
+            } else {
+                // Fallback if ray misses (shouldn't happen on road)
+                pos.y += 0.42;
+            }
+
             carRef.current.position.copy(pos);
-            carRef.current.lookAt(vectors.target.clone().add(new THREE.Vector3(0, 0.42, 0))); // Match target height
+
+            // LookAt Logic with matching height
+            const lookTarget = vectors.target.clone();
+            if (roadHit) lookTarget.y = pos.y; // Look parallel to where we are
+
+            carRef.current.lookAt(lookTarget);
 
             // Disable banking
             carRef.current.rotation.z = 0;

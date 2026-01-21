@@ -26,7 +26,7 @@ export function MotherboardCity() {
     return (
         <group>
             {/* THE ROAD: Black Asphalt */}
-            <mesh position={[0, 0, 0]} scale={[1, 0.05, 1]}>
+            <mesh name="road" position={[0, 0, 0]} scale={[1, 0.05, 1]}>
                 <tubeGeometry args={[visualCurve, 1000, 6, 12, false]} />
                 <meshStandardMaterial
                     color="#1a1a1a"
