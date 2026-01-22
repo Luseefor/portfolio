@@ -52,40 +52,49 @@ export function CameraRig({ curve }: CameraRigProps) {
             const carHeight = 0.4;
             const laneOffset = currentLaneOffsetRef.current;
             const tangent = curve.getTangentAt(t).normalize();
-            const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+            const normal = new THREE.Vector3(-tangent.z, 0, tangent.x);
 
-            // Position Car
-            const carPos = currentPos.clone().add(normal.clone().multiplyScalar(laneOffset));
-            carRef.current.position.set(carPos.x, carPos.y + carHeight, carPos.z);
+            const offsetPos = currentPos.clone().add(normal.clone().multiplyScalar(laneOffset));
+            carRef.current.position.set(offsetPos.x, offsetPos.y + carHeight, offsetPos.z);
 
-            // Stable Heading for Car
             const heading = Math.atan2(tangent.x, tangent.z);
-            carRef.current.rotation.set(0, heading + Math.PI, 0);
+            const pitchAngle = Math.asin(THREE.MathUtils.clamp(tangent.y, -1, 1));
 
-            // ULTIMATE STABLE CHASE CAM
-            const tangentCam = new THREE.Vector3().subVectors(forwardPos, currentPos).normalize();
-            const backoff = 8 + velocity * 4;
-            const upOffset = 3;
+            const tAhead = Math.min(t + 0.01, 0.999);
+            const tBehind = Math.max(t - 0.01, 0.001);
+            const aheadPos = new THREE.Vector3();
+            const behindPos = new THREE.Vector3();
+            curve.getPointAt(tAhead, aheadPos);
+            curve.getPointAt(tBehind, behindPos);
 
-            const cameraPos = carPos.clone()
-                .sub(tangentCam.clone().multiplyScalar(backoff))
-                .add(new THREE.Vector3(0, upOffset, 0));
+            const direction1 = new THREE.Vector3().subVectors(currentPos, behindPos).normalize();
+            const direction2 = new THREE.Vector3().subVectors(aheadPos, currentPos).normalize();
+            const turnDirection = direction1.x * direction2.z - direction1.z * direction2.x;
+            const rollAngle = turnDirection * 0.5;
 
-            camera.position.lerp(cameraPos, 0.1);
-
-            // Hero LookAt (Stable & Centered)
-            const lookAhead = 10;
-            const targetPoint = carPos.clone().add(tangentCam.clone().multiplyScalar(lookAhead));
-            cameraTargetRef.current.lerp(targetPoint, 0.05);
-            camera.lookAt(cameraTargetRef.current);
-
-            // Cinematic FOV
             const pCamera = camera as THREE.PerspectiveCamera;
             if (pCamera.fov !== undefined) {
-                const targetFOV = 40 + velocity * 15;
+                const targetFOV = 45 + velocity * 15;
                 pCamera.fov = THREE.MathUtils.lerp(pCamera.fov, targetFOV, 0.05);
                 pCamera.updateProjectionMatrix();
             }
+
+            const dynamicRoll = (rollAngle + Math.PI) + (turnDirection * velocity * 0.2);
+            const targetQuaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitchAngle, heading, dynamicRoll, 'YXZ'));
+            carRef.current.quaternion.slerp(targetQuaternion, 0.1);
+
+            const tangentCam = new THREE.Vector3().subVectors(forwardPos, currentPos).normalize();
+            const speedBackoff = velocity * 4;
+            const idealPos = offsetPos.clone()
+                .sub(tangentCam.clone().multiplyScalar(7 + speedBackoff))
+                .add(new THREE.Vector3(0, 2.5, 0));
+
+            camera.position.lerp(idealPos, 0.15);
+
+            const lookAheadFactor = 4 + velocity * 10;
+            const idealLookAt = offsetPos.clone().add(tangentCam.clone().multiplyScalar(lookAheadFactor));
+            cameraTargetRef.current.lerp(idealLookAt, 0.15);
+            camera.lookAt(cameraTargetRef.current);
         }
     });
 

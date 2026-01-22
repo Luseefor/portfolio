@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useScroll, Html } from '@react-three/drei';
+import { useScroll } from '@react-three/drei';
 import * as THREE from 'three';
 import { GraphicsCard, RamStick, Microchip, CoolingFan } from './HardwareAssets';
 import { mapScrollToCurve } from '@/utils/curve';
