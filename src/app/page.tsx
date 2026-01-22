@@ -4,10 +4,12 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cpu, Terminal, ArrowRight, Grid3X3, ShieldCheck, Activity, Globe, Palette, Sun, Moon } from 'lucide-react';
-import FloatingParticles from '@/components/FloatingParticles';
-import LetterGlitch from '@/components/LetterGlitch';
-import HyperText from '@/components/HyperText';
 import { useStore } from '@/utils/store';
+import dynamic from 'next/dynamic';
+
+const FloatingParticles = dynamic(() => import('@/components/FloatingParticles'), { ssr: false });
+const LetterGlitch = dynamic(() => import('@/components/LetterGlitch'), { ssr: false });
+const HyperText = dynamic(() => import('@/components/HyperText'), { ssr: false });
 
 const THEMES = {
   emerald: {
@@ -38,16 +40,16 @@ const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolea
     <div className={`absolute inset-0 z-0 overflow-hidden transition-colors duration-1000 ${isDark ? 'bg-[#020202]' : 'bg-[#f1f5f9]'}`}>
       <motion.div
         animate={{ opacity: isDark ? [0.05, 0.1, 0.05] : [0.1, 0.2, 0.1] }}
-        transition={{ duration: 5, repeat: Infinity }}
-        className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[120px] md:h-[800px] md:w-[800px]"
-        style={{ backgroundColor: themeColor }}
+        transition={{ duration: 8, repeat: Infinity }}
+        className="absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[60px] md:h-[600px] md:w-[600px] md:blur-[100px]"
+        style={{ backgroundColor: themeColor, willChange: "opacity, transform" }}
       />
 
       <FloatingParticles
         particleColor={themeColor}
-        particleCount={80}
-        movementSpeed={0.5}
-        mouseInfluence={250}
+        particleCount={30}
+        movementSpeed={0.3}
+        mouseInfluence={200}
         mouseGravity="attract"
         gravityStrength={80}
       />
@@ -226,7 +228,7 @@ const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Ico
           rotateY: { type: "spring", stiffness: 100, damping: 30 }
         }}
         style={{ perspective: 1000 }}
-        className={`relative h-full overflow-hidden rounded-[1.5rem] border p-6 shadow-2xl backdrop-blur-[40px] transition-all duration-500 md:rounded-[2rem] md:p-8 ${isDark ? 'border-white/10 bg-gradient-to-br from-white/[0.08] to-transparent hover:from-white/[0.12]' : 'border-black/5 bg-gradient-to-br from-black/[0.03] to-white/5 hover:from-black/[0.05]'}`}
+        className={`relative h-full overflow-hidden rounded-[1.5rem] border p-6 shadow-2xl backdrop-blur-xl transition-all duration-500 md:rounded-[2rem] md:p-8 md:backdrop-blur-[40px] ${isDark ? 'border-white/10 bg-gradient-to-br from-white/[0.08] to-transparent hover:from-white/[0.12]' : 'border-black/5 bg-gradient-to-br from-black/[0.03] to-white/5 hover:from-black/[0.05]'}`}
       >
         <motion.div
           className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-500"
@@ -364,11 +366,13 @@ export default function Home() {
           <div className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all md:h-10 md:w-10 md:rounded-xl ${isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-black/5'}`}>
             <Terminal size={16} className="md:w-5 md:h-5" style={{ color: activeTheme.color }} />
           </div>
-          <div className="flex flex-col items-start">
-            <HyperText
-              text="Luseefor.SYS"
-              className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}
-            />
+          <div className="flex flex-col items-start gap-0.5">
+            <div className="min-h-[14px] min-w-[100px] md:min-h-[20px] md:min-w-[140px] flex items-center">
+              <HyperText
+                text="Luseefor.SYS"
+                className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}
+              />
+            </div>
             <span className="text-[8px] font-bold uppercase tracking-widest md:text-[10px]" style={{ color: `${activeTheme.color}80` }}>Public_Interface</span>
           </div>
         </motion.div>
@@ -380,7 +384,7 @@ export default function Home() {
         >
           <div className="flex items-center gap-2 md:gap-3">
             <Activity size={12} className="animate-pulse md:w-3.5 md:h-3.5" style={{ color: securityStatus === 'SECURE' ? activeTheme.color : '#ef4444' }} />
-            <span className={isDark ? 'text-white/60' : 'text-slate-900/60'}>
+            <span className={`w-16 inline-flex justify-center ${isDark ? 'text-white/60' : 'text-slate-900/60'}`}>
               <HyperText text={securityStatus} />
             </span>
           </div>

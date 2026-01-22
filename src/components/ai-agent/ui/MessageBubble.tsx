@@ -1,7 +1,7 @@
 'use client';
 import { motion } from 'framer-motion';
 import AIAvatar from './AIAvatar';
-import HyperText from '@/components/HyperText';
+import TypewriterText from '@/components/typewriter-text';
 
 interface MessageBubbleProps {
     role: 'user' | 'assistant';
@@ -26,12 +26,12 @@ export default function MessageBubble({ role, content, isLatest }: MessageBubble
 
             <div
                 className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed shadow-sm ${isUser
-                        ? 'bg-emerald-500 text-white rounded-tr-sm'
-                        : 'bg-white border border-black/5 text-slate-800 rounded-tl-sm dark:bg-white/5 dark:border-white/5 dark:text-slate-200'
+                    ? 'bg-emerald-500 text-white rounded-tr-sm'
+                    : 'bg-white border border-black/5 text-slate-800 rounded-tl-sm dark:bg-white/5 dark:border-white/5 dark:text-slate-200'
                     }`}
             >
                 {!isUser && isLatest ? (
-                    <HyperText text={content} />
+                    <TypewriterText text={content} />
                 ) : (
                     content
                 )}
