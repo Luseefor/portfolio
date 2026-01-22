@@ -239,9 +239,6 @@ export const instancedBuildingMaterial = new THREE.ShaderMaterial({
         void main() {
             vec3 color = vec3(0.015, 0.015, 0.018); // Dark industrial slate
             
-            // Pulsing "Data" line that moves up the building
-            float pulse = step(0.98, fract(vHeight * 0.1 - uTime * 0.5));
-            
             if (vType > 0.5) {
                 // Chip style: Window grid + logic lines
                 vec2 grid = fract(vUv * vec2(8.0, 20.0));
@@ -251,9 +248,6 @@ export const instancedBuildingMaterial = new THREE.ShaderMaterial({
                 // Tech lines (Living circuits)
                 float lines = step(0.995, fract(vUv.y * 100.0));
                 if (lines > 0.5) color = vColor;
-                
-                // Add the data pulse glow
-                if (pulse > 0.5) color += vColor * 0.8;
             } else {
                 // Capacitor style: Vertical stripes + danger zone
                 float stripe = step(0.85, fract(vUv.x * 2.0));
@@ -262,9 +256,6 @@ export const instancedBuildingMaterial = new THREE.ShaderMaterial({
                 // Glowing rings
                 float rings = step(0.96, fract(vUv.y * 15.0));
                 if (rings > 0.5) color = vColor;
-                
-                // Add pulse
-                if (pulse > 0.5) color += vColor * 0.5;
             }
             
             // Subtle edge lighting for "Million Dollar" stability/separation
