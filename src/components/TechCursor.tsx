@@ -14,26 +14,21 @@ export default function TechCursor() {
 
         window.addEventListener('mousemove', moveCursor, { passive: true });
 
-        // Hide default cursor
-        document.body.style.cursor = 'none';
-        const linkElements = document.querySelectorAll('a, button, .cursor-pointer');
-        linkElements.forEach(el => {
-            (el as HTMLElement).style.cursor = 'none';
-        });
-
-        const observer = new MutationObserver(() => {
-            const linkElements = document.querySelectorAll('a, button, .cursor-pointer');
-            linkElements.forEach(el => {
-                (el as HTMLElement).style.cursor = 'none';
-            });
-        });
-
-        observer.observe(document.body, { childList: true, subtree: true });
+        // Inject global cursor styles
+        const style = document.createElement('style');
+        style.innerHTML = `
+      * {
+        cursor: none !important;
+      }
+      body, html, a, button, input, textarea, select {
+        cursor: none !important;
+      }
+    `;
+        document.head.appendChild(style);
 
         return () => {
             window.removeEventListener('mousemove', moveCursor);
-            document.body.style.cursor = 'auto'; // Restore cursor
-            observer.disconnect();
+            document.head.removeChild(style);
         };
     }, []);
 
@@ -42,7 +37,7 @@ export default function TechCursor() {
             ref={cursorRef}
             className="pointer-events-none fixed left-0 top-0 z-[9999] flex h-8 w-8 items-center justify-center mix-blend-difference will-change-transform"
             style={{
-                opacity: 1, // Always visible once mounted
+                opacity: 1,
                 transition: 'opacity 0.2s ease',
             }}
         >
