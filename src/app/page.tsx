@@ -405,12 +405,13 @@ export default function Home() {
           </div>
           <div className="h-[200px] sm:h-[220px] md:h-auto lg:h-[320px]">
             <GlassCard
+              href="/identity"
               badge="02 // Documentation"
               title="Identity"
               description="A structured interface detailing projects and technical stack. Optimized for readability."
               icon={Grid3X3}
               delay={0.6}
-              active={false}
+              active={true}
               themeColor={activeTheme.color}
               isDark={isDark}
             />
