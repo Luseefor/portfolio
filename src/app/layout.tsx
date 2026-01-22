@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Luseefor.os",
   description: "Advanced Immersive Portfolio Experience",
   icons: {
-    icon: "/favicon.png",
+    icon: "/favicon.ico",
   },
 };
 
