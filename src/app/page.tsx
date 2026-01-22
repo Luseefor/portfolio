@@ -192,7 +192,7 @@ export default function Home() {
           </motion.div>
 
           <h1 className="text-4xl font-black tracking-tighter text-white sm:text-6xl md:text-8xl lg:text-[9rem] leading-none uppercase">
-            Luseefor<span className="text-emerald-500 opacity-20">.</span>os
+            PORTFOLIO<span className="text-emerald-500 opacity-20">.</span>os
           </h1>
         </div>
 
