@@ -34,17 +34,24 @@ const THEMES = {
 
 const GravityBackground = ({ themeColor }: { themeColor: string }) => {
   const [particles, setParticles] = useState<any[]>([]);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     // Initialize particles on client
-    const p = Array.from({ length: 30 }).map((_, i) => ({
+    const p = Array.from({ length: 40 }).map((_, i) => ({
       id: i,
-      left: `${Math.random() * 100}%`,
+      left: Math.random() * 100,
       size: Math.random() * 3 + 1,
-      duration: Math.random() * 10 + 10,
+      duration: Math.random() * 8 + 6,
       delay: Math.random() * -20 // Start at different positions in their animation
     }));
     setParticles(p);
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   return (
@@ -56,38 +63,11 @@ const GravityBackground = ({ themeColor }: { themeColor: string }) => {
         className="absolute -top-[10%] -left-[10%] h-[600px] w-[600px] rounded-full blur-[120px] md:h-[800px] md:w-[800px]"
         style={{ backgroundColor: themeColor }}
       />
-      <motion.div
-        animate={{ opacity: [0.03, 0.06, 0.03] }}
-        transition={{ duration: 7, repeat: Infinity }}
-        className="absolute -bottom-[10%] -right-[10%] h-[600px] w-[600px] rounded-full blur-[120px] md:h-[800px] md:w-[800px]"
-        style={{ backgroundColor: themeColor }}
-      />
 
       {/* Gravity Particles */}
       <div className="absolute inset-0 pointer-events-none">
         {particles.map((p) => (
-          <motion.div
-            key={p.id}
-            initial={{ y: '-10%', opacity: 0 }}
-            animate={{
-              y: '110vh',
-              opacity: [0, 0.5, 0]
-            }}
-            transition={{
-              duration: p.duration,
-              repeat: Infinity,
-              delay: p.delay,
-              ease: "linear"
-            }}
-            className="absolute rounded-full"
-            style={{
-              left: p.left,
-              width: p.size,
-              height: p.size,
-              backgroundColor: themeColor,
-              boxShadow: `0 0 10px ${themeColor}`
-            }}
-          />
+          <Particle key={p.id} p={p} themeColor={themeColor} mousePos={mousePos} />
         ))}
       </div>
 
@@ -103,6 +83,60 @@ const GravityBackground = ({ themeColor }: { themeColor: string }) => {
 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_50%,rgba(0,0,0,0.9)_100%)]" />
     </div>
+  );
+};
+
+const Particle = ({ p, themeColor, mousePos }: any) => {
+  const x = useMemo(() => p.left, [p.left]);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const updateDisplacement = () => {
+      const px = (x / 100) * window.innerWidth + offset.x;
+      const dx = mousePos.x - px;
+      const distance = Math.abs(dx);
+
+      if (distance < 250) {
+        const force = (250 - distance) / 2.5;
+        setOffset((prev) => ({
+          ...prev,
+          x: prev.x + (dx > 0 ? -force : force) * 0.08
+        }));
+      } else {
+        setOffset((prev) => ({
+          ...prev,
+          x: prev.x * 0.92
+        }));
+      }
+    };
+
+    const interval = setInterval(updateDisplacement, 16);
+    return () => clearInterval(interval);
+  }, [mousePos, x, offset.x]);
+
+  return (
+    <motion.div
+      initial={{ y: '-10%', opacity: 0 }}
+      animate={{
+        y: '110vh',
+        opacity: [0, 0.5, 0]
+      }}
+      transition={{
+        duration: p.duration,
+        repeat: Infinity,
+        delay: p.delay,
+        ease: "linear"
+      }}
+      className="absolute rounded-full"
+      style={{
+        left: `${x}%`,
+        x: offset.x,
+        width: p.size,
+        height: p.size,
+        backgroundColor: themeColor,
+        boxShadow: `0 0 12px ${themeColor}`
+      }}
+    />
   );
 };
 
@@ -226,7 +260,7 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="relative flex h-screen w-full flex-col overflow-hidden font-mono selection:bg-white/10">
+    <main className="relative flex h-screen w-full flex-col overflow-hidden font-mono selection:bg-none cursor-default select-none">
       <GravityBackground themeColor={activeTheme.color} />
       <ThemeSwitcher currentTheme={currentTheme} onThemeChange={setCurrentTheme} />
 
