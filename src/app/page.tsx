@@ -5,13 +5,20 @@ import { ViewCanvas } from '@/components/ViewCanvas';
 import { SidePanels } from '@/components/SidePanels';
 import { WelcomePopup } from '@/components/WelcomePopup';
 import { InteractionUI } from '@/components/InteractionUI';
+import { useStore } from '@/utils/store';
 
 export default function Home() {
   const [showWelcome, setShowWelcome] = useState(true);
+  const setIntroPlaying = useStore((state) => state.setIntroPlaying);
+
+  const handleStart = () => {
+    setShowWelcome(false);
+    setIntroPlaying(true);
+  };
 
   return (
     <main className="relative w-full h-screen overflow-hidden bg-black">
-      <WelcomePopup isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
+      <WelcomePopup isOpen={showWelcome} onClose={handleStart} />
       <InteractionUI />
 
       <ViewCanvas />

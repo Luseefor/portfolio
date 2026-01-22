@@ -7,6 +7,8 @@ interface AppState {
     setLane: (lane: number) => void;
     focusedItem: { title: string; content: string } | null;
     setFocusedItem: (item: { title: string; content: string } | null) => void;
+    isIntroPlaying: boolean;
+    setIntroPlaying: (playing: boolean) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -16,4 +18,6 @@ export const useStore = create<AppState>((set) => ({
     setLane: (lane) => set({ lane }),
     focusedItem: null,
     setFocusedItem: (item) => set({ focusedItem: item }),
+    isIntroPlaying: false,
+    setIntroPlaying: (playing) => set({ isIntroPlaying: playing }),
 }));
