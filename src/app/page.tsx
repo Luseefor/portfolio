@@ -7,6 +7,7 @@ import { Cpu, Terminal, ArrowRight, Grid3X3, ShieldCheck, Activity, Globe, Palet
 import FloatingParticles from '@/components/FloatingParticles';
 import LetterGlitch from '@/components/LetterGlitch';
 import HyperText from '@/components/HyperText';
+import { useStore } from '@/utils/store';
 
 const THEMES = {
   emerald: {
@@ -38,7 +39,7 @@ const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolea
       <motion.div
         animate={{ opacity: isDark ? [0.05, 0.1, 0.05] : [0.1, 0.2, 0.1] }}
         transition={{ duration: 5, repeat: Infinity }}
-        className="absolute -top-[10%] -left-[10%] h-[600px] w-[600px] rounded-full blur-[120px] md:h-[800px] md:w-[800px]"
+        className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[120px] md:h-[800px] md:w-[800px]"
         style={{ backgroundColor: themeColor }}
       />
 
@@ -282,14 +283,60 @@ export default function Home() {
   const [isDark, setIsDark] = useState(true);
   const activeTheme = useMemo(() => THEMES[currentTheme as keyof typeof THEMES], [currentTheme]);
 
+  const [systemNode, setSystemNode] = useState('DETECTING...');
+  const [systemData, setSystemData] = useState('INITIALIZING...');
+  const [securityStatus, setSecurityStatus] = useState('CHECKING...');
+  const [syncStatus, setSyncStatus] = useState('0');
+
   useEffect(() => {
+    // Time Loop
     const updateClock = () => {
       const now = new Date();
       setTime(now.toISOString().replace('T', ' ').slice(0, 19));
     };
     updateClock();
     const interval = setInterval(updateClock, 1000);
-    return () => clearInterval(interval);
+
+    // System Metrics
+    const updateMetrics = () => {
+      setSystemData(`${window.innerWidth}_X_${window.innerHeight}_PTS`);
+
+      const ua = navigator.userAgent;
+      let platform = 'UNKNOWN';
+      if (ua.includes('Mac')) platform = 'MAC_OS';
+      else if (ua.includes('Win')) platform = 'WIN_NT';
+      else if (ua.includes('Linux')) platform = 'LINUX';
+      else if (ua.includes('Android')) platform = 'ANDROID';
+      else if (ua.includes('iPhone')) platform = 'IOS';
+
+      let browser = 'WEB';
+      if (ua.includes('Chrome')) browser = 'CHROME';
+      else if (ua.includes('Safari')) browser = 'SAFARI';
+      else if (ua.includes('Firefox')) browser = 'FIREFOX';
+
+      setSystemNode(`${platform}_${browser}`);
+    };
+
+    // Security & Sync Check
+    setSecurityStatus(window.location.protocol === 'https:' ? 'SECURE' : 'UNSECURE');
+
+    const pingInterval = setInterval(() => {
+      const start = performance.now();
+      // Simulate a network check (or use fetch/HEAD in prod)
+      setTimeout(() => {
+        const latency = Math.round(performance.now() - start);
+        setSyncStatus(latency.toString());
+      }, Math.random() * 50); // Simulated network jitter
+    }, 2000);
+
+    updateMetrics();
+    window.addEventListener('resize', updateMetrics);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(pingInterval);
+      window.removeEventListener('resize', updateMetrics);
+    };
   }, []);
 
   return (
@@ -301,6 +348,7 @@ export default function Home() {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
+          onClick={() => useStore.getState().setChatOpen(true)}
           className="flex items-center gap-3 md:gap-4 cursor-pointer"
         >
           <div className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all md:h-10 md:w-10 md:rounded-xl ${isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-black/5'}`}>
@@ -321,8 +369,10 @@ export default function Home() {
           className="flex items-center gap-4 text-[8px] font-black uppercase tracking-[0.1em] md:gap-10 md:text-[10px] md:tracking-[0.2em]"
         >
           <div className="flex items-center gap-2 md:gap-3">
-            <Activity size={12} className="animate-pulse md:w-3.5 md:h-3.5" style={{ color: activeTheme.color }} />
-            <span className={isDark ? 'text-white/60' : 'text-slate-900/60'}>Secure</span>
+            <Activity size={12} className="animate-pulse md:w-3.5 md:h-3.5" style={{ color: securityStatus === 'SECURE' ? activeTheme.color : '#ef4444' }} />
+            <span className={isDark ? 'text-white/60' : 'text-slate-900/60'}>
+              <HyperText text={securityStatus} />
+            </span>
           </div>
           <div className={`hidden h-8 w-[1px] md:block ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
           <ThemeDropdown
@@ -428,13 +478,13 @@ export default function Home() {
             <div className="flex flex-col gap-0.5 cursor-pointer min-w-[80px]">
               <span className="opacity-40" style={{ color: activeTheme.color }}>Node</span>
               <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>
-                <HyperText text="BROWSER_V1" />
+                <HyperText text={systemNode} />
               </span>
             </div>
             <div className="flex flex-col gap-0.5 cursor-pointer min-w-[80px]">
               <span className="opacity-40" style={{ color: activeTheme.color }}>Data</span>
               <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>
-                <HyperText text="1024_PTS" />
+                <HyperText text={systemData} />
               </span>
             </div>
             <div className="hidden flex-col gap-0.5 sm:flex cursor-pointer min-w-[120px]">
@@ -444,12 +494,13 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4 md:gap-12">
-            <span className="animate-pulse cursor-pointer flex items-center" style={{ color: activeTheme.color }}>
-              <HyperText text="Sync_Active" />
+            <span className="animate-pulse cursor-pointer flex items-center gap-2" style={{ color: activeTheme.color }}>
+              <HyperText text="SYNC_ACTIVE" />
+              <span className="tabular-nums">[{syncStatus}MS]</span>
             </span>
           </div>
         </div>
       </footer>
-    </main>
+    </main >
   );
 }

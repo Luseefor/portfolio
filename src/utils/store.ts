@@ -9,6 +9,8 @@ interface AppState {
     setFocusedItem: (item: { title: string; content: string } | null) => void;
     isWelcomeOpen: boolean;
     setWelcomeOpen: (open: boolean) => void;
+    isChatOpen: boolean;
+    setChatOpen: (open: boolean) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -20,4 +22,6 @@ export const useStore = create<AppState>((set) => ({
     setFocusedItem: (item) => set({ focusedItem: item }),
     isWelcomeOpen: true,
     setWelcomeOpen: (open) => set({ isWelcomeOpen: open }),
+    isChatOpen: false,
+    setChatOpen: (open) => set({ isChatOpen: open }),
 }));

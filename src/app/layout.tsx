@@ -21,6 +21,8 @@ export const metadata: Metadata = {
 };
 
 import OverscrollPreventer from "@/components/OverscrollPreventer";
+import TechCursor from "@/components/TechCursor";
+import AIAgent from "@/components/ai-agent/AIAgent";
 
 export default function RootLayout({
   children,
@@ -33,6 +35,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <OverscrollPreventer />
+        <TechCursor />
+        <AIAgent />
         {children}
       </body>
     </html>
