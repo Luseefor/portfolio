@@ -294,7 +294,7 @@ export default function Home() {
       <Background themeColor={activeTheme.color} isDark={isDark} />
 
       {/* --- HEADER --- */}
-      <header className="relative z-50 flex items-center justify-between px-6 py-4 backdrop-blur-sm md:px-10 md:py-8">
+      <header className="relative z-50 flex shrink-0 items-center justify-between px-6 py-3 backdrop-blur-sm md:px-10 md:py-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -341,7 +341,7 @@ export default function Home() {
             <span className={`text-[8px] font-black tracking-[0.2em] uppercase md:text-[10px] md:tracking-[0.3em] ${isDark ? 'text-white/40' : 'text-slate-900/40'}`}>Access_Verified</span>
           </motion.div>
 
-          <h1 className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-[10rem] xl:text-[12rem] leading-none uppercase transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          <h1 className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl xl:text-[11rem] leading-none uppercase transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-900'}`}>
             {"Portfolio".split("").map((char, i) => (
               <motion.span
                 key={i}
@@ -413,7 +413,7 @@ export default function Home() {
       </div>
 
       {/* --- SYSTEM METRICS FOOTER --- */}
-      <footer className={`relative z-50 w-full border-t px-6 py-4 backdrop-blur-md transition-colors duration-1000 md:px-12 md:py-6 ${isDark ? 'border-white/5 bg-black/40' : 'border-black/5 bg-white/40'}`}>
+      <footer className={`relative z-50 w-full shrink-0 border-t px-6 py-3 backdrop-blur-md transition-colors duration-1000 md:px-12 md:py-4 ${isDark ? 'border-white/5 bg-black/40' : 'border-black/5 bg-white/40'}`}>
         <div className={`flex flex-wrap items-center justify-between gap-4 text-[7px] font-black tracking-[0.2em] uppercase transition-colors duration-1000 md:text-[9px] md:tracking-[0.5em] ${isDark ? 'text-white/30' : 'text-slate-900/30'}`}>
           <div className="flex gap-4 md:gap-12">
             <div className="flex flex-col gap-0.5 cursor-pointer">
