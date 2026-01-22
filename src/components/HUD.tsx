@@ -32,13 +32,6 @@ export function HUD() {
                 >
                     <div className="absolute inset-0 -z-10 bg-gradient-to-br from-cyan-500/5 to-transparent" />
 
-                    {/* Scanning Line */}
-                    <motion.div
-                        animate={{ y: ['0%', '200%'] }}
-                        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                        className="absolute inset-x-0 h-px w-full bg-cyan-500/10"
-                    />
-
                     <div className="flex flex-col gap-1">
                         <span className="text-[10px] font-bold tracking-[0.3em] text-cyan-400 uppercase opacity-60">Velocity_System</span>
                         <div className="flex items-baseline gap-3">

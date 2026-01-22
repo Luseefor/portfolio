@@ -51,8 +51,6 @@ function ExperienceContent() {
 
             <EffectComposer enableNormalPass={false}>
                 <Bloom intensity={1.5} luminanceThreshold={0.2} luminanceSmoothing={0.9} mipmapBlur />
-                <Scanline opacity={0.05} />
-                <Noise opacity={0.03} />
                 <Vignette eskil={false} offset={0.1} darkness={0.8} />
             </EffectComposer>
         </>
