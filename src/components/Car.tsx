@@ -4,6 +4,7 @@ import React, { useRef, useMemo, useLayoutEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useScroll, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import { useStore } from '@/utils/store';
 
 // Preload the GLB
 useGLTF.preload('/car.glb');
@@ -11,18 +12,68 @@ useGLTF.preload('/car.glb');
 export function Car() {
     const scroll = useScroll();
     const groupRef = useRef<THREE.Group>(null!)
+    const bodyRef = useRef<THREE.Group>(null!)
     const { scene } = useGLTF('/car.glb')
     const clone = useMemo(() => scene.clone(), [scene])
 
+    const lane = useStore((state) => state.lane)
     const wheelsRef = useRef<THREE.Mesh[]>([])
+    const frontWheelsRef = useRef<THREE.Mesh[]>([])
     const isSetup = useRef(false)
 
+    // Material State for Dynamic Effects
+    const brakeMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+        color: "#ff0000",
+        emissive: "#ff0000",
+        emissiveIntensity: 5
+    }), [])
+
     useLayoutEffect(() => {
+        if (isSetup.current) return
+        wheelsRef.current = []
+        frontWheelsRef.current = []
+
         const box = new THREE.Box3().setFromObject(clone)
         const center = new THREE.Vector3()
         box.getCenter(center)
         clone.position.copy(center).multiplyScalar(-1)
-    }, [clone])
+
+        clone.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+
+                // Professional Paint & Metal Finish
+                if (child.material instanceof THREE.MeshStandardMaterial) {
+                    if (child.name.toLowerCase().includes('body')) {
+                        child.material.roughness = 0.05;
+                        child.material.metalness = 1.0;
+                    }
+                }
+
+                if (child.name.toLowerCase().includes('wheel')) {
+                    child.geometry = child.geometry.clone()
+                    child.geometry.computeBoundingBox()
+                    const geomBox = child.geometry.boundingBox!
+                    const geomCenter = new THREE.Vector3()
+                    geomBox.getCenter(geomCenter)
+                    child.geometry.translate(-geomCenter.x, -geomCenter.y, -geomCenter.z)
+                    child.position.add(geomCenter.applyQuaternion(child.quaternion))
+
+                    wheelsRef.current.push(child)
+                    if (child.name.toLowerCase().includes('front')) {
+                        frontWheelsRef.current.push(child)
+                    }
+                }
+
+                // Taillight Search & Setup
+                if (child.name.toLowerCase().includes('light') && (child.name.toLowerCase().includes('rear') || child.name.toLowerCase().includes('tail'))) {
+                    child.material = brakeMaterial;
+                }
+            }
+        })
+        isSetup.current = true
+    }, [clone, brakeMaterial])
 
     const scale = useMemo(() => {
         const box = new THREE.Box3().setFromObject(clone)
@@ -33,65 +84,86 @@ export function Car() {
         return 4.5 / maxDim
     }, [clone])
 
-    useLayoutEffect(() => {
-        if (isSetup.current) return
-        wheelsRef.current = []
-        clone.traverse((child) => {
-            if (child instanceof THREE.Mesh && child.name.toLowerCase().includes('wheel')) {
-                child.geometry = child.geometry.clone()
-                child.geometry.computeBoundingBox()
-                const geomBox = child.geometry.boundingBox!
-                const geomCenter = new THREE.Vector3()
-                geomBox.getCenter(geomCenter)
-                child.geometry.translate(-geomCenter.x, -geomCenter.y, -geomCenter.z)
-                child.position.add(geomCenter.applyQuaternion(child.quaternion))
-                wheelsRef.current.push(child)
-            }
-        })
-        isSetup.current = true
-    }, [clone])
+    const targetRotationZ = useRef(0)
+    const currentRotationZ = useRef(0)
+    const targetSteerY = useRef(0)
+    const currentSteerY = useRef(0)
 
     useFrame((state, delta) => {
         const scrollDelta = scroll.delta
-        if (Math.abs(scrollDelta) > 0.0001) {
+        const velocity = Math.abs(scrollDelta) * 100;
+
+        // 1. Wheel Spin
+        if (velocity > 0.001) {
             const spinAmount = scrollDelta * 35
             wheelsRef.current.forEach(wheel => {
                 wheel.rotateX(spinAmount)
             })
         }
-        // CLEAN POSITION: Removed idle jitter/bobbing for maximum smoothness
-        clone.position.y = -0.01;
+
+        // 2. Dynamic Brake Lights
+        brakeMaterial.emissiveIntensity = velocity < 0.2 ? 15 : 5;
+
+        // 3. Steering & Body Roll
+        targetRotationZ.current = -lane * 0.15;
+        targetSteerY.current = lane * 0.4;
+
+        currentRotationZ.current = THREE.MathUtils.lerp(currentRotationZ.current, targetRotationZ.current, delta * 4);
+        currentSteerY.current = THREE.MathUtils.lerp(currentSteerY.current, targetSteerY.current, delta * 4);
+
+        if (bodyRef.current) {
+            bodyRef.current.rotation.z = currentRotationZ.current;
+        }
+
+        frontWheelsRef.current.forEach(wheel => {
+            wheel.rotation.y = currentSteerY.current;
+        });
+
+        // 4. Suspension Oscillation (Subtle Speed-dependent bounce)
+        const time = state.clock.getElapsedTime();
+        const bounce = Math.sin(time * 10) * 0.02 * (velocity > 0.1 ? 1 : 0.2);
+        if (bodyRef.current) {
+            bodyRef.current.position.y = bounce;
+        }
     })
 
     return (
         <group ref={groupRef}>
-            <group rotation={[0, 0, Math.PI]} scale={scale}>
-                <primitive object={clone} castShadow />
+            <group ref={bodyRef}>
+                <group rotation={[0, 0, Math.PI]} scale={scale}>
+                    <primitive object={clone} />
+                </group>
+
+                {/* Cyberpunk Neon Underglow */}
+                <pointLight position={[0, -0.5, 0]} intensity={25} distance={10} color="#00ffff" />
+                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
+                    <planeGeometry args={[2, 4]} />
+                    <meshBasicMaterial color="#00ffff" transparent opacity={0.3} />
+                </mesh>
             </group>
+
             {/* Optimized High-Performance Headlights */}
             <group position={[0, 1, -2]}>
                 <spotLight
                     position={[-0.8, 0, 0]}
-                    angle={0.5}
+                    angle={0.4}
                     penumbra={1}
-                    intensity={80}
+                    intensity={150}
                     color="#ffffff"
-                    distance={100}
+                    distance={120}
                     castShadow
-                    shadow-mapSize={[512, 512]}
                 />
                 <spotLight
                     position={[0.8, 0, 0]}
-                    angle={0.5}
+                    angle={0.4}
                     penumbra={1}
-                    intensity={80}
+                    intensity={150}
                     color="#ffffff"
-                    distance={100}
+                    distance={120}
                     castShadow
-                    shadow-mapSize={[512, 512]}
                 />
-                {/* Fast Fill Light */}
-                <pointLight position={[0, -0.5, -2]} intensity={8} distance={20} color="#ffffff" />
+                {/* Rear Brake Light Glow */}
+                <pointLight position={[0, 0.5, 3]} intensity={20} distance={8} color="#ff0000" />
             </group>
         </group>
     );
