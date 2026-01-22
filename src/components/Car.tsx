@@ -102,17 +102,19 @@ export function Car() {
         }
 
         // 2. Dynamic Brake Lights
-        brakeMaterial.emissiveIntensity = velocity < 0.2 ? 15 : 5;
+        brakeMaterial.emissiveIntensity = velocity < 0.2 ? 10 : 3;
 
-        // 3. Steering & Body Roll
-        targetRotationZ.current = -lane * 0.15;
-        targetSteerY.current = lane * 0.4;
+        // 3. Steering & Body Roll (SUBTLE & CLEAN)
+        targetRotationZ.current = -lane * 0.05;
+        targetSteerY.current = lane * 0.3;
 
-        currentRotationZ.current = THREE.MathUtils.lerp(currentRotationZ.current, targetRotationZ.current, delta * 4);
-        currentSteerY.current = THREE.MathUtils.lerp(currentSteerY.current, targetSteerY.current, delta * 4);
+        currentRotationZ.current = THREE.MathUtils.lerp(currentRotationZ.current, targetRotationZ.current, delta * 3);
+        currentSteerY.current = THREE.MathUtils.lerp(currentSteerY.current, targetSteerY.current, delta * 3);
 
         if (bodyRef.current) {
             bodyRef.current.rotation.z = currentRotationZ.current;
+            // Ensure car sits slightly above ground to prevent clipping
+            bodyRef.current.position.y = 0.05;
         }
 
         frontWheelsRef.current.forEach(wheel => {
@@ -121,9 +123,9 @@ export function Car() {
 
         // 4. Suspension Oscillation (Subtle Speed-dependent bounce)
         const time = state.clock.getElapsedTime();
-        const bounce = Math.sin(time * 10) * 0.02 * (velocity > 0.1 ? 1 : 0.2);
+        const bounce = Math.sin(time * 10) * 0.015 * (velocity > 0.1 ? 1 : 0.2);
         if (bodyRef.current) {
-            bodyRef.current.position.y = bounce;
+            bodyRef.current.position.y += bounce;
         }
     })
 
@@ -134,21 +136,21 @@ export function Car() {
                     <primitive object={clone} />
                 </group>
 
-                {/* Cyberpunk Neon Underglow */}
-                <pointLight position={[0, -0.5, 0]} intensity={25} distance={10} color="#00ffff" />
+                {/* Cyberpunk Neon Underglow (TONED DOWN) */}
+                <pointLight position={[0, -0.2, 0]} intensity={8} distance={8} color="#00ffff" />
                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
                     <planeGeometry args={[2, 4]} />
-                    <meshBasicMaterial color="#00ffff" transparent opacity={0.3} />
+                    <meshBasicMaterial color="#00ffff" transparent opacity={0.15} />
                 </mesh>
             </group>
 
-            {/* Optimized High-Performance Headlights */}
+            {/* Optimized High-Performance Headlights (TONED DOWN) */}
             <group position={[0, 1, -2]}>
                 <spotLight
                     position={[-0.8, 0, 0]}
                     angle={0.4}
                     penumbra={1}
-                    intensity={150}
+                    intensity={60}
                     color="#ffffff"
                     distance={120}
                     castShadow
@@ -157,13 +159,13 @@ export function Car() {
                     position={[0.8, 0, 0]}
                     angle={0.4}
                     penumbra={1}
-                    intensity={150}
+                    intensity={60}
                     color="#ffffff"
                     distance={120}
                     castShadow
                 />
-                {/* Rear Brake Light Glow */}
-                <pointLight position={[0, 0.5, 3]} intensity={20} distance={8} color="#ff0000" />
+                {/* Rear Brake Light Glow (TONED DOWN) */}
+                <pointLight position={[0, 0.5, 3]} intensity={5} distance={8} color="#ff0000" />
             </group>
         </group>
     );
