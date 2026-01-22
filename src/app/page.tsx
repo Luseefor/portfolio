@@ -331,7 +331,7 @@ export default function Home() {
 
       {/* --- MAIN DASHBOARD --- */}
       <div className="relative z-20 flex flex-1 flex-col items-center justify-center px-6 md:px-10">
-        <div className="mb-8 text-center md:mb-16">
+        <div className="mb-6 text-center md:mb-8">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -384,8 +384,8 @@ export default function Home() {
           </h1>
         </div>
 
-        <div className="grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 md:gap-8 lg:gap-10">
-          <div className="h-[220px] sm:h-[260px] md:h-auto lg:h-[380px]">
+        <div className="grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:gap-8">
+          <div className="h-[200px] sm:h-[220px] md:h-auto lg:h-[320px]">
             <GlassCard
               href="/interactive"
               badge="01 // Environment"
@@ -397,7 +397,7 @@ export default function Home() {
               isDark={isDark}
             />
           </div>
-          <div className="h-[220px] sm:h-[260px] md:h-auto lg:h-[380px]">
+          <div className="h-[200px] sm:h-[220px] md:h-auto lg:h-[320px]">
             <GlassCard
               badge="02 // Documentation"
               title="Identity"
