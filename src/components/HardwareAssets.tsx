@@ -54,12 +54,13 @@ export const componentMaterial = new THREE.ShaderMaterial({
         uTime: { value: 0 }
     },
     vertexShader: `
+        attribute mat4 instanceMatrix;
+        attribute vec3 instanceColor;
+        attribute float instanceType;
         varying vec2 vUv;
         varying vec3 vColor;
         varying float vType;
         varying float vHeight;
-        attribute vec3 instanceColor;
-        attribute float instanceType;
         
         void main() {
             vUv = uv;
