@@ -10,11 +10,9 @@ import { useStore } from '@/utils/store';
 export default function Home() {
   const isWelcomeOpen = useStore((state) => state.isWelcomeOpen);
   const setWelcomeOpen = useStore((state) => state.setWelcomeOpen);
-  const setIntroPlaying = useStore((state) => state.setIntroPlaying);
 
   const handleStart = () => {
     setWelcomeOpen(false);
-    setIntroPlaying(true);
   };
 
   return (
