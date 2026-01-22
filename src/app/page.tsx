@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cpu, Terminal, ArrowRight, Grid3X3, ShieldCheck, Activity, Globe, Palette, Sun, Moon } from 'lucide-react';
@@ -44,6 +44,7 @@ const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolea
         particleCount={80}
         movementSpeed={0.5}
         mouseInfluence={250}
+        mouseGravity="attract"
         gravityStrength={80}
       />
 
@@ -137,13 +138,73 @@ const ThemeDropdown = ({ currentTheme, onThemeChange, isDark, toggleDark, themeC
   );
 };
 
+const Magnetic = ({ children }: { children: React.ReactNode }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  const handleMouse = (e: React.MouseEvent) => {
+    if (!ref.current) return;
+    const { clientX, clientY } = e;
+    const { height, width, left, top } = ref.current.getBoundingClientRect();
+    const middleX = clientX - (left + width / 2);
+    const middleY = clientY - (top + height / 2);
+    setPosition({ x: middleX * 0.2, y: middleY * 0.2 });
+  };
+
+  const reset = () => {
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const { x, y } = position;
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={handleMouse}
+      onMouseLeave={reset}
+      animate={{ x, y }}
+      transition={{ type: "spring", stiffness: 150, damping: 15, mass: 0.1 }}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
 const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Icon, active = true, themeColor, isDark }: any) => {
+  const [rotate, setRotate] = useState({ x: 0, y: 0 });
+
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - card.left;
+    const y = e.clientY - card.top;
+    const centerX = card.width / 2;
+    const centerY = card.height / 2;
+    const rotateX = (y - centerY) / 20;
+    const rotateY = (centerX - x) / 20;
+    setRotate({ x: rotateX, y: rotateY });
+  };
+
+  const onMouseLeave = () => {
+    setRotate({ x: 0, y: 0 });
+  };
+
   return (
     <Link href={href} className={`group relative block h-full ${!active && 'pointer-events-none cursor-default'}`}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay, duration: 0.8 }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          rotateX: rotate.x,
+          rotateY: rotate.y
+        }}
+        onMouseMove={onMouseMove}
+        onMouseLeave={onMouseLeave}
+        transition={{
+          opacity: { delay, duration: 0.8 },
+          rotateX: { type: "spring", stiffness: 100, damping: 30 },
+          rotateY: { type: "spring", stiffness: 100, damping: 30 }
+        }}
+        style={{ perspective: 1000 }}
         className={`relative h-full overflow-hidden rounded-[1.5rem] border p-6 shadow-2xl backdrop-blur-[40px] transition-all duration-500 md:rounded-[2rem] md:p-8 ${isDark ? 'border-white/10 bg-gradient-to-br from-white/[0.08] to-transparent hover:from-white/[0.12]' : 'border-black/5 bg-gradient-to-br from-black/[0.03] to-white/5 hover:from-black/[0.05]'}`}
       >
         <motion.div
@@ -179,13 +240,15 @@ const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Ico
           </p>
 
           <div className="mt-auto flex items-center justify-between">
-            <div
-              className="flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] transition-all duration-300 md:gap-3 md:text-xs md:tracking-[0.3em]"
-              style={{ color: active ? themeColor : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') }}
-            >
-              <span>{active ? 'Initialize' : 'Offline'}</span>
-              {active && <ArrowRight size={14} className="transition-transform group-hover:translate-x-2 md:w-4 md:h-4" />}
-            </div>
+            <Magnetic>
+              <div
+                className="flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] transition-all duration-300 md:gap-3 md:text-xs md:tracking-[0.3em]"
+                style={{ color: active ? themeColor : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') }}
+              >
+                <span>{active ? 'Initialize' : 'Offline'}</span>
+                {active && <ArrowRight size={14} className="transition-transform group-hover:translate-x-2 md:w-4 md:h-4" />}
+              </div>
+            </Magnetic>
             {active && (
               <div className={`h-0.5 w-8 overflow-hidden rounded-full md:h-1 md:w-12 ${isDark ? 'bg-white/5' : 'bg-black/5'}`}>
                 <motion.div
@@ -225,19 +288,21 @@ export default function Home() {
 
       {/* --- HEADER --- */}
       <header className="relative z-50 flex items-center justify-between px-6 py-4 backdrop-blur-sm md:px-10 md:py-8">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-3 md:gap-4"
-        >
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all md:h-10 md:w-10 md:rounded-xl ${isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-black/5'}`}>
-            <Terminal size={16} className="md:w-5 md:h-5" style={{ color: activeTheme.color }} />
-          </div>
-          <div className="flex flex-col items-start">
-            <span className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}>Luseefor.SYS</span>
-            <span className="text-[8px] font-bold uppercase tracking-widest md:text-[10px]" style={{ color: `${activeTheme.color}80` }}>Public_Interface</span>
-          </div>
-        </motion.div>
+        <Magnetic>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-3 md:gap-4 cursor-pointer"
+          >
+            <div className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all md:h-10 md:w-10 md:rounded-xl ${isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-black/5'}`}>
+              <Terminal size={16} className="md:w-5 md:h-5" style={{ color: activeTheme.color }} />
+            </div>
+            <div className="flex flex-col items-start">
+              <span className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}>Luseefor.SYS</span>
+              <span className="text-[8px] font-bold uppercase tracking-widest md:text-[10px]" style={{ color: `${activeTheme.color}80` }}>Public_Interface</span>
+            </div>
+          </motion.div>
+        </Magnetic>
 
         <motion.div
           initial={{ opacity: 0, x: 20 }}
@@ -249,13 +314,15 @@ export default function Home() {
             <span className={isDark ? 'text-white/60' : 'text-slate-900/60'}>Secure</span>
           </div>
           <div className={`hidden h-8 w-[1px] md:block ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
-          <ThemeDropdown
-            currentTheme={currentTheme}
-            onThemeChange={setCurrentTheme}
-            isDark={isDark}
-            toggleDark={() => setIsDark(!isDark)}
-            themeColor={activeTheme.color}
-          />
+          <Magnetic>
+            <ThemeDropdown
+              currentTheme={currentTheme}
+              onThemeChange={setCurrentTheme}
+              isDark={isDark}
+              toggleDark={() => setIsDark(!isDark)}
+              themeColor={activeTheme.color}
+            />
+          </Magnetic>
         </motion.div>
       </header>
 
@@ -271,8 +338,46 @@ export default function Home() {
             <span className={`text-[8px] font-black tracking-[0.2em] uppercase md:text-[10px] md:tracking-[0.3em] ${isDark ? 'text-white/40' : 'text-slate-900/40'}`}>Access_Verified</span>
           </motion.div>
 
-          <h1 className={`text-4xl font-black tracking-tighter sm:text-6xl md:text-8xl lg:text-[9.5rem] leading-none uppercase transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            Portfolio<span className="opacity-20 transition-colors duration-1000" style={{ color: activeTheme.color }}>.</span>os
+          <h1 className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-[10rem] xl:text-[12rem] leading-none uppercase transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            {"Portfolio".split("").map((char, i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  delay: 0.8 + i * 0.05,
+                  duration: 0.8,
+                  ease: [0.2, 0.65, 0.3, 0.9]
+                }}
+                className="inline-block"
+              >
+                {char}
+              </motion.span>
+            ))}
+            <motion.span
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 0.2, scale: 1 }}
+              transition={{ delay: 1.5, duration: 1 }}
+              className="transition-colors duration-1000"
+              style={{ color: activeTheme.color }}
+            >
+              .
+            </motion.span>
+            {"os".split("").map((char, i) => (
+              <motion.span
+                key={i + 10}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  delay: 1.6 + i * 0.1,
+                  duration: 0.8,
+                  ease: [0.2, 0.65, 0.3, 0.9]
+                }}
+                className="inline-block"
+              >
+                {char}
+              </motion.span>
+            ))}
           </h1>
         </div>
 
