@@ -1,224 +1,255 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Cpu, Terminal, ArrowRight, Grid3X3 } from 'lucide-react';
+import { Cpu, Terminal, ArrowRight, Grid3X3, ShieldCheck, Activity, Globe } from 'lucide-react';
 
 const GlitchBackground = () => {
   const [glitchLines, setGlitchLines] = useState<number[]>([]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const lines = Array.from({ length: 5 }, () => Math.random() * 100);
+      const lines = Array.from({ length: 3 }, () => Math.random() * 100);
       setGlitchLines(lines);
-      setTimeout(() => setGlitchLines([]), 150);
-    }, 3000);
+      setTimeout(() => setGlitchLines([]), 200);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="absolute inset-0 z-0 overflow-hidden bg-[#020202]">
-      {/* Base Digital Grid (Animated Opacity) */}
+      {/* Liquid Glow Base */}
+      <div className="absolute -top-[20%] -left-[10%] h-[800px] w-[800px] rounded-full bg-emerald-500/5 blur-[120px]" />
+      <div className="absolute -bottom-[20%] -right-[10%] h-[800px] w-[800px] rounded-full bg-emerald-900/10 blur-[120px]" />
+
+      {/* Depth Grid */}
       <motion.div
-        animate={{ opacity: [0.05, 0.1, 0.05] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        animate={{ opacity: [0.03, 0.08, 0.03] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         className="absolute inset-0"
         style={{
           backgroundImage: `linear-gradient(#10b981 1px, transparent 1px), linear-gradient(90deg, #10b981 1px, transparent 1px)`,
-          backgroundSize: '80px 80px',
+          backgroundSize: '120px 120px',
+          maskImage: 'radial-gradient(circle at center, black, transparent 90%)'
         }}
       />
 
-      {/* Flickering Data Points */}
+      {/* Active Data Particles */}
       <div className="absolute inset-0">
-        {Array.from({ length: 20 }).map((_, i) => (
+        {Array.from({ length: 15 }).map((_, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0 }}
             animate={{
-              opacity: [0, 0.3, 0],
-              scale: [1, 1.2, 1],
+              opacity: [0, 0.4, 0],
+              y: [0, -100],
             }}
             transition={{
-              duration: Math.random() * 2 + 1,
+              duration: Math.random() * 4 + 2,
               repeat: Infinity,
               delay: Math.random() * 5
             }}
-            className="absolute h-1 w-1 bg-emerald-500"
+            className="absolute h-[1px] w-[1px] bg-emerald-400"
             style={{
               top: `${Math.random() * 100}%`,
               left: `${Math.random() * 100}%`,
-              boxShadow: '0 0 10px #10b981'
+              boxShadow: '0 0 8px #34d399'
             }}
           />
         ))}
       </div>
 
-      {/* Animated Glitch Strips */}
+      {/* Interference Strips */}
       <AnimatePresence>
         {glitchLines.map((top, i) => (
           <motion.div
             key={`${top}-${i}`}
-            initial={{ x: '-100%' }}
-            animate={{ x: '100%' }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: "linear" }}
-            className="absolute h-[1px] w-full bg-emerald-500/20 backdrop-invert-[0.1]"
+            initial={{ opacity: 0, x: '-10%' }}
+            animate={{ opacity: [0, 1, 0], x: '10%' }}
+            transition={{ duration: 0.3 }}
+            className="absolute h-[2px] w-full bg-emerald-500/10 backdrop-blur-sm"
             style={{ top: `${top}%` }}
           />
         ))}
       </AnimatePresence>
 
-      {/* Fixed Scanline Jitter */}
-      <motion.div
-        animate={{ y: [0, 4, 0] }}
-        transition={{ duration: 0.1, repeat: Infinity }}
-        className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_8px] opacity-20"
-      />
-
-      {/* Vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.8)_100%)]" />
+      {/* Scanline Jitter */}
+      <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.05)_50%)] bg-[length:100%_4px] opacity-10" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.9)_100%)]" />
     </div>
   );
 };
 
-export default function Home() {
+const GlassCard = ({ children, delay = 0, href = "#", title, description, badge, icon: Icon, active = true }: any) => {
   return (
-    <main className="relative min-h-screen w-full overflow-hidden font-mono text-emerald-500 selection:bg-emerald-500/30">
+    <Link href={href} className={`group relative block ${!active && 'pointer-events-none cursor-default'}`}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay, duration: 0.8 }}
+        className="relative h-full overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-white/[0.08] to-transparent p-10 shadow-2xl backdrop-blur-[80px] transition-all duration-500 group-hover:border-emerald-500/30 group-hover:from-white/[0.12]"
+      >
+        {/* Liquid Sheen Effect */}
+        <motion.div
+          initial={{ x: '-150%', skewX: -45 }}
+          whileHover={{ x: '150%' }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent pointer-events-none"
+        />
+
+        <div className="relative z-10 flex h-full flex-col">
+          <div className="mb-8 flex justify-between items-start">
+            <span className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[10px] font-black tracking-[0.2em] uppercase transition-colors ${active ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-white/10 bg-white/5 text-white/30'}`}>
+              {badge}
+            </span>
+            <div className={`transition-all duration-500 ${active ? 'text-emerald-500 group-hover:scale-110 group-hover:text-emerald-400' : 'text-white/10'}`}>
+              <Icon size={48} strokeWidth={1.5} />
+            </div>
+          </div>
+
+          <h3 className={`mb-4 text-4xl font-black tracking-tight ${active ? 'text-white' : 'text-white/20'}`}>
+            {title}
+          </h3>
+          <p className={`mb-10 max-w-sm text-sm leading-relaxed font-sans ${active ? 'text-white/40' : 'text-white/10'}`}>
+            {description}
+          </p>
+
+          <div className="mt-auto flex items-center justify-between">
+            <div className={`flex items-center gap-3 font-black text-xs uppercase tracking-[0.3em] transition-all duration-300 ${active ? 'text-emerald-500 group-hover:text-emerald-300' : 'text-white/10'}`}>
+              <span>{active ? 'Initialize Interface' : 'Node Offline'}</span>
+              {active && <ArrowRight size={16} className="transition-transform group-hover:translate-x-2" />}
+            </div>
+            {active && (
+              <div className="h-1 w-12 overflow-hidden rounded-full bg-white/5">
+                <motion.div
+                  animate={{ x: [-48, 48] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="h-full w-full bg-emerald-500/40"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </Link>
+  );
+};
+
+export default function Home() {
+  const [time, setTime] = useState('');
+
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setTime(now.toISOString().replace('T', ' ').slice(0, 19));
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <main className="relative min-h-screen w-full overflow-hidden font-mono text-emerald-500/60 selection:bg-emerald-500/30">
       <GlitchBackground />
 
-      {/* --- NAVIGATION / HEADER --- */}
-      <nav className="relative z-50 flex items-center justify-between p-8 backdrop-blur-[2px]">
+      {/* --- HEADER --- */}
+      <header className="relative z-50 flex items-center justify-between px-10 py-8 backdrop-blur-sm">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-3 text-sm font-bold tracking-[0.4em] uppercase"
+          className="flex items-center gap-4"
         >
-          <Terminal size={18} className="text-emerald-400" />
-          <span>Luseefor.sys</span>
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 backdrop-blur-md">
+            <Terminal size={20} className="text-emerald-400" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-black tracking-[0.4em] text-white uppercase">Luseefor/Portfolio</span>
+            <span className="text-[10px] font-bold text-emerald-500/40 uppercase tracking-widest">Workspace_Active</span>
+          </div>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="hidden gap-8 text-[10px] sm:flex"
+          className="flex items-center gap-10 text-[10px] font-black uppercase tracking-[0.2em]"
         >
-          <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-            <span className="opacity-50 uppercase tracking-[0.2em]">Core Active</span>
+          <div className="flex items-center gap-3">
+            <Activity size={14} className="text-emerald-500 animate-pulse" />
+            <span className="text-white/60">Encrypted Tunnel: SSL_v3</span>
+          </div>
+          <div className="hidden lg:flex items-center gap-3 border-l border-white/10 pl-10">
+            <Globe size={14} className="text-white/20" />
+            <span className="text-white/20">Uptime: 99.99%</span>
           </div>
         </motion.div>
-      </nav>
+      </header>
 
-      {/* --- MAIN CONTENT --- */}
-      <div className="relative z-20 flex min-h-[calc(100vh-100px)] flex-col items-center justify-center px-6">
-        <div className="mb-16 text-center">
+      {/* --- MAIN DASHBOARD --- */}
+      <div className="relative z-20 flex min-h-[calc(100vh-160px)] flex-col items-center justify-center px-10">
+        <div className="mb-20 text-center">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8 }}
-            className="relative inline-block"
+            className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/5 bg-white/[0.02] px-6 py-2 backdrop-blur-md"
           >
-            <h1 className="mb-4 text-6xl font-black italic tracking-tighter text-white sm:text-8xl md:text-9xl">
-              PORTFOLIO
-            </h1>
-            <motion.p
-              animate={{
-                x: [-2, 2, -1, 3, 0],
-                opacity: [1, 0.8, 1, 0.9, 1]
-              }}
-              transition={{ duration: 0.2, repeat: Infinity, repeatDelay: 3 }}
-              className="absolute -top-4 -right-4 text-xs font-bold tracking-[1em] text-emerald-400 mix-blend-difference uppercase"
-            >
-              V2.0_EXPLORER
-            </motion.p>
+            <ShieldCheck size={14} className="text-emerald-400" />
+            <span className="text-[10px] font-black tracking-[0.3em] uppercase text-white/40">Authentication Verified</span>
           </motion.div>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
-            transition={{ delay: 0.5 }}
-            className="mx-auto max-w-xl text-xs font-medium tracking-[0.5em] uppercase"
-          >
-            Select your preferred visualization interface to proceed
-          </motion.p>
+          <h1 className="mb-6 text-7xl font-black tracking-tighter text-white sm:text-8xl md:text-[10rem] leading-[0.8]">
+            PORTFOLIO<span className="text-emerald-500 opacity-20">.</span>OS
+          </h1>
         </div>
 
-        <div className="grid w-full max-w-5xl gap-8 md:grid-cols-2 text-left">
-          {/* Interactive 3D Card */}
-          <Link href="/interactive" className="group">
-            <motion.div
-              whileHover={{ y: -10, borderColor: 'rgba(16,185,129,0.5)', backgroundColor: 'rgba(16,185,129,0.05)' }}
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.6 }}
-              className="relative h-[400px] overflow-hidden rounded-[2rem] border border-white/5 bg-white/[0.02] p-8 shadow-2xl backdrop-blur-xl transition-all"
-            >
-              <div className="absolute top-0 right-0 p-8 opacity-20 transition-transform duration-500 group-hover:scale-110 group-hover:opacity-100">
-                <Cpu size={80} className="text-emerald-500" />
-              </div>
-
-              <div className="flex h-full flex-col justify-end">
-                <span className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5 text-[10px] font-bold tracking-widest text-emerald-400 uppercase">
-                  Immersive Mode
-                </span>
-                <h3 className="mb-4 text-4xl font-bold text-white">Interactive Drive</h3>
-                <p className="mb-8 max-w-xs text-sm leading-relaxed text-white/40 font-sans">
-                  Navigate through a futuristic motherboard landscape. Experience the 3D city as it reacts to your movements.
-                </p>
-                <div className="flex items-center gap-3 font-bold uppercase tracking-widest text-emerald-500 group-hover:text-emerald-300">
-                  <span>Initiate Protocol</span>
-                  <ArrowRight size={18} className="translate-x-0 transition-transform group-hover:translate-x-2" />
-                </div>
-              </div>
-              <div className="absolute inset-x-0 bottom-0 h-[2px] w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            </motion.div>
-          </Link>
-
-          {/* Base Website Card */}
-          <Link href="#" className="group pointer-events-none opacity-60">
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.7 }}
-              className="relative h-[400px] overflow-hidden rounded-[2rem] border border-white/5 bg-white/[0.02] p-8 backdrop-blur-xl transition-colors"
-            >
-              <div className="absolute top-0 right-0 p-8 opacity-10">
-                <Grid3X3 size={80} className="text-white" />
-              </div>
-
-              <div className="flex h-full flex-col justify-end">
-                <span className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[10px] font-bold tracking-widest text-white/40 uppercase">
-                  Standard Interface
-                </span>
-                <h3 className="mb-4 text-4xl font-bold text-white">Classic Portfolio</h3>
-                <p className="mb-8 max-w-xs text-sm leading-relaxed text-white/40 font-sans">
-                  A high-performance, minimalist view of projects and professional milestones. Pure data, no distraction.
-                </p>
-                <div className="flex items-center gap-3 font-bold uppercase tracking-widest text-white/20">
-                  <span>System Offline</span>
-                </div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm opacity-0 transition-opacity group-hover:opacity-100">
-                <span className="rounded-lg border border-white/20 px-6 py-2 text-xs font-bold tracking-[0.5em] uppercase text-white">Coming Soon</span>
-              </div>
-            </motion.div>
-          </Link>
+        <div className="grid w-full max-w-6xl grid-cols-1 gap-10 md:grid-cols-2">
+          <GlassCard
+            href="/interactive"
+            badge="01 // Environment"
+            title="Immersive Drive"
+            description="Venture into a high-fidelity geospatial motherboard environment. Optimized for arm64 neural engines and hardware acceleration."
+            icon={Cpu}
+            delay={0.4}
+          />
+          <GlassCard
+            badge="02 // Documentation"
+            title="Core Identity"
+            description="A structured interface detailing professional achievements, technical stack, and verified project history. Optimized for readability."
+            icon={Grid3X3}
+            delay={0.6}
+            active={false}
+          />
         </div>
       </div>
 
-      {/* --- FOOTER DECORATION --- */}
-      <div className="absolute bottom-8 left-0 z-50 flex w-full justify-between border-t border-emerald-500/10 px-12 pt-8 text-[10px] font-bold tracking-[0.5em] text-emerald-500/20 uppercase">
-        <div className="flex gap-12">
-          <span>Lat: 34.0522 N</span>
-          <span>Lon: 118.2437 W</span>
+      {/* --- SYSTEM METRICS FOOTER --- */}
+      <footer className="absolute bottom-0 left-0 z-50 w-full border-t border-white/5 px-12 py-8 bg-black/20 backdrop-blur-md">
+        <div className="flex flex-wrap justify-between gap-8 text-[9px] font-black tracking-[0.5em] text-white/30 uppercase">
+          <div className="flex gap-12">
+            <div className="flex flex-col gap-1">
+              <span className="text-emerald-500/40">System_Kernel</span>
+              <span className="text-white">Darwin arm64</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-emerald-500/40">Indexed_Assets</span>
+              <span className="text-white">31 Object Nodes</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-emerald-500/40">Network_Latency</span>
+              <span className="text-white">~ 14ms Response</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-12">
+            <div className="flex flex-col gap-1 text-right">
+              <span className="text-emerald-500/40">Global_Timestamp</span>
+              <span className="text-white tabular-nums tracking-widest">{time}</span>
+            </div>
+            <div className="h-8 w-[1px] bg-white/10" />
+            <span className="text-emerald-500 tracking-[1em] animate-pulse">Live_Feed</span>
+          </div>
         </div>
-        <div className="flex gap-12">
-          <span>Protocol: 0x889</span>
-          <span>Status: Decrypted</span>
-        </div>
-      </div>
+      </footer>
     </main>
   );
 }
