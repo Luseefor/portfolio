@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cpu, Terminal, ArrowRight, Grid3X3, ShieldCheck, Activity, Globe, Palette, Sun, Moon } from 'lucide-react';
+import FloatingParticles from '@/components/FloatingParticles';
 
 const THEMES = {
   emerald: {
@@ -28,27 +29,7 @@ const THEMES = {
   }
 };
 
-const GravityBackground = ({ themeColor, isDark }: { themeColor: string, isDark: boolean }) => {
-  const [particles, setParticles] = useState<any[]>([]);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const p = Array.from({ length: 40 }).map((_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      size: Math.random() * 3 + 1,
-      duration: Math.random() * 8 + 6,
-      delay: Math.random() * -20
-    }));
-    setParticles(p);
-
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
+const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolean }) => {
   return (
     <div className={`absolute inset-0 z-0 overflow-hidden transition-colors duration-1000 ${isDark ? 'bg-[#020202]' : 'bg-[#f1f5f9]'}`}>
       <motion.div
@@ -58,12 +39,15 @@ const GravityBackground = ({ themeColor, isDark }: { themeColor: string, isDark:
         style={{ backgroundColor: themeColor }}
       />
 
-      <div className="absolute inset-0 pointer-events-none">
-        {particles.map((p) => (
-          <Particle key={p.id} p={p} themeColor={themeColor} mousePos={mousePos} isDark={isDark} />
-        ))}
-      </div>
+      <FloatingParticles
+        particleColor={themeColor}
+        particleCount={80}
+        movementSpeed={0.5}
+        mouseInfluence={250}
+        gravityStrength={80}
+      />
 
+      {/* Grid Overlay */}
       <div
         className="absolute inset-0 opacity-[0.05]"
         style={{
@@ -75,61 +59,6 @@ const GravityBackground = ({ themeColor, isDark }: { themeColor: string, isDark:
 
       <div className={`absolute inset-0 transition-opacity duration-1000 ${isDark ? 'opacity-100' : 'opacity-30'}`} style={{ background: `radial-gradient(circle at center, transparent 50%, ${isDark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.9)'} 100%)` }} />
     </div>
-  );
-};
-
-const Particle = ({ p, themeColor, mousePos, isDark }: any) => {
-  const x = useMemo(() => p.left, [p.left]);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const updateDisplacement = () => {
-      const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1000;
-      const px = (x / 100) * windowWidth + offset.x;
-      const dx = mousePos.x - px;
-      const distance = Math.abs(dx);
-
-      if (distance < 250) {
-        const force = (250 - distance) / 2.5;
-        setOffset((prev) => ({
-          ...prev,
-          x: prev.x + (dx > 0 ? -force : force) * 0.08
-        }));
-      } else {
-        setOffset((prev) => ({
-          ...prev,
-          x: prev.x * 0.92
-        }));
-      }
-    };
-
-    const interval = setInterval(updateDisplacement, 16);
-    return () => clearInterval(interval);
-  }, [mousePos, x, offset.x]);
-
-  return (
-    <motion.div
-      initial={{ y: '-10%', opacity: 0 }}
-      animate={{
-        y: '110vh',
-        opacity: isDark ? [0, 0.5, 0] : [0, 0.8, 0]
-      }}
-      transition={{
-        duration: p.duration,
-        repeat: Infinity,
-        delay: p.delay,
-        ease: "linear"
-      }}
-      className="absolute rounded-full"
-      style={{
-        left: `${x}%`,
-        x: offset.x,
-        width: p.size,
-        height: p.size,
-        backgroundColor: themeColor,
-        boxShadow: `0 0 12px ${themeColor}`
-      }}
-    />
   );
 };
 
@@ -292,7 +221,7 @@ export default function Home() {
 
   return (
     <main className={`relative flex h-screen w-full flex-col overflow-hidden font-mono selection:bg-none cursor-default select-none transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-      <GravityBackground themeColor={activeTheme.color} isDark={isDark} />
+      <Background themeColor={activeTheme.color} isDark={isDark} />
 
       {/* --- HEADER --- */}
       <header className="relative z-50 flex items-center justify-between px-6 py-4 backdrop-blur-sm md:px-10 md:py-8">
