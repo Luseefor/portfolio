@@ -18,6 +18,7 @@ export function CameraRig({ curve }: CameraRigProps) {
     const activeSection = useStore((state) => state.activeSection);
     const setActiveSection = useStore((state) => state.setActiveSection);
     const lane = useStore((state) => state.lane);
+    const isWelcomeOpen = useStore((state) => state.isWelcomeOpen);
 
     const carRef = useRef<THREE.Group>(null);
     const cameraTargetRef = useRef(new THREE.Vector3());
@@ -74,7 +75,7 @@ export function CameraRig({ curve }: CameraRigProps) {
 
             const pCamera = camera as THREE.PerspectiveCamera;
             if (pCamera.fov !== undefined) {
-                const targetFOV = 45 + velocity * 15;
+                const targetFOV = isWelcomeOpen ? 45 : (45 + velocity * 15);
                 pCamera.fov = THREE.MathUtils.lerp(pCamera.fov, targetFOV, 0.05);
                 pCamera.updateProjectionMatrix();
             }
@@ -85,14 +86,35 @@ export function CameraRig({ curve }: CameraRigProps) {
 
             const tangentCam = new THREE.Vector3().subVectors(forwardPos, currentPos).normalize();
             const speedBackoff = velocity * 4;
-            const idealPos = offsetPos.clone()
+
+            // IDEAL FOLLOW & TARGETS
+            const idealFollowPos = offsetPos.clone()
                 .sub(tangentCam.clone().multiplyScalar(7 + speedBackoff))
                 .add(new THREE.Vector3(0, 2.5, 0));
 
-            camera.position.lerp(idealPos, 0.15);
+            const idealLookAt = offsetPos.clone().add(tangentCam.clone().multiplyScalar(4 + velocity * 10));
 
-            const lookAheadFactor = 4 + velocity * 10;
-            const idealLookAt = offsetPos.clone().add(tangentCam.clone().multiplyScalar(lookAheadFactor));
+            // 1. WELCOME SCREEN AMBIENT ORBIT
+            if (isWelcomeOpen) {
+                const clock = state.clock.getElapsedTime();
+                const angle = clock * 0.2; // Slow orbit
+                const radius = 16;
+                const height = 6;
+
+                const ambientPos = offsetPos.clone().add(new THREE.Vector3(
+                    Math.cos(angle) * radius,
+                    height,
+                    Math.sin(angle) * radius
+                ));
+
+                camera.position.lerp(ambientPos, 0.05);
+                cameraTargetRef.current.lerp(offsetPos, 0.05);
+                camera.lookAt(cameraTargetRef.current);
+                return;
+            }
+
+            // 2. NORMAL CAMERA FOLLOW (Smoothly transitions from ambient orbit)
+            camera.position.lerp(idealFollowPos, 0.15);
             cameraTargetRef.current.lerp(idealLookAt, 0.15);
             camera.lookAt(cameraTargetRef.current);
         }

@@ -3,7 +3,6 @@
 import { Canvas } from '@react-three/fiber';
 import { Suspense } from 'react';
 import { Experience } from './Experience';
-import { Loader } from '@react-three/drei';
 
 export function Scene() {
     return (
@@ -18,7 +17,6 @@ export function Scene() {
                     <Experience />
                 </Suspense>
             </Canvas>
-            <Loader />
         </div>
     );
 }

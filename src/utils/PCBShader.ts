@@ -7,14 +7,15 @@ export const PCBShader = {
         uTraceColor: { value: new THREE.Color('#b8860b') }, // Metallic Gold
     },
     vertexShader: `
-        varying vec2 vUv;
+        varying vec3 vWorldPos;
         void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+            vWorldPos = worldPosition.xyz;
+            gl_Position = projectionMatrix * viewMatrix * worldPosition;
         }
     `,
     fragmentShader: `
-        varying vec2 vUv;
+        varying vec3 vWorldPos;
         uniform float uTime;
         uniform vec3 uBaseColor;
         uniform vec3 uTraceColor;
@@ -24,7 +25,7 @@ export const PCBShader = {
         }
 
         void main() {
-            vec2 uv = vUv * 500.0; // Scale the circuit pattern
+            vec2 uv = vWorldPos.xz * 0.25; // Scale the circuit pattern based on world pos
             vec2 grid = floor(uv);
             vec2 f = fract(uv);
 
