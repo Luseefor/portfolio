@@ -2,11 +2,12 @@
 
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
-import { useScroll, ScrollControls, Sky, Stars } from '@react-three/drei';
+import { useScroll, ScrollControls, Sky, Stars, Grid } from '@react-three/drei';
 import { useStore } from '@/utils/store';
 import { MotherboardCity } from './MotherboardCity';
 import { CameraRig } from './CameraRig';
 import { WindStreaks } from './WindStreaks';
+import { HardwareLandmarks } from './HardwareLandmark';
 import { cityCurve } from '@/utils/curve';
 import { EffectComposer, Bloom, Vignette, ChromaticAberration, Noise } from '@react-three/postprocessing';
 
@@ -57,9 +58,9 @@ function ExperienceContent() {
             />
 
             {/* The City & Road */}
+            {/* 3D Scene Elements */}
             <MotherboardCity />
-
-            {/* Driving Logic */}
+            <HardwareLandmarks curve={cityCurve} />
             <CameraRig curve={cityCurve} />
 
             {/* Particles */}
@@ -83,22 +84,38 @@ export function Experience() {
     return (
         <>
             {/* Cinematic Atmosphere */}
-            <Sky
-                distance={450000}
-                sunPosition={[100, 20, 100]}
-                inclination={0}
-                azimuth={0.25}
-            />
-            <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+            <group>
+                <color attach="background" args={['#020205']} />
+                <fog attach="fog" args={['#02040a', 1, 300]} />
 
-            <color attach="background" args={['#87CEEB']} />
-            <fog attach="fog" args={['#c8e6ff', 1, 1500]} />
+                <ambientLight intensity={0.2} />
+                <directionalLight
+                    position={[10, 20, 10]}
+                    intensity={0.5}
+                    color="#ffffff"
+                />
 
-            {/* Ground Plane: Massive to fill the horizon */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
-                <planeGeometry args={[20000, 20000]} />
-                <meshStandardMaterial color="#1a2d1e" roughness={1} metalness={0} />
-            </mesh>
+                {/* Stars for a high-end night feel */}
+                <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+
+                {/* Expanded Ground Plane with Motherboard Grid */}
+                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
+                    <planeGeometry args={[20000, 20000]} />
+                    <meshStandardMaterial color="#010201" roughness={1} metalness={0} />
+                </mesh>
+                <Grid
+                    infiniteGrid
+                    fadeDistance={150}
+                    fadeStrength={10}
+                    cellSize={1}
+                    sectionSize={10}
+                    sectionColor="#004444"
+                    sectionThickness={1}
+                    cellColor="#001111"
+                    cellThickness={0.5}
+                    position={[0, -0.08, 0]}
+                />
+            </group>
 
             {/* SCROLL CONTROLS: Journey cut by half */}
             <ScrollControls

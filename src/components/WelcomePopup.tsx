@@ -63,7 +63,7 @@ export function WelcomePopup({ isOpen, onClose }: WelcomePopupProps) {
                                     Welcome to my <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Portfolio</span>
                                 </h1>
                                 <p className="mt-4 max-w-md text-lg text-white/60">
-                                    Step into an interactive 3D drive through my career, skills, and projects.
+                                    Step into an interactive drive through a futuristic motherboard, where every component tells a story.
                                 </p>
                             </div>
 
@@ -79,8 +79,8 @@ export function WelcomePopup({ isOpen, onClose }: WelcomePopupProps) {
                                         <Car size={24} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-white">Interactive Drive</h3>
-                                        <p className="text-sm text-white/50">Navigate through different project zones along the highway.</p>
+                                        <h3 className="font-bold text-white">Landmark Triggers</h3>
+                                        <p className="text-sm text-white/50">Drive past GPU, RAM, and CPU hubs to trigger interactive story screens.</p>
                                     </div>
                                 </motion.div>
 

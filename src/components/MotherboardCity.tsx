@@ -1,24 +1,160 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useLayoutEffect } from 'react';
 import * as THREE from 'three';
 import { cityCurve } from '@/utils/curve';
+import { useStore } from '@/utils/store';
+import { instancedBuildingMaterial, RamStick, Microchip, Capacitor } from './HardwareAssets';
 
 const JUNCTIONS = [0.2, 0.5, 0.8]; // T values for junctions
 const JUNCTION_WIDTH = 0.05; // Width in T space
+const BOX_GEO = new THREE.BoxGeometry(1, 1, 1);
 
 export function MotherboardCity() {
-    const leftLineCurve = useMemo(() => getOffsetCurve(cityCurve, -8), []);
-    const rightLineCurve = useMemo(() => getOffsetCurve(cityCurve, 8), []);
+    const leftLineCurve = useMemo(() => getOffsetCurve(cityCurve, -8.5), []);
+    const rightLineCurve = useMemo(() => getOffsetCurve(cityCurve, 8.5), []);
     const centerLineCurve = useMemo(() => getOffsetCurve(cityCurve, 0), []);
+    const leftSidewalkCurve = useMemo(() => getOffsetCurve(cityCurve, -22), []);
+    const rightSidewalkCurve = useMemo(() => getOffsetCurve(cityCurve, 22), []);
+    const setFocusedItem = useStore((state) => state.setFocusedItem);
+
+    const meshRef = useRef<THREE.InstancedMesh>(null!);
+
+    // Optimized Decorative City Data
+    const decorData = useMemo(() => {
+        const count = 500;
+        const items = [];
+        for (let i = 0; i < count; i++) {
+            const t = Math.random();
+            const side = Math.random() > 0.5 ? 1 : -1;
+            const dist = 35 + Math.random() * 60;
+            const p = cityCurve.getPointAt(t);
+            const tan = cityCurve.getTangentAt(t).normalize();
+            const norm = new THREE.Vector3(-tan.z, 0, tan.x);
+            const pos = p.clone().add(norm.multiplyScalar(side * dist));
+
+            const w = 4 + Math.random() * 4;
+            const h = 10 + Math.random() * 40;
+            const d = 4 + Math.random() * 4;
+            const type = Math.random() > 0.5 ? 1.0 : 0.0;
+            const colorInt = Math.random();
+            const color = new THREE.Color(type > 0.5 ? (colorInt > 0.5 ? '#00ffff' : '#ff00ff') : (colorInt > 0.5 ? '#ffff00' : '#ffffff'));
+
+            items.push({ pos, w, h, d, type, color });
+        }
+        return items;
+    }, []);
+
+    useLayoutEffect(() => {
+        const tempObj = new THREE.Object3D();
+        const colors = new Float32Array(decorData.length * 3);
+        const types = new Float32Array(decorData.length);
+
+        decorData.forEach((item, i) => {
+            tempObj.position.set(item.pos.x, item.h / 2, item.pos.z);
+            tempObj.scale.set(item.w, item.h, item.d);
+            tempObj.rotation.set(0, Math.random() * Math.PI, 0);
+            tempObj.updateMatrix();
+            meshRef.current.setMatrixAt(i, tempObj.matrix);
+
+            item.color.toArray(colors, i * 3);
+            types[i] = item.type;
+        });
+
+        meshRef.current.instanceMatrix.needsUpdate = true;
+        meshRef.current.geometry.setAttribute('instanceColor', new THREE.InstancedBufferAttribute(colors, 3));
+        meshRef.current.geometry.setAttribute('instanceType', new THREE.InstancedBufferAttribute(types, 1));
+    }, [decorData]);
+
+    // Streetlights for "Bustling City" feel (OPTIMIZED: No PointLights)
+    const streetlights = useMemo(() => {
+        const lights = [];
+        for (let i = 0; i < 40; i++) {
+            const t = i / 40;
+            const p = cityCurve.getPointAt(t);
+            const tan = cityCurve.getTangentAt(t).normalize();
+            const norm = new THREE.Vector3(-tan.z, 0, tan.x);
+            lights.push({ pos: p.clone().add(norm.multiplyScalar(12)) });
+            lights.push({ pos: p.clone().add(norm.multiplyScalar(-12)) });
+        }
+        return lights;
+    }, []);
+
+    // Interactive Nodes between skyscrapers
+    const interactiveNodes = useMemo(() => {
+        const items = [];
+        const content = [
+            { title: "Cache Layer", content: "Ultra-fast L3 cache handling project data fetching and state synchronization." },
+            { title: "Bus Controller", content: "Manages the high-speed communication between interactive UI and 3D scene." },
+            { title: "Bridge Module", content: "Connects legacy knowledge with cutting-edge future technologies." }
+        ];
+        for (let i = 0; i < 15; i++) {
+            const t = Math.random();
+            const side = Math.random() > 0.5 ? 1 : -1;
+            const dist = 12 + Math.random() * 8; // Tucked in between road and skyscrapers
+            const p = cityCurve.getPointAt(t);
+            const tan = cityCurve.getTangentAt(t).normalize();
+            const norm = new THREE.Vector3(-tan.z, 0, tan.x);
+            const pos = p.clone().add(norm.multiplyScalar(side * dist));
+            const data = content[i % content.length];
+            const type = i % 3 === 0 ? 'ram' : (i % 3 === 1 ? 'chip' : 'cap');
+            items.push({ pos, type, data });
+        }
+        return items;
+    }, []);
 
     return (
         <group>
-            {/* Main Road Surface */}
-            <mesh name="road" position={[0, 0, 0]} scale={[1, 0.01, 1]}>
-                <tubeGeometry args={[cityCurve, 800, 10, 8, false]} />
+            {/* Realistic Asphalt Road */}
+            <mesh name="road" position={[0, -0.05, 0]} scale={[1, 0.01, 1]}>
+                <tubeGeometry args={[cityCurve, 400, 10, 8, false]} />
+                <meshStandardMaterial color="#0b0b0b" roughness={0.95} metalness={0.05} />
+            </mesh>
+
+            {/* Elevated Sidewalks (Concrete-like) */}
+            <mesh position={[0, -0.01, 0]} scale={[1, 0.01, 1]}>
+                <tubeGeometry args={[leftSidewalkCurve, 400, 12, 4, false]} />
                 <meshStandardMaterial color="#1a1a1a" roughness={0.8} />
             </mesh>
+            <mesh position={[0, -0.01, 0]} scale={[1, 0.01, 1]}>
+                <tubeGeometry args={[rightSidewalkCurve, 400, 12, 4, false]} />
+                <meshStandardMaterial color="#1a1a1a" roughness={0.8} />
+            </mesh>
+
+            {/* Streetlights (Optimized) */}
+            {streetlights.map((light, i) => (
+                <group key={i} position={[light.pos.x, 0, light.pos.z]}>
+                    <mesh position={[0, 4, 0]}>
+                        <cylinderGeometry args={[0.05, 0.08, 8, 8]} />
+                        <meshStandardMaterial color="#111" metalness={0.8} roughness={0.2} />
+                    </mesh>
+                    <mesh position={[0, 8, 0]}>
+                        <sphereGeometry args={[0.2, 16, 16]} />
+                        <meshBasicMaterial color="#ffaa00" toneMapped={false} />
+                    </mesh>
+                </group>
+            ))}
+
+            {/* INSTANCED Motherboard City (SINGLE DRAW CALL) */}
+            <instancedMesh ref={meshRef} args={[BOX_GEO, instancedBuildingMaterial, 500]} />
+
+            {/* Interactive Motherboard Nodes (On Sidewalks) */}
+            {interactiveNodes.map((item, i) => (
+                <group
+                    key={`int-${i}`}
+                    position={item.pos}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setFocusedItem(item.data);
+                    }}
+                    onPointerOver={() => { document.body.style.cursor = 'pointer' }}
+                    onPointerOut={() => { document.body.style.cursor = 'auto' }}
+                >
+                    {item.type === 'ram' && <RamStick position={[0, 0, 0]} scale={0.5} color="#00ffff" />}
+                    {item.type === 'chip' && <Microchip position={[0, 0, 0]} scale={0.8} />}
+                    {item.type === 'cap' && <Capacitor position={[0, 0, 0]} scale={0.6} />}
+                </group>
+            ))}
 
             {/* Left White Line */}
             <mesh position={[0, 0.11, 0]} scale={[1, 0.01, 1]}>

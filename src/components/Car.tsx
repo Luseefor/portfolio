@@ -68,6 +68,27 @@ export function Car() {
             <group rotation={[0, 0, Math.PI]} scale={scale}>
                 <primitive object={clone} />
             </group>
+            {/* Dynamic Headlights */}
+            <group position={[0, 1, -2]}>
+                <spotLight
+                    position={[-1, 0, 0]}
+                    angle={0.4}
+                    penumbra={0.5}
+                    intensity={20}
+                    color="#ffffee"
+                    distance={100}
+                    castShadow
+                />
+                <spotLight
+                    position={[1, 0, 0]}
+                    angle={0.4}
+                    penumbra={0.5}
+                    intensity={20}
+                    color="#ffffee"
+                    distance={100}
+                    castShadow
+                />
+            </group>
             <spotLight
                 position={[0.6, 0.6, 1.8]}
                 angle={0.5}
