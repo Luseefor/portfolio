@@ -164,8 +164,8 @@ export default function Home() {
             <Terminal size={20} className="text-emerald-400" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-black tracking-[0.4em] text-white uppercase">Luseefor/Portfolio</span>
-            <span className="text-[10px] font-bold text-emerald-500/40 uppercase tracking-widest">Workspace_Active</span>
+            <span className="text-sm font-black tracking-[0.4em] text-white uppercase">Portfolio.SYS</span>
+            <span className="text-[10px] font-bold text-emerald-500/40 uppercase tracking-widest">Public_Interface</span>
           </div>
         </motion.div>
 
@@ -176,7 +176,7 @@ export default function Home() {
         >
           <div className="flex items-center gap-3">
             <Activity size={14} className="text-emerald-500 animate-pulse" />
-            <span className="text-white/60">Encrypted Tunnel: SSL_v3</span>
+            <span className="text-white/60">Connection: SECURE</span>
           </div>
           <div className="hidden lg:flex items-center gap-3 border-l border-white/10 pl-10">
             <Globe size={14} className="text-white/20" />
@@ -194,7 +194,7 @@ export default function Home() {
             className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/5 bg-white/[0.02] px-6 py-2 backdrop-blur-md"
           >
             <ShieldCheck size={14} className="text-emerald-400" />
-            <span className="text-[10px] font-black tracking-[0.3em] uppercase text-white/40">Authentication Verified</span>
+            <span className="text-[10px] font-black tracking-[0.3em] uppercase text-white/40">Access_Verified</span>
           </motion.div>
 
           <h1 className="mb-6 text-7xl font-black tracking-tighter text-white sm:text-8xl md:text-[10rem] leading-[0.8]">
@@ -207,7 +207,7 @@ export default function Home() {
             href="/interactive"
             badge="01 // Environment"
             title="Immersive Drive"
-            description="Venture into a high-fidelity geospatial motherboard environment. Optimized for arm64 neural engines and hardware acceleration."
+            description="Venture into a high-fidelity geospatial motherboard environment. Optimized for neural engines and hardware acceleration."
             icon={Cpu}
             delay={0.4}
           />
@@ -227,26 +227,26 @@ export default function Home() {
         <div className="flex flex-wrap justify-between gap-8 text-[9px] font-black tracking-[0.5em] text-white/30 uppercase">
           <div className="flex gap-12">
             <div className="flex flex-col gap-1">
-              <span className="text-emerald-500/40">System_Kernel</span>
-              <span className="text-white">Darwin arm64</span>
+              <span className="text-emerald-500/40">Client_Node</span>
+              <span className="text-white">NODE_BROWSER_V1</span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-emerald-500/40">Indexed_Assets</span>
-              <span className="text-white">31 Object Nodes</span>
+              <span className="text-emerald-500/40">Data_Index</span>
+              <span className="text-white">1024_OBJECT_PTS</span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-emerald-500/40">Network_Latency</span>
-              <span className="text-white">~ 14ms Response</span>
+              <span className="text-emerald-500/40">Terminal_Link</span>
+              <span className="text-white">STABLE</span>
             </div>
           </div>
 
           <div className="flex items-center gap-12">
             <div className="flex flex-col gap-1 text-right">
-              <span className="text-emerald-500/40">Global_Timestamp</span>
+              <span className="text-emerald-500/40">Universal_Time</span>
               <span className="text-white tabular-nums tracking-widest">{time}</span>
             </div>
             <div className="h-8 w-[1px] bg-white/10" />
-            <span className="text-emerald-500 tracking-[1em] animate-pulse">Live_Feed</span>
+            <span className="text-emerald-500 tracking-[1em] animate-pulse">Live_Sync</span>
           </div>
         </div>
       </footer>
