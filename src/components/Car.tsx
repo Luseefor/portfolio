@@ -110,6 +110,14 @@ export function Car() {
     return (
         <group ref={groupRef}>
             <group ref={bodyRef}>
+                {/* Performance Exhaust Smoke - Nested inside scaled car group */}
+                <group position={[0.4, 0.4, -2.1]} scale={1 / scale}>
+                    <SmokeParticles velocity={Math.abs(scroll.delta) * 100} />
+                </group>
+                <group position={[-0.4, 0.4, -2.1]} scale={1 / scale}>
+                    <SmokeParticles velocity={Math.abs(scroll.delta) * 100} />
+                </group>
+
                 <group rotation={[0, 0, Math.PI]} scale={scale}>
                     <primitive object={clone} />
                 </group>
@@ -119,14 +127,6 @@ export function Car() {
                     <planeGeometry args={[2, 4]} />
                     <meshBasicMaterial color="#00ffff" transparent opacity={0.05} />
                 </mesh>
-
-                {/* Performance Exhaust Smoke */}
-                <group position={[0.6, 0.3, 2.2]}>
-                    <SmokeParticles velocity={scroll.delta * 50} />
-                </group>
-                <group position={[-0.6, 0.3, 2.2]}>
-                    <SmokeParticles velocity={scroll.delta * 50} />
-                </group>
             </group>
         </group>
     );
