@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Luseefor.os",
   description: "Advanced Immersive Portfolio Experience",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
