@@ -9,7 +9,7 @@ import { CameraRig } from './CameraRig';
 import { WindStreaks } from './WindStreaks';
 import { HardwareLandmarks } from './HardwareLandmark';
 import { cityCurve } from '@/utils/curve';
-import { EffectComposer, Bloom, Vignette, ChromaticAberration, Noise } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, Vignette, Scanline, Noise } from '@react-three/postprocessing';
 
 function KeyboardScroll() {
     const scroll = useScroll();
@@ -42,23 +42,8 @@ function ExperienceContent() {
     return (
         <>
             <KeyboardScroll />
-            {/* Daytime Lighting */}
-            <ambientLight intensity={0.4} color="#ffffff" />
-            <directionalLight
-                position={[100, 100, 50]}
-                intensity={2.5}
-                color="#fffaf0"
-                castShadow
-                shadow-mapSize-width={2048}
-                shadow-mapSize-height={2048}
-            />
-            {/* Hemisphere light for natural sky/ground gradient */}
-            <hemisphereLight
-                args={['#87CEEB', '#2d4a35', 0.6]}
-            />
 
             {/* The City & Road */}
-            {/* 3D Scene Elements */}
             <MotherboardCity />
             <HardwareLandmarks curve={cityCurve} />
             <CameraRig curve={cityCurve} />
@@ -66,15 +51,17 @@ function ExperienceContent() {
             {/* Particles */}
             <WindStreaks />
 
-            {/* Post Processing */}
+            {/* Post Processing: Stable Cinematic Glow */}
             <EffectComposer enableNormalPass={false}>
                 <Bloom
-                    luminanceThreshold={1.2}
+                    intensity={1.5}
+                    luminanceThreshold={0.2}
+                    luminanceSmoothing={0.9}
                     mipmapBlur
-                    intensity={0.4}
-                    radius={0.3}
                 />
-                <Vignette eskil={false} offset={0.1} darkness={0.5} />
+                <Scanline opacity={0.05} />
+                <Noise opacity={0.03} />
+                <Vignette eskil={false} offset={0.1} darkness={0.8} />
             </EffectComposer>
         </>
     );

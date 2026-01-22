@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useMemo, useRef, useLayoutEffect } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { cityCurve } from '@/utils/curve';
 import { useStore } from '@/utils/store';
-import { instancedBuildingMaterial, RamStick, Microchip, Capacitor } from './HardwareAssets';
+import { instancedBuildingMaterial, RamStick, Microchip, Capacitor, CircuitCable } from './HardwareAssets';
 
 const JUNCTIONS = [0.2, 0.5, 0.8]; // T values for junctions
 const JUNCTION_WIDTH = 0.05; // Width in T space
@@ -19,6 +20,10 @@ export function MotherboardCity() {
     const setFocusedItem = useStore((state) => state.setFocusedItem);
 
     const meshRef = useRef<THREE.InstancedMesh>(null!);
+
+    useFrame((state) => {
+        instancedBuildingMaterial.uniforms.uTime.value = state.clock.getElapsedTime();
+    });
 
     // Optimized Decorative City Data
     const decorData = useMemo(() => {
@@ -44,6 +49,28 @@ export function MotherboardCity() {
         }
         return items;
     }, []);
+
+    // Natural Detail: Circuit Cables between buildings
+    const cables = useMemo(() => {
+        const items = [];
+        for (let i = 0; i < 30; i++) {
+            const idxA = Math.floor(Math.random() * decorData.length);
+            const idxB = Math.floor(Math.random() * decorData.length);
+            const a = decorData[idxA];
+            const b = decorData[idxB];
+
+            // Only connect nearby buildings on the same side
+            const dist = a.pos.distanceTo(b.pos);
+            if (dist < 40 && dist > 10) {
+                const start = a.pos.clone();
+                start.y = a.h * 0.8;
+                const end = b.pos.clone();
+                end.y = b.h * 0.8;
+                items.push({ start, end, color: a.color.getStyle() });
+            }
+        }
+        return items;
+    }, [decorData]);
 
     useLayoutEffect(() => {
         const tempObj = new THREE.Object3D();
@@ -91,7 +118,7 @@ export function MotherboardCity() {
         for (let i = 0; i < 15; i++) {
             const t = Math.random();
             const side = Math.random() > 0.5 ? 1 : -1;
-            const dist = 12 + Math.random() * 8; // Tucked in between road and skyscrapers
+            const dist = 14 + Math.random() * 6; // Sidewalk zone (10-22)
             const p = cityCurve.getPointAt(t);
             const tan = cityCurve.getTangentAt(t).normalize();
             const norm = new THREE.Vector3(-tan.z, 0, tan.x);
@@ -105,21 +132,28 @@ export function MotherboardCity() {
 
     return (
         <group>
-            {/* Realistic Asphalt Road */}
+            {/* Ultra Smooth Asphalt Road */}
             <mesh name="road" position={[0, -0.05, 0]} scale={[1, 0.01, 1]}>
-                <tubeGeometry args={[cityCurve, 400, 10, 8, false]} />
-                <meshStandardMaterial color="#0b0b0b" roughness={0.95} metalness={0.05} />
+                <tubeGeometry args={[cityCurve, 1200, 10, 8, false]} />
+                <meshStandardMaterial color="#08080b" roughness={0.9} metalness={0.1} />
             </mesh>
 
-            {/* Elevated Sidewalks (Concrete-like) */}
+            {/* Elevated Sidewalks */}
             <mesh position={[0, -0.01, 0]} scale={[1, 0.01, 1]}>
-                <tubeGeometry args={[leftSidewalkCurve, 400, 12, 4, false]} />
-                <meshStandardMaterial color="#1a1a1a" roughness={0.8} />
+                <tubeGeometry args={[leftSidewalkCurve, 600, 12, 4, false]} />
+                <meshStandardMaterial color="#111" roughness={0.8} />
             </mesh>
             <mesh position={[0, -0.01, 0]} scale={[1, 0.01, 1]}>
-                <tubeGeometry args={[rightSidewalkCurve, 400, 12, 4, false]} />
-                <meshStandardMaterial color="#1a1a1a" roughness={0.8} />
+                <tubeGeometry args={[rightSidewalkCurve, 600, 12, 4, false]} />
+                <meshStandardMaterial color="#111" roughness={0.8} />
             </mesh>
+
+            {/* Organic Detail: Cables connecting buildings */}
+            <group>
+                {cables.map((cable, i) => (
+                    <CircuitCable key={i} start={cable.start} end={cable.end} color={cable.color} />
+                ))}
+            </group>
 
             {/* Streetlights (Optimized) */}
             {streetlights.map((light, i) => (

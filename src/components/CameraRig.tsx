@@ -91,9 +91,14 @@ export function CameraRig({ curve }: CameraRigProps) {
 
             camera.position.lerp(idealPos, 0.15);
 
+            // Naturalism: Dynamic Camera Shake (Vibration at speed)
+            const shakeAmount = velocity * 0.05;
+            camera.position.x += (Math.random() - 0.5) * shakeAmount;
+            camera.position.y += (Math.random() - 0.5) * shakeAmount;
+
             const lookAheadFactor = 3 + velocity * 8;
             const idealLookAt = offsetPos.clone().add(tangentCam.clone().multiplyScalar(lookAheadFactor));
-            cameraTargetRef.current.lerp(idealLookAt, 0.15);
+            cameraTargetRef.current.lerp(idealLookAt, 0.1);
             camera.lookAt(cameraTargetRef.current);
         }
     });

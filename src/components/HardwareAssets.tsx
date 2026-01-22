@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -209,7 +209,7 @@ export function ChipBuilding({ position, scale = 1 }: { position: [number, numbe
     );
 }
 
-// 8. INSTANCED BUILDING SHADER (Ultra-fast)
+// 8. INSTANCED BUILDING SHADER (Ultra-fast & Living)
 export const instancedBuildingMaterial = new THREE.ShaderMaterial({
     transparent: true,
     uniforms: {
@@ -221,10 +221,12 @@ export const instancedBuildingMaterial = new THREE.ShaderMaterial({
         attribute float instanceType;
         varying vec3 vColor;
         varying float vType;
+        varying float vHeight;
         void main() {
             vUv = uv;
             vColor = instanceColor;
             vType = instanceType;
+            vHeight = position.y + 0.5; // Offset to start from bottom
             gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
         }
     `,
@@ -232,26 +234,89 @@ export const instancedBuildingMaterial = new THREE.ShaderMaterial({
         varying vec2 vUv;
         varying vec3 vColor;
         varying float vType;
+        varying float vHeight;
+        uniform float uTime;
         void main() {
-            vec3 color = vec3(0.02, 0.02, 0.02);
+            vec3 color = vec3(0.015, 0.015, 0.018); // Dark industrial slate
+            
+            // Pulsing "Data" line that moves up the building
+            float pulse = step(0.98, fract(vHeight * 0.1 - uTime * 0.5));
+            
             if (vType > 0.5) {
+                // Chip style: Window grid + logic lines
                 vec2 grid = fract(vUv * vec2(8.0, 20.0));
                 float win = step(0.2, grid.x) * step(0.1, grid.y);
-                if (win > 0.5) color = vColor * 0.3;
-                float lines = step(0.99, fract(vUv.y * 100.0));
+                if (win > 0.5) color = vColor * 0.25;
+                
+                // Tech lines (Living circuits)
+                float lines = step(0.995, fract(vUv.y * 100.0));
                 if (lines > 0.5) color = vColor;
+                
+                // Add the data pulse glow
+                if (pulse > 0.5) color += vColor * 0.8;
             } else {
+                // Capacitor style: Vertical stripes + danger zone
                 float stripe = step(0.85, fract(vUv.x * 2.0));
-                if (stripe > 0.5) color = vec3(1.0, 0.8, 0.0);
-                float rings = step(0.95, fract(vUv.y * 15.0));
+                if (stripe > 0.5) color = vec3(0.9, 0.7, 0.0);
+                
+                // Glowing rings
+                float rings = step(0.96, fract(vUv.y * 15.0));
                 if (rings > 0.5) color = vColor;
+                
+                // Add pulse
+                if (pulse > 0.5) color += vColor * 0.5;
             }
+            
+            // Subtle edge lighting for "Million Dollar" stability/separation
+            float edge = step(0.98, vUv.x) + step(0.98, 1.0-vUv.x);
+            color += vec3(0.1) * edge;
+
             gl_FragColor = vec4(color, 1.0);
         }
     `
 });
 
-// 8. HIGH PERFORMANCE BUILDING
+// 9. CIRCUIT CABLE (Organic technical detail)
+export function CircuitCable({ start, end, color = "#00ffff" }: { start: THREE.Vector3, end: THREE.Vector3, color?: string }) {
+    const curve = useMemo(() => {
+        const mid = start.clone().lerp(end, 0.5);
+        mid.y += 5 + Math.random() * 10;
+        return new THREE.QuadraticBezierCurve3(start, mid, end);
+    }, [start, end]);
+
+    return (
+        <mesh>
+            <tubeGeometry args={[curve, 20, 0.1, 8, false]} />
+            <meshStandardMaterial color="#111" metalness={0.9} roughness={0.1} />
+            <mesh>
+                <tubeGeometry args={[curve, 20, 0.12, 8, false]} />
+                <shaderMaterial
+                    transparent
+                    uniforms={{ uColor: { value: new THREE.Color(color) }, uTime: { value: 0 } }}
+                    vertexShader={`
+                        varying vec2 vUv;
+                        void main() {
+                            vUv = uv;
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `}
+                    fragmentShader={`
+                        varying vec2 vUv;
+                        uniform vec3 uColor;
+                        uniform float uTime;
+                        void main() {
+                            float pulse = step(0.9, fract(vUv.x * 5.0 - uTime * 2.0));
+                            if (pulse < 0.5) discard;
+                            gl_FragColor = vec4(uColor, 0.8);
+                        }
+                    `}
+                />
+            </mesh>
+        </mesh>
+    );
+}
+
+// 8. HIGH PERFORMANCE BUILDING (Deprecated in favor of instanced, but kept for landmarks)
 export function HighPerfBuilding({ position, scale = 1, type = 'chip' }: { position: [number, number, number], scale?: number, type?: 'chip' | 'cap' }) {
     const w = type === 'chip' ? 4 + Math.random() * 4 : 2 + Math.random() * 2;
     const h = 10 + Math.random() * 40;
