@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cpu, Terminal, ArrowRight, Grid3X3, ShieldCheck, Activity, Globe, Palette, Sun, Moon } from 'lucide-react';
 import FloatingParticles from '@/components/FloatingParticles';
+import LetterGlitch from '@/components/LetterGlitch';
 
 const THEMES = {
   emerald: {
@@ -46,6 +47,12 @@ const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolea
         mouseInfluence={250}
         mouseGravity="attract"
         gravityStrength={80}
+      />
+
+      <LetterGlitch
+        glitchColors={[themeColor, `${themeColor}aa`, `${themeColor}55`]}
+        opacity={isDark ? 0.05 : 0.08}
+        outerVignette={false}
       />
 
       {/* Grid Overlay */}
