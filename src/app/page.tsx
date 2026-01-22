@@ -7,8 +7,19 @@ import { Cpu, Terminal, ArrowRight, Grid3X3, ShieldCheck, Activity, Globe } from
 
 const GlitchBackground = () => {
   const [glitchLines, setGlitchLines] = useState<number[]>([]);
+  const [dataPoints, setDataPoints] = useState<any[]>([]);
 
   useEffect(() => {
+    // Generate initial data points only on client
+    const points = Array.from({ length: 12 }).map((_, i) => ({
+      id: i,
+      top: `${Math.random() * 100}%`,
+      left: `${Math.random() * 100}%`,
+      duration: Math.random() * 4 + 2,
+      delay: Math.random() * 5
+    }));
+    setDataPoints(points);
+
     const interval = setInterval(() => {
       const lines = Array.from({ length: 3 }, () => Math.random() * 100);
       setGlitchLines(lines);
@@ -33,24 +44,24 @@ const GlitchBackground = () => {
         }}
       />
 
-      <div className="absolute inset-0">
-        {Array.from({ length: 12 }).map((_, i) => (
+      <div className="absolute inset-0 pointer-events-none">
+        {dataPoints.map((p) => (
           <motion.div
-            key={i}
+            key={p.id}
             initial={{ opacity: 0 }}
             animate={{
               opacity: [0, 0.4, 0],
               y: [0, -100],
             }}
             transition={{
-              duration: Math.random() * 4 + 2,
+              duration: p.duration,
               repeat: Infinity,
-              delay: Math.random() * 5
+              delay: p.delay
             }}
             className="absolute h-[1px] w-[1px] bg-emerald-400"
             style={{
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
+              top: p.top,
+              left: p.left,
               boxShadow: '0 0 8px #34d399'
             }}
           />
