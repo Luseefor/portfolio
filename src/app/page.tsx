@@ -420,22 +420,30 @@ export default function Home() {
       <footer className={`relative z-50 w-full border-t px-6 py-4 backdrop-blur-md transition-colors duration-1000 md:px-12 md:py-6 ${isDark ? 'border-white/5 bg-black/40' : 'border-black/5 bg-white/40'}`}>
         <div className={`flex flex-wrap items-center justify-between gap-4 text-[7px] font-black tracking-[0.2em] uppercase transition-colors duration-1000 md:text-[9px] md:tracking-[0.5em] ${isDark ? 'text-white/30' : 'text-slate-900/30'}`}>
           <div className="flex gap-4 md:gap-12">
-            <div className="flex flex-col gap-0.5">
-              <span className="opacity-40" style={{ color: activeTheme.color }}>Node</span>
-              <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>BROWSER_V1</span>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="opacity-40" style={{ color: activeTheme.color }}>Data</span>
-              <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>1024_PTS</span>
-            </div>
-            <div className="hidden flex-col gap-0.5 sm:flex">
-              <span className="opacity-40" style={{ color: activeTheme.color }}>Link</span>
-              <span className={`tabular-nums transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>{time}</span>
-            </div>
+            <Magnetic>
+              <div className="flex flex-col gap-0.5 cursor-pointer">
+                <span className="opacity-40" style={{ color: activeTheme.color }}>Node</span>
+                <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>BROWSER_V1</span>
+              </div>
+            </Magnetic>
+            <Magnetic>
+              <div className="flex flex-col gap-0.5 cursor-pointer">
+                <span className="opacity-40" style={{ color: activeTheme.color }}>Data</span>
+                <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>1024_PTS</span>
+              </div>
+            </Magnetic>
+            <Magnetic>
+              <div className="hidden flex-col gap-0.5 sm:flex cursor-pointer">
+                <span className="opacity-40" style={{ color: activeTheme.color }}>Link</span>
+                <span className={`tabular-nums transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>{time}</span>
+              </div>
+            </Magnetic>
           </div>
 
           <div className="flex items-center gap-4 md:gap-12">
-            <span className="animate-pulse" style={{ color: activeTheme.color }}>Sync_Active</span>
+            <Magnetic>
+              <span className="animate-pulse cursor-pointer" style={{ color: activeTheme.color }}>Sync_Active</span>
+            </Magnetic>
           </div>
         </div>
       </footer>
