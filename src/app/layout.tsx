@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   },
 };
 
+import OverscrollPreventer from "@/components/OverscrollPreventer";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,6 +32,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <OverscrollPreventer />
         {children}
       </body>
     </html>
