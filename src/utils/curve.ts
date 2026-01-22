@@ -2,18 +2,20 @@ import * as THREE from 'three';
 
 // Flat winding path - no elevation changes
 export const cityCurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0, 0, 10),     // BUFFER START
-    new THREE.Vector3(0, 0, 0),      // START
-    new THREE.Vector3(0, 0, -50),    // STRAIGHT
-    new THREE.Vector3(10, 0, -80),   // TURN RIGHT
-    new THREE.Vector3(20, 0, -100),  // CONTINUE RIGHT
-    new THREE.Vector3(20, 0, -150),  // STRAIGHT
-    new THREE.Vector3(0, 0, -250),   // TURN LEFT
-    new THREE.Vector3(-30, 0, -350), // CONTINUE LEFT
-    new THREE.Vector3(-30, 0, -450), // STRAIGHT
-    new THREE.Vector3(0, 0, -550),   // TURN RIGHT
-    new THREE.Vector3(0, 0, -650),   // STRAIGHT
-    new THREE.Vector3(0, 0, -700),   // END
+    new THREE.Vector3(0, 0, 10),      // BUFFER START
+    new THREE.Vector3(0, 0, 0),       // START
+    new THREE.Vector3(0, 0, -50),     // STRAIGHT
+    new THREE.Vector3(10, 0, -80),    // TURN RIGHT
+    new THREE.Vector3(20, 0, -100),   // CONTINUE RIGHT
+    new THREE.Vector3(20, 0, -150),   // STRAIGHT
+    new THREE.Vector3(0, 0, -250),    // TURN LEFT
+    new THREE.Vector3(-30, 0, -350),  // CONTINUE LEFT
+    new THREE.Vector3(-30, 0, -450),  // STRAIGHT
+    new THREE.Vector3(0, 0, -550),    // TURN RIGHT
+    new THREE.Vector3(0, 0, -800),    // STRAIGHT
+    new THREE.Vector3(50, 0, -1200),  // WIDE TURN
+    new THREE.Vector3(0, 0, -2000),   // STRAIGHT
+    new THREE.Vector3(-50, 0, -2500), // NEW END
 ]);
 
 // === CURVE TRIMMING FOR ROAD CONTINUITY ===

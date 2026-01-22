@@ -1,14 +1,20 @@
+'use client';
+
+import { useState } from 'react';
 import { ViewCanvas } from '@/components/ViewCanvas';
-import { HUD } from '@/components/HUD';
 import { SidePanels } from '@/components/SidePanels';
+import { WelcomePopup } from '@/components/WelcomePopup';
 
 export default function Home() {
+  const [showWelcome, setShowWelcome] = useState(true);
+
   return (
     <main className="relative w-full h-screen overflow-hidden bg-black">
+      <WelcomePopup isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
+
       <ViewCanvas />
 
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-10">
-        <HUD />
         <SidePanels />
       </div>
     </main>

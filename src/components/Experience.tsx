@@ -1,21 +1,51 @@
 'use client';
 
-import React from 'react';
-import { ScrollControls } from '@react-three/drei';
+import { useRef, useEffect } from 'react';
+import * as THREE from 'three';
+import { useScroll, ScrollControls, Sky, Stars } from '@react-three/drei';
+import { useStore } from '@/utils/store';
 import { MotherboardCity } from './MotherboardCity';
 import { CameraRig } from './CameraRig';
 import { WindStreaks } from './WindStreaks';
 import { cityCurve } from '@/utils/curve';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, Vignette, ChromaticAberration, Noise } from '@react-three/postprocessing';
+
+function KeyboardScroll() {
+    const scroll = useScroll();
+    const setLane = useStore((state) => state.setLane);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const speed = 150 * scroll.pages; // Adaptive scroll speed
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+                scroll.el.scrollTop -= 100;
+            } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                scroll.el.scrollTop += 100;
+            } else if (e.key === 'a' || e.key === 'A') {
+                setLane(-1);
+            } else if (e.key === 'd' || e.key === 'D') {
+                setLane(1);
+            } else if (e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) {
+                scroll.el.scrollTop -= window.innerHeight * 0.8;
+            } else if (e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) {
+                scroll.el.scrollTop += window.innerHeight * 0.8;
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [scroll]);
+    return null;
+}
 
 function ExperienceContent() {
     return (
         <>
+            <KeyboardScroll />
             {/* Daytime Lighting */}
-            <ambientLight intensity={0.6} color="#ffffff" />
+            <ambientLight intensity={0.4} color="#ffffff" />
             <directionalLight
-                position={[50, 100, 30]}
-                intensity={2}
+                position={[100, 100, 50]}
+                intensity={2.5}
                 color="#fffaf0"
                 castShadow
                 shadow-mapSize-width={2048}
@@ -23,7 +53,7 @@ function ExperienceContent() {
             />
             {/* Hemisphere light for natural sky/ground gradient */}
             <hemisphereLight
-                args={['#87CEEB', '#8B7355', 0.8]}
+                args={['#87CEEB', '#2d4a35', 0.6]}
             />
 
             {/* The City & Road */}
@@ -36,13 +66,14 @@ function ExperienceContent() {
             <WindStreaks />
 
             {/* Post Processing */}
-            <EffectComposer>
+            <EffectComposer enableNormalPass={false}>
                 <Bloom
-                    luminanceThreshold={1}
+                    luminanceThreshold={1.2}
                     mipmapBlur
-                    intensity={0.5}
-                    radius={0.4}
+                    intensity={0.4}
+                    radius={0.3}
                 />
+                <Vignette eskil={false} offset={0.1} darkness={0.5} />
             </EffectComposer>
         </>
     );
@@ -51,46 +82,32 @@ function ExperienceContent() {
 export function Experience() {
     return (
         <>
-            {/* Daytime Sky Background */}
-            <color attach="background" args={['#87CEEB']} />
-            <fogExp2 attach="fog" args={['#c8e6ff', 0.008]} />
+            {/* Cinematic Atmosphere */}
+            <Sky
+                distance={450000}
+                sunPosition={[100, 20, 100]}
+                inclination={0}
+                azimuth={0.25}
+            />
+            <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
-            {/* Ground Plane */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.1, 0]}>
-                <planeGeometry args={[500, 500]} />
-                <meshStandardMaterial color="#4a7c59" />
+            <color attach="background" args={['#87CEEB']} />
+            <fog attach="fog" args={['#c8e6ff', 1, 1500]} />
+
+            {/* Ground Plane: Massive to fill the horizon */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
+                <planeGeometry args={[20000, 20000]} />
+                <meshStandardMaterial color="#1a2d1e" roughness={1} metalness={0} />
             </mesh>
 
-            {/* SCROLL CONTROLS: Longer duration for extended path */}
-            {/* Damping 0.5 for smoother "floaty" feel */}
-            <ScrollControls pages={20} damping={0.5}>
+            {/* SCROLL CONTROLS: Journey cut by half */}
+            <ScrollControls
+                pages={25}     // Reduced from 50
+                damping={0.6}  // Buttery smooth feel
+                infinite={false}
+            >
                 <ExperienceContent />
-                <InvertedControls />
             </ScrollControls>
         </>
     );
-}
-
-function InvertedControls() {
-    React.useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            // Invert Arrow Keys: 
-            // Up Arrow -> Scroll Down (Forward)
-            // Down Arrow -> Scroll Up (Backward)
-
-            const scrollAmount = 50; // Step size
-
-            if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                window.scrollBy({ top: scrollAmount, behavior: 'auto' }); // 'auto' allows damping to handle smoothing
-            } else if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                window.scrollBy({ top: -scrollAmount, behavior: 'auto' });
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown, { passive: false });
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
-    return null;
 }
