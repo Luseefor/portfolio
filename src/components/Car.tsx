@@ -110,16 +110,16 @@ export function Car() {
     return (
         <group ref={groupRef}>
             <group ref={bodyRef}>
-                {/* Performance Exhaust Smoke - Nested inside scaled car group */}
-                <group position={[0.4, 0.4, -2.1]} scale={1 / scale}>
-                    <SmokeParticles velocity={Math.abs(scroll.delta) * 100} />
-                </group>
-                <group position={[-0.4, 0.4, -2.1]} scale={1 / scale}>
-                    <SmokeParticles velocity={Math.abs(scroll.delta) * 100} />
-                </group>
-
                 <group rotation={[0, 0, Math.PI]} scale={scale}>
                     <primitive object={clone} />
+
+                    {/* Perfect Exhaust Smoke - Moved inside the car's relative rotation & scale */}
+                    <group position={[0.4, -0.3, 2.2]}>
+                        <SmokeParticles velocity={Math.abs(scroll.delta) * 80} />
+                    </group>
+                    <group position={[-0.4, -0.3, 2.2]}>
+                        <SmokeParticles velocity={Math.abs(scroll.delta) * 80} />
+                    </group>
                 </group>
 
                 {/* Extremely Faint Cyberpunk Underglow */}
