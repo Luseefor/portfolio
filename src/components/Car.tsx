@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import { useScroll, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '@/utils/store';
+import { SmokeParticles } from './SmokeParticles';
 
 // Preload the GLB
 useGLTF.preload('/car.glb');
@@ -118,6 +119,14 @@ export function Car() {
                     <planeGeometry args={[2, 4]} />
                     <meshBasicMaterial color="#00ffff" transparent opacity={0.05} />
                 </mesh>
+
+                {/* Performance Exhaust Smoke */}
+                <group position={[0.6, 0.3, 2.2]}>
+                    <SmokeParticles velocity={scroll.delta * 50} />
+                </group>
+                <group position={[-0.6, 0.3, 2.2]}>
+                    <SmokeParticles velocity={scroll.delta * 50} />
+                </group>
             </group>
         </group>
     );
