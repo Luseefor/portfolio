@@ -295,21 +295,19 @@ export default function Home() {
 
       {/* --- HEADER --- */}
       <header className="relative z-50 flex items-center justify-between px-6 py-4 backdrop-blur-sm md:px-10 md:py-8">
-        <Magnetic>
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-3 md:gap-4 cursor-pointer"
-          >
-            <div className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all md:h-10 md:w-10 md:rounded-xl ${isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-black/5'}`}>
-              <Terminal size={16} className="md:w-5 md:h-5" style={{ color: activeTheme.color }} />
-            </div>
-            <div className="flex flex-col items-start">
-              <span className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}>Luseefor.SYS</span>
-              <span className="text-[8px] font-bold uppercase tracking-widest md:text-[10px]" style={{ color: `${activeTheme.color}80` }}>Public_Interface</span>
-            </div>
-          </motion.div>
-        </Magnetic>
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-3 md:gap-4 cursor-pointer"
+        >
+          <div className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all md:h-10 md:w-10 md:rounded-xl ${isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-black/5'}`}>
+            <Terminal size={16} className="md:w-5 md:h-5" style={{ color: activeTheme.color }} />
+          </div>
+          <div className="flex flex-col items-start">
+            <span className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}>Luseefor.SYS</span>
+            <span className="text-[8px] font-bold uppercase tracking-widest md:text-[10px]" style={{ color: `${activeTheme.color}80` }}>Public_Interface</span>
+          </div>
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, x: 20 }}
@@ -321,15 +319,13 @@ export default function Home() {
             <span className={isDark ? 'text-white/60' : 'text-slate-900/60'}>Secure</span>
           </div>
           <div className={`hidden h-8 w-[1px] md:block ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
-          <Magnetic>
-            <ThemeDropdown
-              currentTheme={currentTheme}
-              onThemeChange={setCurrentTheme}
-              isDark={isDark}
-              toggleDark={() => setIsDark(!isDark)}
-              themeColor={activeTheme.color}
-            />
-          </Magnetic>
+          <ThemeDropdown
+            currentTheme={currentTheme}
+            onThemeChange={setCurrentTheme}
+            isDark={isDark}
+            toggleDark={() => setIsDark(!isDark)}
+            themeColor={activeTheme.color}
+          />
         </motion.div>
       </header>
 
@@ -420,30 +416,22 @@ export default function Home() {
       <footer className={`relative z-50 w-full border-t px-6 py-4 backdrop-blur-md transition-colors duration-1000 md:px-12 md:py-6 ${isDark ? 'border-white/5 bg-black/40' : 'border-black/5 bg-white/40'}`}>
         <div className={`flex flex-wrap items-center justify-between gap-4 text-[7px] font-black tracking-[0.2em] uppercase transition-colors duration-1000 md:text-[9px] md:tracking-[0.5em] ${isDark ? 'text-white/30' : 'text-slate-900/30'}`}>
           <div className="flex gap-4 md:gap-12">
-            <Magnetic>
-              <div className="flex flex-col gap-0.5 cursor-pointer">
-                <span className="opacity-40" style={{ color: activeTheme.color }}>Node</span>
-                <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>BROWSER_V1</span>
-              </div>
-            </Magnetic>
-            <Magnetic>
-              <div className="flex flex-col gap-0.5 cursor-pointer">
-                <span className="opacity-40" style={{ color: activeTheme.color }}>Data</span>
-                <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>1024_PTS</span>
-              </div>
-            </Magnetic>
-            <Magnetic>
-              <div className="hidden flex-col gap-0.5 sm:flex cursor-pointer">
-                <span className="opacity-40" style={{ color: activeTheme.color }}>Link</span>
-                <span className={`tabular-nums transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>{time}</span>
-              </div>
-            </Magnetic>
+            <div className="flex flex-col gap-0.5 cursor-pointer">
+              <span className="opacity-40" style={{ color: activeTheme.color }}>Node</span>
+              <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>BROWSER_V1</span>
+            </div>
+            <div className="flex flex-col gap-0.5 cursor-pointer">
+              <span className="opacity-40" style={{ color: activeTheme.color }}>Data</span>
+              <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>1024_PTS</span>
+            </div>
+            <div className="hidden flex-col gap-0.5 sm:flex cursor-pointer">
+              <span className="opacity-40" style={{ color: activeTheme.color }}>Link</span>
+              <span className={`tabular-nums transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>{time}</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-4 md:gap-12">
-            <Magnetic>
-              <span className="animate-pulse cursor-pointer" style={{ color: activeTheme.color }}>Sync_Active</span>
-            </Magnetic>
+            <span className="animate-pulse cursor-pointer" style={{ color: activeTheme.color }}>Sync_Active</span>
           </div>
         </div>
       </footer>
