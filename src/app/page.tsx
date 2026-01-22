@@ -158,7 +158,7 @@ export default function Home() {
             <Terminal size={16} className="text-emerald-400 md:w-5 md:h-5" />
           </div>
           <div className="flex flex-col">
-            <span className="text-xs font-black tracking-[0.2em] text-white uppercase md:text-sm md:tracking-[0.4em]">Portfolio.SYS</span>
+            <span className="text-xs font-black tracking-[0.2em] text-white uppercase md:text-sm md:tracking-[0.4em]">Luseefor.SYS</span>
             <span className="text-[8px] font-bold text-emerald-500/40 uppercase tracking-widest md:text-[10px]">Public_Interface</span>
           </div>
         </motion.div>
@@ -191,8 +191,8 @@ export default function Home() {
             <span className="text-[8px] font-black tracking-[0.2em] uppercase text-white/40 md:text-[10px] md:tracking-[0.3em]">Access_Verified</span>
           </motion.div>
 
-          <h1 className="text-4xl font-black tracking-tighter text-white sm:text-6xl md:text-8xl lg:text-[9rem] leading-none">
-            PORTFOLIO<span className="text-emerald-500 opacity-20">.</span>OS
+          <h1 className="text-4xl font-black tracking-tighter text-white sm:text-6xl md:text-8xl lg:text-[9rem] leading-none uppercase">
+            Luseefor<span className="text-emerald-500 opacity-20">.</span>os
           </h1>
         </div>
 
