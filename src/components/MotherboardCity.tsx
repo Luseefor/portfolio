@@ -68,6 +68,16 @@ export function MotherboardCity() {
 
     useLayoutEffect(() => {
         const tempObj = new THREE.Object3D();
+
+        // Prepare arrays for attributes (Max 500 per mesh to match args)
+        const maxCount = 500;
+        const resColors = new Float32Array(maxCount * 3);
+        const resTypes = new Float32Array(maxCount);
+        const icColors = new Float32Array(maxCount * 3);
+        const icTypes = new Float32Array(maxCount);
+        const transColors = new Float32Array(maxCount * 3);
+        const transTypes = new Float32Array(maxCount);
+
         let resIdx = 0, icIdx = 0, transIdx = 0;
 
         decorData.forEach((item) => {
@@ -75,23 +85,55 @@ export function MotherboardCity() {
             tempObj.rotation.set(0, Math.random() * Math.PI, 0);
 
             if (item.type < 0.33) {
-                tempObj.scale.set(3, item.h, 3);
-                tempObj.updateMatrix();
-                resRef.current.setMatrixAt(resIdx++, tempObj.matrix);
+                if (resIdx < maxCount) {
+                    tempObj.scale.set(3, item.h, 3);
+                    tempObj.updateMatrix();
+                    resRef.current.setMatrixAt(resIdx, tempObj.matrix);
+
+                    item.color.toArray(resColors, resIdx * 3);
+                    resTypes[resIdx] = 0.1; // Resistor ID
+                    resIdx++;
+                }
             } else if (item.type < 0.66) {
-                tempObj.scale.set(12, item.h, 12);
-                tempObj.updateMatrix();
-                icRef.current.setMatrixAt(icIdx++, tempObj.matrix);
+                if (icIdx < maxCount) {
+                    tempObj.scale.set(12, item.h, 12);
+                    tempObj.updateMatrix();
+                    icRef.current.setMatrixAt(icIdx, tempObj.matrix);
+
+                    item.color.toArray(icColors, icIdx * 3);
+                    icTypes[icIdx] = 0.5; // IC ID
+                    icIdx++;
+                }
             } else {
-                tempObj.scale.set(8, item.h, 8);
-                tempObj.updateMatrix();
-                transRef.current.setMatrixAt(transIdx++, tempObj.matrix);
+                if (transIdx < maxCount) {
+                    tempObj.scale.set(8, item.h, 8);
+                    tempObj.updateMatrix();
+                    transRef.current.setMatrixAt(transIdx, tempObj.matrix);
+
+                    item.color.toArray(transColors, transIdx * 3);
+                    transTypes[transIdx] = 0.9; // Transformer ID
+                    transIdx++;
+                }
             }
         });
 
+        // Update counts to render only used instances
+        resRef.current.count = resIdx;
+        icRef.current.count = icIdx;
+        transRef.current.count = transIdx;
+
+        // Apply attributes
         resRef.current.instanceMatrix.needsUpdate = true;
+        resRef.current.geometry.setAttribute('instanceColor', new THREE.InstancedBufferAttribute(resColors, 3));
+        resRef.current.geometry.setAttribute('instanceType', new THREE.InstancedBufferAttribute(resTypes, 1));
+
         icRef.current.instanceMatrix.needsUpdate = true;
+        icRef.current.geometry.setAttribute('instanceColor', new THREE.InstancedBufferAttribute(icColors, 3));
+        icRef.current.geometry.setAttribute('instanceType', new THREE.InstancedBufferAttribute(icTypes, 1));
+
         transRef.current.instanceMatrix.needsUpdate = true;
+        transRef.current.geometry.setAttribute('instanceColor', new THREE.InstancedBufferAttribute(transColors, 3));
+        transRef.current.geometry.setAttribute('instanceType', new THREE.InstancedBufferAttribute(transTypes, 1));
     }, [decorData]);
 
     const interactiveNodes = useMemo(() => {
