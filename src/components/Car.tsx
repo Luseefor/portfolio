@@ -21,13 +21,6 @@ export function Car() {
     const frontWheelsRef = useRef<THREE.Mesh[]>([])
     const isSetup = useRef(false)
 
-    // Material State for Dynamic Effects
-    const brakeMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-        color: "#ff0000",
-        emissive: "#ff0000",
-        emissiveIntensity: 5
-    }), [])
-
     useLayoutEffect(() => {
         if (isSetup.current) return
         wheelsRef.current = []
@@ -65,15 +58,10 @@ export function Car() {
                         frontWheelsRef.current.push(child)
                     }
                 }
-
-                // Taillight Search & Setup
-                if (child.name.toLowerCase().includes('light') && (child.name.toLowerCase().includes('rear') || child.name.toLowerCase().includes('tail'))) {
-                    child.material = brakeMaterial;
-                }
             }
         })
         isSetup.current = true
-    }, [clone, brakeMaterial])
+    }, [clone])
 
     const scale = useMemo(() => {
         const box = new THREE.Box3().setFromObject(clone)
@@ -84,8 +72,6 @@ export function Car() {
         return 4.5 / maxDim
     }, [clone])
 
-    const targetRotationZ = useRef(0)
-    const currentRotationZ = useRef(0)
     const targetSteerY = useRef(0)
     const currentSteerY = useRef(0)
 
@@ -101,30 +87,21 @@ export function Car() {
             })
         }
 
-        // 2. Dynamic Brake Lights
-        brakeMaterial.emissiveIntensity = velocity < 0.2 ? 10 : 3;
-
-        // 3. Steering & Body Roll (SUBTLE & CLEAN)
-        targetRotationZ.current = -lane * 0.05;
+        // 2. Subdued Steering (Wheel only, no body roll)
         targetSteerY.current = lane * 0.3;
-
-        currentRotationZ.current = THREE.MathUtils.lerp(currentRotationZ.current, targetRotationZ.current, delta * 3);
         currentSteerY.current = THREE.MathUtils.lerp(currentSteerY.current, targetSteerY.current, delta * 3);
-
-        if (bodyRef.current) {
-            bodyRef.current.rotation.z = currentRotationZ.current;
-            // Ensure car sits slightly above ground to prevent clipping
-            bodyRef.current.position.y = 0.05;
-        }
 
         frontWheelsRef.current.forEach(wheel => {
             wheel.rotation.y = currentSteerY.current;
         });
 
-        // 4. Suspension Oscillation (Subtle Speed-dependent bounce)
-        const time = state.clock.getElapsedTime();
-        const bounce = Math.sin(time * 10) * 0.015 * (velocity > 0.1 ? 1 : 0.2);
+        // 3. Stable Height & Suspension
         if (bodyRef.current) {
+            bodyRef.current.rotation.z = 0; // No tilt (unnatural look fix)
+            bodyRef.current.position.y = 0.05; // Sitting above ground
+
+            const time = state.clock.getElapsedTime();
+            const bounce = Math.sin(time * 10) * 0.01 * (velocity > 0.1 ? 1 : 0.2);
             bodyRef.current.position.y += bounce;
         }
     })
@@ -136,36 +113,11 @@ export function Car() {
                     <primitive object={clone} />
                 </group>
 
-                {/* Cyberpunk Neon Underglow (TONED DOWN) */}
-                <pointLight position={[0, -0.2, 0]} intensity={8} distance={8} color="#00ffff" />
+                {/* Extremely Faint Cyberpunk Underglow */}
                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
                     <planeGeometry args={[2, 4]} />
-                    <meshBasicMaterial color="#00ffff" transparent opacity={0.15} />
+                    <meshBasicMaterial color="#00ffff" transparent opacity={0.05} />
                 </mesh>
-            </group>
-
-            {/* Optimized High-Performance Headlights (TONED DOWN) */}
-            <group position={[0, 1, -2]}>
-                <spotLight
-                    position={[-0.8, 0, 0]}
-                    angle={0.4}
-                    penumbra={1}
-                    intensity={60}
-                    color="#ffffff"
-                    distance={120}
-                    castShadow
-                />
-                <spotLight
-                    position={[0.8, 0, 0]}
-                    angle={0.4}
-                    penumbra={1}
-                    intensity={60}
-                    color="#ffffff"
-                    distance={120}
-                    castShadow
-                />
-                {/* Rear Brake Light Glow (TONED DOWN) */}
-                <pointLight position={[0, 0.5, 3]} intensity={5} distance={8} color="#ff0000" />
             </group>
         </group>
     );
