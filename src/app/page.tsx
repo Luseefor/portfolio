@@ -180,8 +180,12 @@ const Magnetic = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Icon, active = true, themeColor, isDark }: any) => {
+const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Icon, active = false, themeColor, isDark }: any) => {
   const [rotate, setRotate] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  // If explicitly active OR currently hovered, we show the "lit up" state
+  const isActiveState = active || isHovered;
 
   const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const card = e.currentTarget.getBoundingClientRect();
@@ -196,10 +200,15 @@ const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Ico
 
   const onMouseLeave = () => {
     setRotate({ x: 0, y: 0 });
+    setIsHovered(false);
+  };
+
+  const onMouseEnter = () => {
+    setIsHovered(true);
   };
 
   return (
-    <Link href={href} className={`group relative block h-full ${!active && 'pointer-events-none cursor-default'}`}>
+    <Link href={href} className="group relative block h-full">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{
@@ -210,6 +219,7 @@ const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Ico
         }}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
+        onMouseEnter={onMouseEnter}
         transition={{
           opacity: { delay, duration: 0.8 },
           rotateX: { type: "spring", stiffness: 100, damping: 30 },
@@ -228,25 +238,25 @@ const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Ico
             <span
               className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[8px] font-black tracking-[0.2em] uppercase transition-colors md:px-4 md:text-[10px]"
               style={{
-                borderColor: active ? `${themeColor}40` : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
-                backgroundColor: active ? `${themeColor}20` : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'),
-                color: active ? themeColor : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)')
+                borderColor: isActiveState ? `${themeColor}40` : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
+                backgroundColor: isActiveState ? `${themeColor}20` : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'),
+                color: isActiveState ? themeColor : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)')
               }}
             >
               {badge}
             </span>
             <div
               className="transition-all duration-500"
-              style={{ color: active ? themeColor : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') }}
+              style={{ color: isActiveState ? themeColor : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') }}
             >
               <Icon size={32} strokeWidth={1.5} className="md:w-12 md:h-12" />
             </div>
           </div>
 
-          <h3 className={`mb-2 text-2xl font-black tracking-tight transition-colors duration-500 md:mb-4 md:text-3xl lg:text-4xl ${active ? (isDark ? 'text-white' : 'text-slate-900') : (isDark ? 'text-white/20' : 'text-slate-900/20')}`}>
+          <h3 className={`mb-2 text-2xl font-black tracking-tight transition-colors duration-500 md:mb-4 md:text-3xl lg:text-4xl ${isActiveState ? (isDark ? 'text-white' : 'text-slate-900') : (isDark ? 'text-white/20' : 'text-slate-900/20')}`}>
             {title}
           </h3>
-          <p className={`mb-6 text-xs leading-relaxed font-sans transition-colors duration-500 md:mb-8 md:text-sm ${active ? (isDark ? 'text-white/40' : 'text-slate-600') : (isDark ? 'text-white/10' : 'text-slate-900/10')}`}>
+          <p className={`mb-6 text-xs leading-relaxed font-sans transition-colors duration-500 md:mb-8 md:text-sm ${isActiveState ? (isDark ? 'text-white/40' : 'text-slate-600') : (isDark ? 'text-white/10' : 'text-slate-900/10')}`}>
             {description}
           </p>
 
@@ -254,10 +264,10 @@ const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Ico
             <Magnetic>
               <div
                 className="flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] transition-all duration-300 md:gap-3 md:text-xs md:tracking-[0.3em]"
-                style={{ color: active ? themeColor : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') }}
+                style={{ color: isActiveState ? themeColor : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') }}
               >
-                <span>{active ? 'Initialize' : 'Offline'}</span>
-                {active && <ArrowRight size={14} className="transition-transform group-hover:translate-x-2 md:w-4 md:h-4" />}
+                <span>{isActiveState ? 'Initialize' : 'Offline'}</span>
+                {isActiveState && <ArrowRight size={14} className="transition-transform group-hover:translate-x-2 md:w-4 md:h-4" />}
               </div>
             </Magnetic>
             {active && (
@@ -299,7 +309,7 @@ export default function Home() {
 
     // System Metrics
     const updateMetrics = () => {
-      setSystemData(`${window.innerWidth}_X_${window.innerHeight}_PTS`);
+      setSystemData(`${window.innerWidth}_X_${window.innerHeight}_PXLS`);
 
       const ua = navigator.userAgent;
       let platform = 'UNKNOWN';
@@ -463,7 +473,6 @@ export default function Home() {
               description="A structured interface detailing projects and technical stack. Optimized for readability."
               icon={Grid3X3}
               delay={0.6}
-              active={true}
               themeColor={activeTheme.color}
               isDark={isDark}
             />
