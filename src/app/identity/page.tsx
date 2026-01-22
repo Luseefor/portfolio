@@ -6,6 +6,65 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, FileText, Folder, Grip, Search, MoreHorizontal, Activity, ShieldCheck, Globe, Cpu, Terminal } from 'lucide-react';
 
 export default function IdentityPage() {
+    const [currentPath, setCurrentPath] = React.useState<string[]>(['root']);
+    const [animDirection, setAnimDirection] = React.useState(1);
+
+    const fileSystem: any = {
+        root: {
+            folders: [
+                { name: 'commercial', icon: Folder, desc: 'Client work & Production systems' },
+                { name: 'experimental', icon: Activity, desc: 'R&D, Shaders & Prototypes' },
+                { name: 'system', icon: Cpu, desc: 'Core Competencies & Stack' }
+            ],
+            files: []
+        },
+        commercial: {
+            folders: [],
+            files: [
+                { title: 'DeFi_Protocol_V2', desc: 'Automated liquidity provision system with MEV protection.', year: '2024', icon: ShieldCheck, type: 'spec' },
+                { title: 'Global_CDN_Edge', desc: 'Distributed edge caching layer for high-frequency trading data.', year: '2024', icon: Globe, type: 'spec' },
+                { title: 'Cyber_Sec_Audit', desc: 'Automated penetration testing suite for smart contracts.', year: '2025', icon: ShieldCheck, type: 'report' },
+            ]
+        },
+        experimental: {
+            folders: [],
+            files: [
+                { title: 'Neural_Network_Vis', desc: 'Real-time 3D visualization of transformer model weights and biases.', year: '2025', icon: Activity, type: 'prototype' },
+                { title: 'Quantum_Sim', desc: 'Browser-based quantum circuit simulator using WebGL compute shaders.', year: '2023', icon: Cpu, type: 'sim' },
+                { title: 'OS_Interface', desc: 'The very operating system you are currently navigating.', year: '2026', icon: Terminal, type: 'live' },
+            ]
+        },
+        system: {
+            folders: [],
+            files: [
+                { title: 'Full_Stack_Core', desc: 'TypeScript, React, Node.js, PostgreSQL, AWS', year: '2025', icon: Terminal, type: 'stack' },
+                { title: 'Graphics_Engine', desc: 'WebGL, Three.js, GLSL, Metal', year: '2024', icon: Activity, type: 'stack' },
+                { title: 'Smart_Contracts', desc: 'Solidity, Rust, EVM Architecture', year: '2025', icon: ShieldCheck, type: 'stack' },
+            ]
+        }
+    };
+
+    const currentFolder = fileSystem[currentPath[currentPath.length - 1]] || fileSystem['root'];
+
+    const navigateTo = (folderName: string) => {
+        setAnimDirection(1);
+        setCurrentPath([...currentPath, folderName]);
+    };
+
+    const navigateUp = () => {
+        if (currentPath.length > 1) {
+            setAnimDirection(-1);
+            setCurrentPath(currentPath.slice(0, -1));
+        }
+    };
+
+    const navigateToBreadcrumb = (index: number) => {
+        if (index < currentPath.length - 1) {
+            setAnimDirection(-1);
+            setCurrentPath(currentPath.slice(0, index + 1));
+        }
+    };
+
     return (
         <div className="min-h-screen w-full bg-[#FAFAFA] text-[#111111] font-mono selection:bg-black selection:text-white cursor-none">
             {/* Navigation Bar */}
@@ -27,26 +86,45 @@ export default function IdentityPage() {
             {/* Main Content Area */}
             <main className="mx-auto max-w-5xl px-6 pt-32 pb-20">
 
-                {/* Header Section */}
-                <header className="mb-16">
+                {/* Dynamic Header */}
+                <header className="mb-12">
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                        key={currentPath.join('/')}
+                        transition={{ duration: 0.4 }}
                     >
-                        <h1 className="mb-6 text-6xl font-black tracking-tighter md:text-8xl">IDENTITY</h1>
-                        <p className="max-w-xl text-lg text-[#666666] md:text-xl leading-relaxed">
-                            A comprehensive archive of technical competencies, project directives, and professional history.
-                        </p>
+                        <h1 className="mb-2 text-4xl font-black tracking-tighter uppercase md:text-6xl text-[#111]">
+                            {currentPath[currentPath.length - 1] === 'root' ? 'ROOT_DIRECTORY' : currentPath[currentPath.length - 1]}
+                        </h1>
+                        <div className="flex items-center gap-2 text-sm text-[#666666]">
+                            {currentPath.map((segment, i) => (
+                                <React.Fragment key={i}>
+                                    <button
+                                        onClick={() => navigateToBreadcrumb(i)}
+                                        className={`uppercase tracking-widest hover:text-black hover:underline ${i === currentPath.length - 1 ? 'font-bold text-black' : ''}`}
+                                    >
+                                        {segment}
+                                    </button>
+                                    {i < currentPath.length - 1 && <span className="text-[#CCC]">/</span>}
+                                </React.Fragment>
+                            ))}
+                        </div>
                     </motion.div>
                 </header>
 
-                {/* Documentation Grid */}
+                {/* Content Grid */}
                 <section>
-                    <div className="mb-8 flex items-center justify-between border-b border-[#E5E5E5] pb-4">
+                    <div className="mb-6 flex items-center justify-between border-b border-[#E5E5E5] pb-4">
                         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#999999]">
+                            {currentPath.length > 1 && (
+                                <button onClick={navigateUp} className="flex items-center gap-1 hover:text-black transition-colors mr-2">
+                                    <ArrowLeft size={12} />
+                                    <span>BACK</span>
+                                </button>
+                            )}
                             <Folder size={14} />
-                            <span>Root / Documents</span>
+                            <span>{currentPath.length} Items</span>
                         </div>
                         <div className="flex gap-2">
                             <button className="rounded p-1 hover:bg-[#F0F0F0] text-[#999999] hover:text-black transition-colors"><Search size={14} /></button>
@@ -54,50 +132,65 @@ export default function IdentityPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {[
-                            { title: 'Neural_Network_Vis', desc: 'Real-time 3D visualization of transformer model weights and biases.', year: '2025', icon: Activity },
-                            { title: 'DeFi_Protocol_V2', desc: 'Automated liquidity provision system with MEV protection.', year: '2024', icon: ShieldCheck },
-                            { title: 'Global_CDN_Edge', desc: 'Distributed edge caching layer for high-frequency trading data.', year: '2024', icon: Globe },
-                            { title: 'Quantum_Sim', desc: 'Browser-based quantum circuit simulator using WebGL compute shaders.', year: '2023', icon: Cpu },
-                            { title: 'OS_Interface', desc: 'The very operating system you are currently navigating.', year: '2026', icon: Terminal },
-                            { title: 'Cyber_Sec_Audit', desc: 'Automated penetration testing suite for smart contracts.', year: '2025', icon: ShieldCheck },
-                        ].map((project, i) => (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {/* Folders */}
+                        {currentFolder.folders.map((folder: any, i: number) => (
                             <motion.div
-                                key={i}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 + (i * 0.1), duration: 0.5 }}
-                                className="group relative flex min-h-[280px] cursor-pointer flex-col justify-between overflow-hidden rounded-xl border border-[#E5E5E5] bg-white p-6 transition-all hover:-translate-y-1 hover:border-black/5 hover:shadow-2xl"
+                                key={`folder-${folder.name}`}
+                                initial={{ opacity: 0, x: animDirection * 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -animDirection * 20 }}
+                                transition={{ delay: i * 0.05, duration: 0.3 }}
+                                onClick={() => navigateTo(folder.name)}
+                                className="group flex cursor-pointer items-center justify-between rounded-lg border border-[#E5E5E5] bg-white p-4 transition-all hover:bg-[#F8F8F8] hover:border-[#D4D4D4]"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded bg-[#F0F0F0] text-[#444] group-hover:bg-[#E5E5E5] group-hover:text-black transition-colors">
+                                        <folder.icon size={18} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold uppercase tracking-wide">{folder.name}</h3>
+                                        <p className="text-[10px] text-[#888]">{folder.desc}</p>
+                                    </div>
+                                </div>
+                                <ArrowLeft size={14} className="rotate-180 text-[#CCC] transition-colors group-hover:text-black" />
+                            </motion.div>
+                        ))}
+
+                        {/* Files */}
+                        {currentFolder.files.map((file: any, i: number) => (
+                            <motion.div
+                                key={`file-${file.title}`}
+                                initial={{ opacity: 0, x: animDirection * 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: (currentFolder.folders.length * 0.05) + (i * 0.05), duration: 0.3 }}
+                                className="group relative flex min-h-[220px] cursor-pointer flex-col justify-between overflow-hidden rounded-xl border border-[#E5E5E5] bg-white p-6 transition-all hover:-translate-y-1 hover:border-black/5 hover:shadow-xl"
                             >
                                 <div>
-                                    <div className="mb-8 flex h-10 w-10 items-center justify-center rounded-lg bg-[#FAFAFA] text-[#333333] transition-colors group-hover:bg-black group-hover:text-white">
-                                        <project.icon size={20} />
+                                    <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-lg bg-[#FAFAFA] text-[#333333] transition-colors group-hover:bg-black group-hover:text-white">
+                                        <file.icon size={20} />
                                     </div>
-                                    <h3 className="mb-2 text-lg font-bold leading-tight">{project.title}</h3>
-                                    <p className="leading-relaxed text-sm text-[#666666]">{project.desc}</p>
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <h3 className="text-base font-bold leading-tight">{file.title}</h3>
+                                        <span className="rounded bg-[#F5F5F5] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#888]">{file.type}</span>
+                                    </div>
+                                    <p className="leading-relaxed text-xs text-[#666666]">{file.desc}</p>
                                 </div>
 
-                                <div className="mt-8 flex items-center justify-between border-t border-[#F5F5F5] pt-4">
-                                    <span className="text-[10px] uppercase tracking-widest text-[#999999] transition-colors group-hover:text-black">{project.year}</span>
-                                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#999999] transition-colors group-hover:text-black">View Spec</span>
+                                <div className="mt-6 flex items-center justify-between border-t border-[#F5F5F5] pt-3">
+                                    <span className="text-[10px] uppercase tracking-widest text-[#999999] transition-colors group-hover:text-black">{file.year}</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#999999] transition-colors group-hover:text-black">View</span>
                                 </div>
                             </motion.div>
                         ))}
                     </div>
-                </section>
 
-                {/* Tech Stack Section */}
-                <section className="mt-20 border-t border-[#E5E5E5] pt-12">
-                    <h2 className="mb-8 text-2xl font-bold tracking-tight">Technical_Competencies</h2>
-                    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                        {['TypeScript', 'React.js', 'Next.js', 'WebGL', 'Three.js', 'Node.js', 'PostgreSQL', 'System Architecture', 'Rust', 'Solidity', 'Python', 'AWS'].map((tech, i) => (
-                            <div key={i} className="flex items-center gap-3 rounded-lg border border-[#F0F0F0] bg-white p-4 transition-colors hover:border-[#E5E5E5] hover:shadow-sm">
-                                <div className="h-2 w-2 rounded-full bg-black/20" />
-                                <span className="text-xs font-medium uppercase tracking-wider text-[#444]">{tech}</span>
-                            </div>
-                        ))}
-                    </div>
+                    {currentFolder.folders.length === 0 && currentFolder.files.length === 0 && (
+                        <div className="flex h-64 w-full flex-col items-center justify-center text-[#CCC]">
+                            <Folder size={48} className="mb-4 opacity-20" />
+                            <span className="text-xs font-bold uppercase tracking-widest">Directory Empty</span>
+                        </div>
+                    )}
                 </section>
 
             </main>

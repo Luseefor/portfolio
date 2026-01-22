@@ -31,6 +31,7 @@ const THEMES = {
   }
 };
 
+
 const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolean }) => {
   return (
     <div className={`absolute inset-0 z-0 overflow-hidden transition-colors duration-1000 ${isDark ? 'bg-[#020202]' : 'bg-[#f1f5f9]'}`}>
@@ -70,6 +71,7 @@ const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolea
     </div>
   );
 };
+
 
 const ThemeDropdown = ({ currentTheme, onThemeChange, isDark, toggleDark, themeColor }: any) => {
   const [isOpen, setIsOpen] = useState(false);
