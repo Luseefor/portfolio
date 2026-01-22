@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Cpu, Terminal, ArrowRight, Grid3X3, ShieldCheck, Activity, Globe, Palette, Sun, Moon } from 'lucide-react';
 import FloatingParticles from '@/components/FloatingParticles';
 import LetterGlitch from '@/components/LetterGlitch';
+import HyperText from '@/components/HyperText';
 
 const THEMES = {
   emerald: {
@@ -304,7 +305,10 @@ export default function Home() {
             <Terminal size={16} className="md:w-5 md:h-5" style={{ color: activeTheme.color }} />
           </div>
           <div className="flex flex-col items-start">
-            <span className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}>Luseefor.SYS</span>
+            <HyperText
+              text="Luseefor.SYS"
+              className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}
+            />
             <span className="text-[8px] font-bold uppercase tracking-widest md:text-[10px]" style={{ color: `${activeTheme.color}80` }}>Public_Interface</span>
           </div>
         </motion.div>
@@ -338,7 +342,9 @@ export default function Home() {
             className={`mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 backdrop-blur-md md:mb-6 md:gap-3 md:px-6 md:py-2 ${isDark ? 'border-white/5 bg-white/[0.02]' : 'border-black/5 bg-black/[0.02]'}`}
           >
             <ShieldCheck size={12} className="md:w-3.5 md:h-3.5" style={{ color: activeTheme.color }} />
-            <span className={`text-[8px] font-black tracking-[0.2em] uppercase md:text-[10px] md:tracking-[0.3em] ${isDark ? 'text-white/40' : 'text-slate-900/40'}`}>Access_Verified</span>
+            <div className={`text-[8px] font-black tracking-[0.2em] uppercase md:text-[10px] md:tracking-[0.3em] ${isDark ? 'text-white/40' : 'text-slate-900/40'}`}>
+              <HyperText text="Access_Verified" />
+            </div>
           </motion.div>
 
           <h1 className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl xl:text-[11rem] leading-none uppercase transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -415,23 +421,29 @@ export default function Home() {
       {/* --- SYSTEM METRICS FOOTER --- */}
       <footer className={`relative z-50 w-full shrink-0 border-t px-6 py-3 backdrop-blur-md transition-colors duration-1000 md:px-12 md:py-4 ${isDark ? 'border-white/5 bg-black/40' : 'border-black/5 bg-white/40'}`}>
         <div className={`flex flex-wrap items-center justify-between gap-4 text-[7px] font-black tracking-[0.2em] uppercase transition-colors duration-1000 md:text-[9px] md:tracking-[0.5em] ${isDark ? 'text-white/30' : 'text-slate-900/30'}`}>
-          <div className="flex gap-4 md:gap-12">
-            <div className="flex flex-col gap-0.5 cursor-pointer">
+          <div className="flex gap-8 md:gap-12">
+            <div className="flex flex-col gap-0.5 cursor-pointer min-w-[80px]">
               <span className="opacity-40" style={{ color: activeTheme.color }}>Node</span>
-              <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>BROWSER_V1</span>
+              <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>
+                <HyperText text="BROWSER_V1" />
+              </span>
             </div>
-            <div className="flex flex-col gap-0.5 cursor-pointer">
+            <div className="flex flex-col gap-0.5 cursor-pointer min-w-[80px]">
               <span className="opacity-40" style={{ color: activeTheme.color }}>Data</span>
-              <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>1024_PTS</span>
+              <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>
+                <HyperText text="1024_PTS" />
+              </span>
             </div>
-            <div className="hidden flex-col gap-0.5 sm:flex cursor-pointer">
+            <div className="hidden flex-col gap-0.5 sm:flex cursor-pointer min-w-[120px]">
               <span className="opacity-40" style={{ color: activeTheme.color }}>Link</span>
               <span className={`tabular-nums transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>{time}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-4 md:gap-12">
-            <span className="animate-pulse cursor-pointer" style={{ color: activeTheme.color }}>Sync_Active</span>
+            <span className="animate-pulse cursor-pointer flex items-center" style={{ color: activeTheme.color }}>
+              <HyperText text="Sync_Active" />
+            </span>
           </div>
         </div>
       </footer>
