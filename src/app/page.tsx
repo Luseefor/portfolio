@@ -8,17 +8,18 @@ import { InteractionUI } from '@/components/InteractionUI';
 import { useStore } from '@/utils/store';
 
 export default function Home() {
-  const [showWelcome, setShowWelcome] = useState(true);
+  const isWelcomeOpen = useStore((state) => state.isWelcomeOpen);
+  const setWelcomeOpen = useStore((state) => state.setWelcomeOpen);
   const setIntroPlaying = useStore((state) => state.setIntroPlaying);
 
   const handleStart = () => {
-    setShowWelcome(false);
+    setWelcomeOpen(false);
     setIntroPlaying(true);
   };
 
   return (
     <main className="relative w-full h-screen overflow-hidden bg-black">
-      <WelcomePopup isOpen={showWelcome} onClose={handleStart} />
+      <WelcomePopup isOpen={isWelcomeOpen} onClose={handleStart} />
       <InteractionUI />
 
       <ViewCanvas />
