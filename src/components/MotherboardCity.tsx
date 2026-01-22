@@ -93,16 +93,17 @@ export function MotherboardCity() {
         meshRef.current.geometry.setAttribute('instanceType', new THREE.InstancedBufferAttribute(types, 1));
     }, [decorData]);
 
-    // Streetlights for "Bustling City" feel (OPTIMIZED: No PointLights)
+    // Streetlights for "Bustling City" feel (OPTIMIZED & DENSE)
     const streetlights = useMemo(() => {
         const lights = [];
-        for (let i = 0; i < 40; i++) {
-            const t = i / 40;
+        const count = 60; // 60 pairs = 120 lights
+        for (let i = 0; i < count; i++) {
+            const t = i / count;
             const p = cityCurve.getPointAt(t);
             const tan = cityCurve.getTangentAt(t).normalize();
             const norm = new THREE.Vector3(-tan.z, 0, tan.x);
-            lights.push({ pos: p.clone().add(norm.multiplyScalar(12)) });
-            lights.push({ pos: p.clone().add(norm.multiplyScalar(-12)) });
+            lights.push({ pos: p.clone().add(norm.multiplyScalar(12)), id: `l-${i}` });
+            lights.push({ pos: p.clone().add(norm.multiplyScalar(-12)), id: `r-${i}` });
         }
         return lights;
     }, []);
@@ -132,20 +133,20 @@ export function MotherboardCity() {
 
     return (
         <group>
-            {/* Ultra Smooth Asphalt Road */}
-            <mesh name="road" position={[0, -0.05, 0]} scale={[1, 0.01, 1]}>
-                <tubeGeometry args={[cityCurve, 1200, 10, 8, false]} />
-                <meshStandardMaterial color="#08080b" roughness={0.9} metalness={0.1} />
+            {/* Optimized Asphalt Road (Shadow Receiver) */}
+            <mesh name="road" position={[0, -0.05, 0]} scale={[1, 0.01, 1]} receiveShadow>
+                <tubeGeometry args={[cityCurve, 800, 10, 8, false]} />
+                <meshStandardMaterial color="#050507" roughness={0.7} metalness={0.3} />
             </mesh>
 
-            {/* Elevated Sidewalks */}
-            <mesh position={[0, -0.01, 0]} scale={[1, 0.01, 1]}>
-                <tubeGeometry args={[leftSidewalkCurve, 600, 12, 4, false]} />
-                <meshStandardMaterial color="#111" roughness={0.8} />
+            {/* Optimized Sidewalks */}
+            <mesh position={[0, -0.01, 0]} scale={[1, 0.01, 1]} receiveShadow>
+                <tubeGeometry args={[leftSidewalkCurve, 400, 12, 4, false]} />
+                <meshStandardMaterial color="#0a0a0d" roughness={0.8} />
             </mesh>
-            <mesh position={[0, -0.01, 0]} scale={[1, 0.01, 1]}>
-                <tubeGeometry args={[rightSidewalkCurve, 600, 12, 4, false]} />
-                <meshStandardMaterial color="#111" roughness={0.8} />
+            <mesh position={[0, -0.01, 0]} scale={[1, 0.01, 1]} receiveShadow>
+                <tubeGeometry args={[rightSidewalkCurve, 400, 12, 4, false]} />
+                <meshStandardMaterial color="#0a0a0d" roughness={0.8} />
             </mesh>
 
             {/* Organic Detail: Cables connecting buildings */}
@@ -155,16 +156,17 @@ export function MotherboardCity() {
                 ))}
             </group>
 
-            {/* Streetlights (Optimized) */}
-            {streetlights.map((light, i) => (
-                <group key={i} position={[light.pos.x, 0, light.pos.z]}>
+            {/* Performance Streetlights (Emissive Only) */}
+            {streetlights.map((light) => (
+                <group key={light.id} position={[light.pos.x, 0, light.pos.z]}>
                     <mesh position={[0, 4, 0]}>
                         <cylinderGeometry args={[0.05, 0.08, 8, 8]} />
-                        <meshStandardMaterial color="#111" metalness={0.8} roughness={0.2} />
+                        <meshStandardMaterial color="#0a0a0a" metalness={0.9} />
                     </mesh>
                     <mesh position={[0, 8, 0]}>
-                        <sphereGeometry args={[0.2, 16, 16]} />
+                        <sphereGeometry args={[0.25, 16, 16]} />
                         <meshBasicMaterial color="#ffaa00" toneMapped={false} />
+                        {/* No PointLights here - all light comes from the car for speed */}
                     </mesh>
                 </group>
             ))}

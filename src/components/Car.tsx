@@ -66,47 +66,33 @@ export function Car() {
     return (
         <group ref={groupRef}>
             <group rotation={[0, 0, Math.PI]} scale={scale}>
-                <primitive object={clone} />
+                <primitive object={clone} castShadow />
             </group>
-            {/* Dynamic Headlights */}
+            {/* Optimized High-Performance Headlights */}
             <group position={[0, 1, -2]}>
                 <spotLight
-                    position={[-1, 0, 0]}
-                    angle={0.4}
-                    penumbra={0.5}
-                    intensity={20}
-                    color="#ffffee"
+                    position={[-0.8, 0, 0]}
+                    angle={0.5}
+                    penumbra={1}
+                    intensity={80}
+                    color="#ffffff"
                     distance={100}
                     castShadow
+                    shadow-mapSize={[512, 512]}
                 />
                 <spotLight
-                    position={[1, 0, 0]}
-                    angle={0.4}
-                    penumbra={0.5}
-                    intensity={20}
-                    color="#ffffee"
+                    position={[0.8, 0, 0]}
+                    angle={0.5}
+                    penumbra={1}
+                    intensity={80}
+                    color="#ffffff"
                     distance={100}
                     castShadow
+                    shadow-mapSize={[512, 512]}
                 />
+                {/* Fast Fill Light */}
+                <pointLight position={[0, -0.5, -2]} intensity={8} distance={20} color="#ffffff" />
             </group>
-            <spotLight
-                position={[0.6, 0.6, 1.8]}
-                angle={0.5}
-                penumbra={0.5}
-                intensity={2}
-                castShadow
-                color="cyan"
-                target-position={[0.6, 0.0, 10]}
-            />
-            <spotLight
-                position={[-0.6, 0.6, 1.8]}
-                angle={0.5}
-                penumbra={0.5}
-                intensity={2}
-                castShadow
-                color="cyan"
-                target-position={[-0.6, 0.0, 10]}
-            />
         </group>
     );
 }
