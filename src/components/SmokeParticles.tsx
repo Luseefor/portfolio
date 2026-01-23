@@ -44,7 +44,7 @@ export function SmokeParticles({ velocity }: SmokeParticlesProps) {
                 p.velocity.set(
                     (Math.random() - 0.5) * 0.2,
                     0.5 + Math.random() * 0.5, // Float UP
-                    2.0 + velocity * 4.0        // Move BACK
+                    2.0 + velocity * 4.0       // Move BACK
                 );
             }
 
@@ -78,7 +78,7 @@ export function SmokeParticles({ velocity }: SmokeParticlesProps) {
         <instancedMesh ref={meshRef} args={[undefined, undefined, PARTICLE_COUNT]}>
             <sphereGeometry args={[0.5, 8, 8]} />
             <meshBasicMaterial
-                color="#ffffff"
+                color="#aaaaaa"
                 transparent
                 opacity={0.6}
                 depthWrite={false}

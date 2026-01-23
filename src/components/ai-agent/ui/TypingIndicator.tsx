@@ -9,7 +9,7 @@ export default function TypingIndicator() {
                 transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
                 className="h-8 w-8 bg-black rounded-full overflow-hidden border border-emerald-500/30"
             >
-                <div className="h-full w-full bg-[url('/avatar.png')] bg-[length:200%_100%] bg-right bg-no-repeat" />
+                <div className="h-full w-full bg-[url('/2d.png')] bg-cover bg-center bg-no-repeat" />
             </motion.div>
         </div>
     );

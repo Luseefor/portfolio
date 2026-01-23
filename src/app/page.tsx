@@ -4,50 +4,31 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cpu, Terminal, ArrowRight, Grid3X3, ShieldCheck, Activity, Globe, Palette, Sun, Moon } from 'lucide-react';
-import FloatingParticles from '@/components/FloatingParticles';
-import LetterGlitch from '@/components/LetterGlitch';
-import HyperText from '@/components/HyperText';
 import { useStore } from '@/utils/store';
+import dynamic from 'next/dynamic';
 
-const THEMES = {
-  emerald: {
-    name: 'Emerald',
-    color: '#10b981',
-    glow: 'rgba(16, 185, 129, 0.4)'
-  },
-  amber: {
-    name: 'Amber',
-    color: '#f59e0b',
-    glow: 'rgba(245, 158, 11, 0.4)'
-  },
-  cobalt: {
-    name: 'Cobalt',
-    color: '#3b82f6',
-    glow: 'rgba(59, 130, 246, 0.4)'
-  },
-  crimson: {
-    name: 'Crimson',
-    color: '#ef4444',
-    glow: 'rgba(239, 68, 68, 0.4)'
-  }
-};
+const FloatingParticles = dynamic(() => import('@/components/FloatingParticles'), { ssr: false });
+const LetterGlitch = dynamic(() => import('@/components/LetterGlitch'), { ssr: false });
+const HyperText = dynamic(() => import('@/components/HyperText'), { ssr: false });
+
+import { THEMES, getThemeColor } from '@/utils/themes';
 
 
 const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolean }) => {
   return (
-    <div className={`absolute inset-0 z-0 overflow-hidden transition-colors duration-1000 ${isDark ? 'bg-[#020202]' : 'bg-[#f1f5f9]'}`}>
+    <div className={`absolute inset-0 z-0 overflow-hidden transition-colors duration-1000 ${isDark ? 'bg-[#020202]' : 'bg-[#fcfcfc]'}`}>
       <motion.div
-        animate={{ opacity: isDark ? [0.05, 0.1, 0.05] : [0.1, 0.2, 0.1] }}
-        transition={{ duration: 5, repeat: Infinity }}
-        className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[120px] md:h-[800px] md:w-[800px]"
-        style={{ backgroundColor: themeColor }}
+        animate={{ opacity: isDark ? [0.03, 0.08, 0.03] : [0.03, 0.06, 0.03] }}
+        transition={{ duration: 10, repeat: Infinity }}
+        className="absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[100px] md:h-[800px] md:w-[800px] md:blur-[150px]"
+        style={{ backgroundColor: themeColor, willChange: "opacity, transform" }}
       />
 
       <FloatingParticles
         particleColor={themeColor}
-        particleCount={80}
-        movementSpeed={0.5}
-        mouseInfluence={250}
+        particleCount={30}
+        movementSpeed={0.3}
+        mouseInfluence={200}
         mouseGravity="attract"
         gravityStrength={80}
       />
@@ -60,15 +41,14 @@ const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolea
 
       {/* Grid Overlay */}
       <div
-        className="absolute inset-0 opacity-[0.05]"
+        className="absolute inset-0 opacity-[0.03] md:opacity-[0.05]"
         style={{
           backgroundImage: `linear-gradient(${themeColor} 1px, transparent 1px), linear-gradient(90deg, ${themeColor} 1px, transparent 1px)`,
-          backgroundSize: '100px 100px',
-          maskImage: 'radial-gradient(circle at center, black, transparent 90%)'
+          backgroundSize: '120px 120px',
         }}
       />
 
-      <div className={`absolute inset-0 transition-opacity duration-1000 ${isDark ? 'opacity-100' : 'opacity-30'}`} style={{ background: `radial-gradient(circle at center, transparent 50%, ${isDark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.9)'} 100%)` }} />
+      <div className={`absolute inset-0 transition-opacity duration-1000 ${isDark ? 'opacity-100' : 'opacity-40'}`} style={{ background: `radial-gradient(circle at center, transparent 30%, ${isDark ? 'rgba(0,0,0,0.95)' : 'rgba(255,255,255,0.95)'} 100%)` }} />
     </div>
   );
 };
@@ -180,8 +160,11 @@ const Magnetic = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Icon, active = true, themeColor, isDark }: any) => {
+const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Icon, active = false, themeColor, isDark }: any) => {
   const [rotate, setRotate] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  const isActiveState = active || isHovered;
 
   const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const card = e.currentTarget.getBoundingClientRect();
@@ -196,10 +179,15 @@ const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Ico
 
   const onMouseLeave = () => {
     setRotate({ x: 0, y: 0 });
+    setIsHovered(false);
+  };
+
+  const onMouseEnter = () => {
+    setIsHovered(true);
   };
 
   return (
-    <Link href={href} className={`group relative block h-full ${!active && 'pointer-events-none cursor-default'}`}>
+    <Link href={href} className="group relative block h-full">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{
@@ -210,13 +198,16 @@ const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Ico
         }}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
+        onMouseEnter={onMouseEnter}
         transition={{
           opacity: { delay, duration: 0.8 },
           rotateX: { type: "spring", stiffness: 100, damping: 30 },
           rotateY: { type: "spring", stiffness: 100, damping: 30 }
         }}
         style={{ perspective: 1000 }}
-        className={`relative h-full overflow-hidden rounded-[1.5rem] border p-6 shadow-2xl backdrop-blur-[40px] transition-all duration-500 md:rounded-[2rem] md:p-8 ${isDark ? 'border-white/10 bg-gradient-to-br from-white/[0.08] to-transparent hover:from-white/[0.12]' : 'border-black/5 bg-gradient-to-br from-black/[0.03] to-white/5 hover:from-black/[0.05]'}`}
+        className={`relative h-full overflow-hidden rounded-[1.5rem] border p-6 shadow-2xl backdrop-blur-xl transition-all duration-500 md:rounded-[2rem] md:p-8 md:backdrop-blur-[60px] ${isDark
+          ? 'border-white/10 bg-gradient-to-br from-white/[0.08] to-transparent hover:from-white/[0.12]'
+          : 'border-black/[0.05] bg-gradient-to-br from-white/80 to-white/20 hover:from-white/90 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.05)]'}`}
       >
         <motion.div
           className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-500"
@@ -228,25 +219,25 @@ const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Ico
             <span
               className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[8px] font-black tracking-[0.2em] uppercase transition-colors md:px-4 md:text-[10px]"
               style={{
-                borderColor: active ? `${themeColor}40` : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
-                backgroundColor: active ? `${themeColor}20` : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'),
-                color: active ? themeColor : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)')
+                borderColor: isActiveState ? `${themeColor}40` : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'),
+                backgroundColor: isActiveState ? `${themeColor}10` : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'),
+                color: isActiveState ? themeColor : (isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)')
               }}
             >
               {badge}
             </span>
             <div
               className="transition-all duration-500"
-              style={{ color: active ? themeColor : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') }}
+              style={{ color: isActiveState ? themeColor : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') }}
             >
               <Icon size={32} strokeWidth={1.5} className="md:w-12 md:h-12" />
             </div>
           </div>
 
-          <h3 className={`mb-2 text-2xl font-black tracking-tight transition-colors duration-500 md:mb-4 md:text-3xl lg:text-4xl ${active ? (isDark ? 'text-white' : 'text-slate-900') : (isDark ? 'text-white/20' : 'text-slate-900/20')}`}>
+          <h3 className={`mb-2 text-2xl font-black tracking-tight transition-colors duration-500 md:mb-4 md:text-3xl lg:text-4xl ${isActiveState ? (isDark ? 'text-white' : 'text-slate-900') : (isDark ? 'text-white/20' : 'text-slate-900/20')}`}>
             {title}
           </h3>
-          <p className={`mb-6 text-xs leading-relaxed font-sans transition-colors duration-500 md:mb-8 md:text-sm ${active ? (isDark ? 'text-white/40' : 'text-slate-600') : (isDark ? 'text-white/10' : 'text-slate-900/10')}`}>
+          <p className={`mb-6 text-xs leading-relaxed font-sans transition-colors duration-500 md:mb-8 md:text-sm ${isActiveState ? (isDark ? 'text-white/40' : 'text-slate-600') : (isDark ? 'text-white/10' : 'text-slate-900/10')}`}>
             {description}
           </p>
 
@@ -254,10 +245,10 @@ const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Ico
             <Magnetic>
               <div
                 className="flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] transition-all duration-300 md:gap-3 md:text-xs md:tracking-[0.3em]"
-                style={{ color: active ? themeColor : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') }}
+                style={{ color: isActiveState ? themeColor : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') }}
               >
-                <span>{active ? 'Initialize' : 'Offline'}</span>
-                {active && <ArrowRight size={14} className="transition-transform group-hover:translate-x-2 md:w-4 md:h-4" />}
+                <span>{isActiveState ? 'Initialize' : 'Offline'}</span>
+                {isActiveState && <ArrowRight size={14} className="transition-transform group-hover:translate-x-2 md:w-4 md:h-4" />}
               </div>
             </Magnetic>
             {active && (
@@ -279,9 +270,9 @@ const GlassCard = ({ delay = 0, href = "#", title, description, badge, icon: Ico
 
 export default function Home() {
   const [time, setTime] = useState('');
-  const [currentTheme, setCurrentTheme] = useState('emerald');
-  const [isDark, setIsDark] = useState(true);
-  const activeTheme = useMemo(() => THEMES[currentTheme as keyof typeof THEMES], [currentTheme]);
+  const { currentTheme, setCurrentTheme, isDark, setIsDark } = useStore();
+
+  const activeThemeColor = useMemo(() => getThemeColor(currentTheme, isDark), [currentTheme, isDark]);
 
   const [systemNode, setSystemNode] = useState('DETECTING...');
   const [systemData, setSystemData] = useState('INITIALIZING...');
@@ -299,7 +290,7 @@ export default function Home() {
 
     // System Metrics
     const updateMetrics = () => {
-      setSystemData(`${window.innerWidth}_X_${window.innerHeight}_PTS`);
+      setSystemData(`${window.innerWidth}_X_${window.innerHeight}_PXLS`);
 
       const ua = navigator.userAgent;
       let platform = 'UNKNOWN';
@@ -341,7 +332,7 @@ export default function Home() {
 
   return (
     <main className={`relative flex h-screen w-full flex-col overflow-hidden font-mono selection:bg-none cursor-default select-none transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-      <Background themeColor={activeTheme.color} isDark={isDark} />
+      <Background themeColor={activeThemeColor} isDark={isDark} />
 
       {/* --- HEADER --- */}
       <header className="relative z-50 flex shrink-0 items-center justify-between px-6 py-3 backdrop-blur-sm md:px-10 md:py-6">
@@ -352,14 +343,16 @@ export default function Home() {
           className="flex items-center gap-3 md:gap-4 cursor-pointer"
         >
           <div className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all md:h-10 md:w-10 md:rounded-xl ${isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-black/5'}`}>
-            <Terminal size={16} className="md:w-5 md:h-5" style={{ color: activeTheme.color }} />
+            <Terminal size={16} className="md:w-5 md:h-5" style={{ color: activeThemeColor }} />
           </div>
-          <div className="flex flex-col items-start">
-            <HyperText
-              text="Luseefor.SYS"
-              className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}
-            />
-            <span className="text-[8px] font-bold uppercase tracking-widest md:text-[10px]" style={{ color: `${activeTheme.color}80` }}>Public_Interface</span>
+          <div className="flex flex-col items-start gap-0.5">
+            <div className="min-h-[14px] min-w-[100px] md:min-h-[20px] md:min-w-[140px] flex items-center">
+              <HyperText
+                text="Luseefor"
+                className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}
+              />
+            </div>
+            <span className="text-[8px] font-bold uppercase tracking-widest md:text-[10px]" style={{ color: `${activeThemeColor}80` }}>Public_Interface</span>
           </div>
         </motion.div>
 
@@ -369,8 +362,8 @@ export default function Home() {
           className="flex items-center gap-4 text-[8px] font-black uppercase tracking-[0.1em] md:gap-10 md:text-[10px] md:tracking-[0.2em]"
         >
           <div className="flex items-center gap-2 md:gap-3">
-            <Activity size={12} className="animate-pulse md:w-3.5 md:h-3.5" style={{ color: securityStatus === 'SECURE' ? activeTheme.color : '#ef4444' }} />
-            <span className={isDark ? 'text-white/60' : 'text-slate-900/60'}>
+            <Activity size={12} className="animate-pulse md:w-3.5 md:h-3.5" style={{ color: securityStatus === 'SECURE' ? activeThemeColor : '#ef4444' }} />
+            <span className={`w-16 inline-flex justify-center ${isDark ? 'text-white/60' : 'text-slate-900/60'}`}>
               <HyperText text={securityStatus} />
             </span>
           </div>
@@ -380,7 +373,7 @@ export default function Home() {
             onThemeChange={setCurrentTheme}
             isDark={isDark}
             toggleDark={() => setIsDark(!isDark)}
-            themeColor={activeTheme.color}
+            themeColor={activeThemeColor}
           />
         </motion.div>
       </header>
@@ -393,53 +386,63 @@ export default function Home() {
             animate={{ opacity: 1, scale: 1 }}
             className={`mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 backdrop-blur-md md:mb-6 md:gap-3 md:px-6 md:py-2 ${isDark ? 'border-white/5 bg-white/[0.02]' : 'border-black/5 bg-black/[0.02]'}`}
           >
-            <ShieldCheck size={12} className="md:w-3.5 md:h-3.5" style={{ color: activeTheme.color }} />
+            <ShieldCheck size={12} className="md:w-3.5 md:h-3.5" style={{ color: activeThemeColor }} />
             <div className={`text-[8px] font-black tracking-[0.2em] uppercase md:text-[10px] md:tracking-[0.3em] ${isDark ? 'text-white/40' : 'text-slate-900/40'}`}>
               <HyperText text="Access_Verified" />
             </div>
           </motion.div>
 
-          <h1 className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl xl:text-[11rem] leading-none uppercase transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          <h1 className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl xl:text-[11.5rem] leading-none uppercase transition-colors duration-1000`}
+            style={{
+              color: isDark ? 'white' : 'transparent',
+              backgroundImage: !isDark ? `linear-gradient(to bottom right, ${activeThemeColor}, ${activeThemeColor}aa)` : 'none',
+              WebkitBackgroundClip: !isDark ? 'text' : 'none',
+              backgroundClip: !isDark ? 'text' : 'none'
+            }}
+          >
             {"Portfolio".split("").map((char, i) => (
               <motion.span
                 key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{
-                  delay: 0.8 + i * 0.05,
+                  delay: 0.8 + i * 0.04,
                   duration: 0.8,
-                  ease: [0.2, 0.65, 0.3, 0.9]
+                  ease: [0.16, 1, 0.3, 1]
                 }}
-                className="inline-block"
+                className="inline-block px-1"
               >
                 {char}
               </motion.span>
             ))}
             <motion.span
               initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 0.2, scale: 1 }}
+              animate={{ opacity: isDark ? 0.3 : 0.6, scale: 1 }}
               transition={{ delay: 1.5, duration: 1 }}
               className="transition-colors duration-1000"
-              style={{ color: activeTheme.color }}
+              style={{ color: activeThemeColor }}
             >
               .
             </motion.span>
             {"os".split("").map((char, i) => (
               <motion.span
                 key={i + 10}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{
-                  delay: 1.6 + i * 0.1,
+                  delay: 1.4 + i * 0.08,
                   duration: 0.8,
-                  ease: [0.2, 0.65, 0.3, 0.9]
+                  ease: [0.16, 1, 0.3, 1]
                 }}
-                className="inline-block"
+                className="inline-block px-1"
               >
                 {char}
               </motion.span>
             ))}
           </h1>
+          <div className={`mt-4 text-[8px] font-mono uppercase tracking-[0.8em] transition-colors duration-1000 ${isDark ? 'text-white/10' : 'text-black/5'}`}>
+            01001100 01010101 01010011 01001100
+          </div>
         </div>
 
         <div className="grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:gap-8">
@@ -451,7 +454,7 @@ export default function Home() {
               description="Venture into a high-fidelity geospatial motherboard environment. Hardware accelerated."
               icon={Cpu}
               delay={0.4}
-              themeColor={activeTheme.color}
+              themeColor={activeThemeColor}
               isDark={isDark}
             />
           </div>
@@ -463,8 +466,7 @@ export default function Home() {
               description="A structured interface detailing projects and technical stack. Optimized for readability."
               icon={Grid3X3}
               delay={0.6}
-              active={true}
-              themeColor={activeTheme.color}
+              themeColor={activeThemeColor}
               isDark={isDark}
             />
           </div>
@@ -476,25 +478,25 @@ export default function Home() {
         <div className={`flex flex-wrap items-center justify-between gap-4 text-[7px] font-black tracking-[0.2em] uppercase transition-colors duration-1000 md:text-[9px] md:tracking-[0.5em] ${isDark ? 'text-white/30' : 'text-slate-900/30'}`}>
           <div className="flex gap-8 md:gap-12">
             <div className="flex flex-col gap-0.5 cursor-pointer min-w-[80px]">
-              <span className="opacity-40" style={{ color: activeTheme.color }}>Node</span>
+              <span className="opacity-40" style={{ color: activeThemeColor }}>Node</span>
               <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>
                 <HyperText text={systemNode} />
               </span>
             </div>
             <div className="flex flex-col gap-0.5 cursor-pointer min-w-[80px]">
-              <span className="opacity-40" style={{ color: activeTheme.color }}>Data</span>
+              <span className="opacity-40" style={{ color: activeThemeColor }}>Data</span>
               <span className={`transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>
                 <HyperText text={systemData} />
               </span>
             </div>
             <div className="hidden flex-col gap-0.5 sm:flex cursor-pointer min-w-[120px]">
-              <span className="opacity-40" style={{ color: activeTheme.color }}>Link</span>
+              <span className="opacity-40" style={{ color: activeThemeColor }}>Link</span>
               <span className={`tabular-nums transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-950'}`}>{time}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-4 md:gap-12">
-            <span className="animate-pulse cursor-pointer flex items-center gap-2" style={{ color: activeTheme.color }}>
+            <span className="animate-pulse cursor-pointer flex items-center gap-2" style={{ color: activeThemeColor }}>
               <HyperText text="SYNC_ACTIVE" />
               <span className="tabular-nums">[{syncStatus}MS]</span>
             </span>

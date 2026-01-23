@@ -107,8 +107,18 @@ export function Car() {
         }
     })
 
+    const setChatOpen = useStore((state) => state.setChatOpen);
+
     return (
-        <group ref={groupRef}>
+        <group
+            ref={groupRef}
+            onClick={(e) => {
+                e.stopPropagation();
+                setChatOpen(true);
+            }}
+            onPointerOver={() => (document.body.style.cursor = 'pointer')}
+            onPointerOut={() => (document.body.style.cursor = 'default')}
+        >
             <group ref={bodyRef}>
                 {/* Hyper-Visible Smoke - Placed outside the inverted group for standard coordinate behavior */}
                 <group position={[0.6, 0.4, 2.3]}>

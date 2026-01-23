@@ -13,16 +13,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Luseefor.os",
-  description: "Advanced Immersive Portfolio Experience",
+  title: "Rijan Ghimire",
+  description: "Welcome to Rijan Ghimire's Portfolio",
   icons: {
     icon: "/favicon.png",
   },
 };
 
-import OverscrollPreventer from "@/components/OverscrollPreventer";
-import TechCursor from "@/components/TechCursor";
-import AIAgent from "@/components/ai-agent/AIAgent";
+import GlobalEffects from "@/components/GlobalEffects";
 
 export default function RootLayout({
   children,
@@ -34,9 +32,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <OverscrollPreventer />
-        <TechCursor />
-        <AIAgent />
+        <GlobalEffects />
         {children}
       </body>
     </html>

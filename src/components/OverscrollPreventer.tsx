@@ -1,57 +1,58 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 /**
  * OverscrollPreventer
- * Prevents browser "rubber-banding" and rubber-band scrolling effects,
- * particularly on iOS Safari and modern desktop browsers.
- * This is crucial for maintaining a solid "OS-like" interface.
+ * Prevents browser "rubber-banding" on the landing page only.
+ * This maintains the solid "OS-like" feel on the root, but allows
+ * normal scrolling on all other pages.
  */
 export default function OverscrollPreventer() {
-    useEffect(() => {
-        // Apply overscroll behavior prevention globally
-        const html = document.documentElement;
-        const body = document.body;
+  const pathname = usePathname();
 
-        const originalHtmlOverscroll = html.style.overscrollBehavior;
-        const originalBodyOverscroll = body.style.overscrollBehavior;
+  useEffect(() => {
+    const isLanding = pathname === '/';
+    const overflowValue = isLanding ? 'hidden' : 'auto';
+    const overscrollValue = isLanding ? 'none' : 'auto';
 
-        html.style.overscrollBehavior = 'none';
-        body.style.overscrollBehavior = 'none';
+    // Apply overscroll behavior prevention globally
+    const html = document.documentElement;
+    const body = document.body;
 
-        // Additional CSS to prevent bouncing on iOS
-        const style = document.createElement('style');
-        style.id = 'overscroll-preventer-style';
-        style.innerHTML = `
+    const originalHtmlOverscroll = html.style.overscrollBehavior;
+    const originalBodyOverscroll = body.style.overscrollBehavior;
+
+    html.style.overscrollBehavior = overscrollValue;
+    body.style.overscrollBehavior = overscrollValue;
+
+    // Additional CSS to prevent bouncing on iOS
+    const style = document.createElement('style');
+    style.id = 'overscroll-preventer-style';
+    style.innerHTML = `
       html, body {
         height: 100%;
-        overflow: hidden;
-        overscroll-behavior: none;
+        overflow: ${overflowValue};
+        overscroll-behavior: ${overscrollValue};
       }
 
       #__next, main {
         height: 100%;
-        overflow: hidden;
-      }
-
-      /* Allow scrolling only in specific containers if needed in the future */
-      .allow-scroll {
-        overflow: auto;
-        overscroll-behavior: contain;
+        overflow: ${overflowValue};
       }
     `;
-        document.head.appendChild(style);
+    document.head.appendChild(style);
 
-        return () => {
-            html.style.overscrollBehavior = originalHtmlOverscroll;
-            body.style.overscrollBehavior = originalBodyOverscroll;
-            const existingStyle = document.getElementById('overscroll-preventer-style');
-            if (existingStyle) {
-                document.head.removeChild(existingStyle);
-            }
-        };
-    }, []);
+    return () => {
+      html.style.overscrollBehavior = originalHtmlOverscroll;
+      body.style.overscrollBehavior = originalBodyOverscroll;
+      const existingStyle = document.getElementById('overscroll-preventer-style');
+      if (existingStyle) {
+        document.head.removeChild(existingStyle);
+      }
+    };
+  }, [pathname]);
 
-    return null;
+  return null;
 }

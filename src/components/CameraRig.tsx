@@ -32,7 +32,7 @@ export function CameraRig({ curve }: CameraRigProps) {
         currentLaneOffsetRef.current = THREE.MathUtils.lerp(
             currentLaneOffsetRef.current,
             targetLaneOffset,
-            0.1
+            0.08
         );
 
         const rawT = Math.max(0, Math.min(1, scroll.offset ?? 0));
@@ -82,7 +82,7 @@ export function CameraRig({ curve }: CameraRigProps) {
 
             const dynamicRoll = (rollAngle + Math.PI) + (turnDirection * velocity * 0.2);
             const targetQuaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitchAngle, heading, dynamicRoll, 'YXZ'));
-            carRef.current.quaternion.slerp(targetQuaternion, 0.1);
+            carRef.current.quaternion.slerp(targetQuaternion, 0.15);
 
             const tangentCam = new THREE.Vector3().subVectors(forwardPos, currentPos).normalize();
             const speedBackoff = velocity * 4;
@@ -114,8 +114,8 @@ export function CameraRig({ curve }: CameraRigProps) {
             }
 
             // 2. NORMAL CAMERA FOLLOW (Smoothly transitions from ambient orbit)
-            camera.position.lerp(idealFollowPos, 0.15);
-            cameraTargetRef.current.lerp(idealLookAt, 0.15);
+            camera.position.lerp(idealFollowPos, 0.1);
+            cameraTargetRef.current.lerp(idealLookAt, 0.1);
             camera.lookAt(cameraTargetRef.current);
         }
     });
