@@ -79,8 +79,8 @@ export function WelcomePopup({ isOpen, onClose }: WelcomePopupProps) {
                                         <Car size={24} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-white">Landmark Triggers</h3>
-                                        <p className="text-sm text-white/50">Drive past GPU, RAM, and CPU hubs to trigger interactive story screens.</p>
+                                        <h3 className="font-bold text-white">Interactive World</h3>
+                                        <p className="text-xs text-white/50 leading-relaxed">Drive past motherboard hubs or click huge <span className="text-cyan-400 font-bold">Hardware Nodes</span> with the <span className="text-cyan-400 font-bold">!</span> mark for intel.</p>
                                     </div>
                                 </motion.div>
 
@@ -94,8 +94,8 @@ export function WelcomePopup({ isOpen, onClose }: WelcomePopupProps) {
                                         <MessageSquare size={24} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-white">AI Assistant</h3>
-                                        <p className="text-sm text-white/50">Chat with my AI companion at any time to learn more about my work.</p>
+                                        <h3 className="font-bold text-white">AI Co-Pilot</h3>
+                                        <p className="text-xs text-white/50 leading-relaxed">Click the <span className="text-purple-400 font-bold">Car</span> at any time to summon my AI assistant for help.</p>
                                     </div>
                                 </motion.div>
                             </div>
@@ -120,16 +120,23 @@ export function WelcomePopup({ isOpen, onClose }: WelcomePopupProps) {
                                             <div className="flex gap-1">
                                                 <kbd className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-[10px] font-bold text-white shadow-[0_2px_0_0_rgba(255,255,255,0.1)]">A</kbd>
                                                 <kbd className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-[10px] font-bold text-white shadow-[0_2px_0_0_rgba(255,255,255,0.1)]">S</kbd>
+                                                <kbd className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-[10px] font-bold text-white shadow-[0_2px_0_0_rgba(255,255,255,0.1)]">S</kbd>
                                                 <kbd className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-[10px] font-bold text-white shadow-[0_2px_0_0_rgba(255,255,255,0.1)]">D</kbd>
                                             </div>
                                         </div>
-                                        <span className="text-xs text-white/60">A / D to switch lanes</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs text-white/60 font-medium">W / S: Drive Forward / Back</span>
+                                            <span className="text-xs text-white/60 font-medium">A / D: Switch Lanes</span>
+                                        </div>
                                     </div>
                                     <div className="h-12 w-px bg-white/5" />
                                     <div className="flex items-center gap-3">
                                         <div className="flex items-center gap-2">
                                             <MousePointer2 size={18} className="text-white/40" />
-                                            <kbd className="flex h-8 w-32 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-[10px] font-bold text-white shadow-[0_2px_0_0_rgba(255,255,255,0.1)] uppercase tracking-widest">Scroll Wheel</kbd>
+                                            <div className="flex flex-col gap-1">
+                                                <kbd className="flex h-8 w-32 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-[10px] font-bold text-white shadow-[0_2px_0_0_rgba(255,255,255,0.1)] uppercase tracking-widest whitespace-nowrap px-3">Scroll Wheel</kbd>
+                                                <span className="text-[9px] text-cyan-400 font-bold uppercase tracking-tighter">Click Car for Assistant</span>
+                                            </div>
                                         </div>
                                         <span className="text-xs text-white/60">to explore</span>
                                     </div>

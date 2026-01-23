@@ -1,7 +1,8 @@
 export const PORTFOLIO_CONTENT = {
     // Basic Identity
     hero: {
-        title: "LUCIFER",
+        greeting: "Hello, I am",
+        title: "Rijan Ghimire",
         subtitle: "Full Stack Engineer & Creative Developer",
         tagline: "Building digital experiences at the intersection of design and technology.",
         status: "Available for freelance",

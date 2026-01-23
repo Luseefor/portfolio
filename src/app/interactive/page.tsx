@@ -4,6 +4,7 @@ import { ViewCanvas } from '@/components/ViewCanvas';
 import { SidePanels } from '@/components/SidePanels';
 import { WelcomePopup } from '@/components/WelcomePopup';
 import { InteractionUI } from '@/components/InteractionUI';
+import { NPCDialogue } from '@/components/NPCDialogue';
 import { useStore } from '@/utils/store';
 
 export default function InteractivePage() {
@@ -17,6 +18,7 @@ export default function InteractivePage() {
     return (
         <main className="relative w-full h-screen overflow-hidden bg-black">
             <WelcomePopup isOpen={isWelcomeOpen} onClose={handleStart} />
+            <NPCDialogue />
             <InteractionUI />
 
             <ViewCanvas />

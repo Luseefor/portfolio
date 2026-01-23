@@ -11,6 +11,8 @@ interface AppState {
     setWelcomeOpen: (open: boolean) => void;
     isChatOpen: boolean;
     setChatOpen: (open: boolean) => void;
+    npcDialogue: { title: string; content: string } | null;
+    setNpcDialogue: (npc: { title: string; content: string } | null) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -24,4 +26,6 @@ export const useStore = create<AppState>((set) => ({
     setWelcomeOpen: (open) => set({ isWelcomeOpen: open }),
     isChatOpen: false,
     setChatOpen: (open) => set({ isChatOpen: open }),
+    npcDialogue: null,
+    setNpcDialogue: (npc) => set({ npcDialogue: npc }),
 }));

@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Luseefor.os",
-  description: "Advanced Immersive Portfolio Experience",
+  title: "Rijan Ghimire",
+  description: "Welcome to Rijan Ghimire's Portfolio",
   icons: {
     icon: "/favicon.png",
   },

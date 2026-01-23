@@ -369,7 +369,7 @@ export default function Home() {
           <div className="flex flex-col items-start gap-0.5">
             <div className="min-h-[14px] min-w-[100px] md:min-h-[20px] md:min-w-[140px] flex items-center">
               <HyperText
-                text="Luseefor.SYS"
+                text="Luseefor"
                 className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}
               />
             </div>
