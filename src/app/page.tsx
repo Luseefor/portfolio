@@ -11,28 +11,7 @@ const FloatingParticles = dynamic(() => import('@/components/FloatingParticles')
 const LetterGlitch = dynamic(() => import('@/components/LetterGlitch'), { ssr: false });
 const HyperText = dynamic(() => import('@/components/HyperText'), { ssr: false });
 
-const THEMES = {
-  emerald: {
-    name: 'Emerald',
-    color: '#10b981',
-    glow: 'rgba(16, 185, 129, 0.4)'
-  },
-  amber: {
-    name: 'Amber',
-    color: '#f59e0b',
-    glow: 'rgba(245, 158, 11, 0.4)'
-  },
-  cobalt: {
-    name: 'Cobalt',
-    color: '#3b82f6',
-    glow: 'rgba(59, 130, 246, 0.4)'
-  },
-  crimson: {
-    name: 'Crimson',
-    color: '#ef4444',
-    glow: 'rgba(239, 68, 68, 0.4)'
-  }
-};
+import { THEMES, getThemeColor } from '@/utils/themes';
 
 
 const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolean }) => {
@@ -293,19 +272,7 @@ export default function Home() {
   const [time, setTime] = useState('');
   const { currentTheme, setCurrentTheme, isDark, setIsDark } = useStore();
 
-  const activeThemeColor = useMemo(() => {
-    const rawColor = THEMES[currentTheme as keyof typeof THEMES].color;
-    if (isDark) return rawColor;
-
-    // Deeper colors for light mode to ensure premium contrast
-    const lightAccents: any = {
-      emerald: '#059669',
-      amber: '#d97706',
-      cobalt: '#2563eb',
-      crimson: '#dc2626'
-    };
-    return lightAccents[currentTheme] || rawColor;
-  }, [currentTheme, isDark]);
+  const activeThemeColor = useMemo(() => getThemeColor(currentTheme, isDark), [currentTheme, isDark]);
 
   const [systemNode, setSystemNode] = useState('DETECTING...');
   const [systemData, setSystemData] = useState('INITIALIZING...');

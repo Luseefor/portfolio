@@ -8,14 +8,7 @@ import FloatingParticles from '@/components/FloatingParticles';
 import { useStore } from '@/utils/store';
 import { PORTFOLIO_CONTENT } from './portfolio-template';
 
-// --- Theme Constants ---
-
-const LIGHT_ACCENTS: any = {
-    emerald: '#059669',
-    amber: '#d97706',
-    cobalt: '#2563eb',
-    crimson: '#dc2626'
-};
+import { THEMES, getThemeColor } from '@/utils/themes';
 
 // --- Shared Refined Styles ---
 
@@ -344,11 +337,7 @@ export default function IdentityPage() {
 
     const { currentTheme, isDark } = useStore();
 
-    const activeThemeColor = React.useMemo(() => {
-        const rawColor = '#10b981'; // Default fallback emerald
-        if (isDark) return rawColor;
-        return LIGHT_ACCENTS[currentTheme] || rawColor;
-    }, [currentTheme, isDark]);
+    const activeThemeColor = React.useMemo(() => getThemeColor(currentTheme, isDark), [currentTheme, isDark]);
 
     return (
         <div ref={containerRef} className={`relative min-h-screen transition-colors duration-1000 selection:bg-emerald-500/30 selection:text-emerald-200 ${isDark ? 'bg-[#010101] text-white' : 'bg-[#fcfcfc] text-slate-900'}`}>
