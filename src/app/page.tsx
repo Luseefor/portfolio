@@ -395,7 +395,7 @@ export default function Home() {
           <h1 className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl xl:text-[11.5rem] leading-none uppercase transition-colors duration-1000`}
             style={{
               color: isDark ? 'white' : 'transparent',
-              backgroundImage: !isDark ? `linear-gradient(to bottom right, ${themeColor}, ${themeColor}aa)` : 'none',
+              backgroundImage: !isDark ? `linear-gradient(to bottom right, ${activeThemeColor}, ${activeThemeColor}aa)` : 'none',
               WebkitBackgroundClip: !isDark ? 'text' : 'none',
               backgroundClip: !isDark ? 'text' : 'none'
             }}
@@ -410,7 +410,7 @@ export default function Home() {
                   duration: 0.8,
                   ease: [0.16, 1, 0.3, 1]
                 }}
-                className="inline-block"
+                className="inline-block px-1"
               >
                 {char}
               </motion.span>
@@ -420,7 +420,7 @@ export default function Home() {
               animate={{ opacity: isDark ? 0.3 : 0.6, scale: 1 }}
               transition={{ delay: 1.5, duration: 1 }}
               className="transition-colors duration-1000"
-              style={{ color: themeColor }}
+              style={{ color: activeThemeColor }}
             >
               .
             </motion.span>
@@ -434,7 +434,7 @@ export default function Home() {
                   duration: 0.8,
                   ease: [0.16, 1, 0.3, 1]
                 }}
-                className="inline-block"
+                className="inline-block px-1"
               >
                 {char}
               </motion.span>
