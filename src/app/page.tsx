@@ -18,7 +18,7 @@ const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolea
   return (
     <div className={`absolute inset-0 z-0 overflow-hidden transition-colors duration-1000 ${isDark ? 'bg-[#020202]' : 'bg-[#fcfcfc]'}`}>
       <motion.div
-        animate={{ opacity: isDark ? [0.03, 0.08, 0.03] : [0.05, 0.12, 0.05] }}
+        animate={{ opacity: isDark ? [0.03, 0.08, 0.03] : [0.03, 0.06, 0.03] }}
         transition={{ duration: 10, repeat: Infinity }}
         className="absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[100px] md:h-[800px] md:w-[800px] md:blur-[150px]"
         style={{ backgroundColor: themeColor, willChange: "opacity, transform" }}
@@ -392,7 +392,9 @@ export default function Home() {
             </div>
           </motion.div>
 
-          <h1 className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl xl:text-[11rem] leading-none uppercase transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          <h1 className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl xl:text-[11rem] leading-none uppercase transition-colors duration-1000`}
+            style={{ color: isDark ? 'white' : activeThemeColor }}
+          >
             {"Portfolio".split("").map((char, i) => (
               <motion.span
                 key={i}
@@ -410,7 +412,7 @@ export default function Home() {
             ))}
             <motion.span
               initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 0.2, scale: 1 }}
+              animate={{ opacity: isDark ? 0.2 : 0.5, scale: 1 }}
               transition={{ delay: 1.5, duration: 1 }}
               className="transition-colors duration-1000"
               style={{ color: activeThemeColor }}
