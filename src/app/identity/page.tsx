@@ -173,11 +173,12 @@ const About = ({ isDark, themeColor }: { isDark: boolean, themeColor: string }) 
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
             >
+                <div className={`text-[8px] font-mono tracking-widest transition-colors duration-1000 ${isDark ? 'text-white/20' : 'text-slate-950/20'} mb-6`}>PROTOCOL::START_INIT</div>
                 <p className={`text-2xl sm:text-3xl md:text-4xl font-black leading-snug transition-colors duration-1000 ${isDark ? 'text-white/90' : 'text-slate-900'}`}>
                     {PORTFOLIO_CONTENT.about.description}
                 </p>
                 <div className="mt-12 group flex items-center gap-4">
-                    <span className={getAccentText(themeColor)} style={{ color: `${themeColor}cc` }}>System Identity verified</span>
+                    <span className={getAccentText(themeColor)} style={{ color: `${themeColor}cc` }}>System_Identity_Verified // {Math.random().toString(16).slice(2, 10).toUpperCase()}</span>
                     <div className={`h-px flex-1 transition-colors duration-1000 ${isDark ? 'bg-white/5' : 'bg-black/5'}`} />
                 </div>
             </motion.div>
@@ -237,11 +238,11 @@ const Experience = ({ isDark, themeColor }: { isDark: boolean, themeColor: strin
 
 const Works = ({ isDark, themeColor }: { isDark: boolean, themeColor: string }) => (
     <SectionWrapper>
-        <SectionHeader number="03" title="Component Archive" isDark={isDark} themeColor={themeColor} />
+        <SectionHeader number="03" title="Component_Archive // SYS_DATA" isDark={isDark} themeColor={themeColor} />
         <div className="grid gap-12 lg:grid-cols-2">
             {PORTFOLIO_CONTENT.projects.categories.map((cat, i) => (
                 <div key={i} className="space-y-6">
-                    <h3 className={getMicroText(isDark).replace(isDark ? 'text-white/20' : 'text-slate-950/20', isDark ? 'text-white/40' : 'text-slate-950/40') + " font-black"}>{cat.name}</h3>
+                    <h3 className={getMicroText(isDark).replace(isDark ? 'text-white/20' : 'text-slate-950/20', isDark ? 'text-white/40' : 'text-slate-950/40') + " font-black"}>CAT_{cat.name.toUpperCase()}</h3>
                     <div className="grid gap-4">
                         {cat.items.map((project, j) => (
                             <motion.div
@@ -249,18 +250,21 @@ const Works = ({ isDark, themeColor }: { isDark: boolean, themeColor: string }) 
                                 initial={{ opacity: 0 }}
                                 whileInView={{ opacity: 1 }}
                                 viewport={{ once: true }}
-                                className={`group relative overflow-hidden rounded-2xl p-8 transition-all duration-700 ${getGlassStyle(isDark)} hover:bg-emerald-500/[0.04] hover:border-emerald-500/30`}
+                                className={`group relative overflow-hidden rounded-[1.5rem] p-8 transition-all duration-700 ${getGlassStyle(isDark)} hover:border-emerald-500/30`}
                             >
                                 <div className="flex items-start justify-between mb-4">
-                                    <h4 className={`text-xl font-black tracking-tight leading-none transition-colors duration-1000 ${isDark ? 'text-white/90' : 'text-slate-900'}`}>{project.title}</h4>
-                                    <ExternalLink size={14} className="text-white/10 group-hover:text-emerald-500 transition-colors" style={{ color: `${themeColor}40` }} />
+                                    <div className="flex flex-col gap-1">
+                                        <h4 className={`text-xl font-black tracking-tight leading-none transition-colors duration-1000 ${isDark ? 'text-white/90' : 'text-slate-900'}`}>{project.title}</h4>
+                                        <div className="text-[7px] font-mono opacity-20 uppercase tracking-tighter">OBJ_ID: //0x{Math.random().toString(16).slice(2, 8).toUpperCase()}</div>
+                                    </div>
+                                    <ExternalLink size={14} className="transition-colors" style={{ color: `${themeColor}40` }} />
                                 </div>
-                                <p className={`text-xs mb-8 leading-relaxed transition-colors duration-1000 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
+                                <p className={`text-xs mb-8 leading-relaxed font-medium transition-colors duration-1000 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
                                     {project.desc}
                                 </p>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-3">
                                     {project.stack.map((tech, k) => (
-                                        <span key={k} className="text-[8px] font-mono uppercase tracking-[0.2em] transition-opacity duration-1000" style={{ color: `${themeColor}88` }}>
+                                        <span key={k} className="text-[8px] font-mono uppercase tracking-[0.1em] px-2 py-0.5 rounded-full border border-black/5 bg-black/[0.02]" style={{ borderColor: `${themeColor}10`, color: `${themeColor}cc` }}>
                                             {tech}
                                         </span>
                                     ))}
@@ -277,17 +281,19 @@ const Works = ({ isDark, themeColor }: { isDark: boolean, themeColor: string }) 
 
 const TechStack = ({ isDark, themeColor }: { isDark: boolean, themeColor: string }) => (
     <SectionWrapper>
-        <SectionHeader number="04" title="Logic Foundation" isDark={isDark} themeColor={themeColor} />
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <SectionHeader number="04" title="Logic_Foundation // CORE_TECH" isDark={isDark} themeColor={themeColor} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {PORTFOLIO_CONTENT.stack.technologies.map((tech, i) => (
                 <motion.div
                     key={i}
                     initial={{ opacity: 0 }}
                     whileInView={{ opacity: 1 }}
                     viewport={{ once: true }}
-                    className={`group relative py-6 flex items-center justify-center rounded-xl ${getGlassStyle(isDark)} hover:bg-emerald-500/[0.05] hover:border-emerald-500/20 transition-all`}
+                    className={`group relative py-8 flex flex-col items-center justify-center rounded-2xl ${getGlassStyle(isDark)} hover:border-emerald-500/20 transition-all`}
                 >
+                    <div className="text-[7px] font-mono opacity-20 uppercase tracking-[0.4em] mb-3">MODULE_{i + 1}</div>
                     <span className={`text-xs font-black uppercase tracking-widest transition-colors duration-1000 ${isDark ? 'text-white/30' : 'text-slate-900/40'} group-hover:text-emerald-500`} style={{ color: undefined }}>{tech}</span>
+                    {GLOSS_SHEEN}
                 </motion.div>
             ))}
         </div>
@@ -366,7 +372,7 @@ export default function IdentityPage() {
                     <div className="hidden md:flex items-center gap-8">
                         <div className="flex items-center gap-6">
                             <div className={getMicroText(isDark)}>TRANS_ACTIVE :: 0xCCFD</div>
-                            <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: themeColor, boxShadow: `0 0 10px ${themeColor}` }} />
+                            <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: activeThemeColor, boxShadow: `0 0 10px ${activeThemeColor}` }} />
                         </div>
                         <div className={`h-8 w-[1px] ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
                         <div className="text-[9px] font-black uppercase tracking-[0.3em] opacity-40">Identity_Explorer.v3</div>
