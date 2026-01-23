@@ -392,18 +392,23 @@ export default function Home() {
             </div>
           </motion.div>
 
-          <h1 className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl xl:text-[11rem] leading-none uppercase transition-colors duration-1000`}
-            style={{ color: isDark ? 'white' : activeThemeColor }}
+          <h1 className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl xl:text-[11.5rem] leading-none uppercase transition-colors duration-1000`}
+            style={{
+              color: isDark ? 'white' : 'transparent',
+              backgroundImage: !isDark ? `linear-gradient(to bottom right, ${themeColor}, ${themeColor}aa)` : 'none',
+              WebkitBackgroundClip: !isDark ? 'text' : 'none',
+              backgroundClip: !isDark ? 'text' : 'none'
+            }}
           >
             {"Portfolio".split("").map((char, i) => (
               <motion.span
                 key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{
-                  delay: 0.8 + i * 0.05,
+                  delay: 0.8 + i * 0.04,
                   duration: 0.8,
-                  ease: [0.2, 0.65, 0.3, 0.9]
+                  ease: [0.16, 1, 0.3, 1]
                 }}
                 className="inline-block"
               >
@@ -412,22 +417,22 @@ export default function Home() {
             ))}
             <motion.span
               initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: isDark ? 0.2 : 0.5, scale: 1 }}
+              animate={{ opacity: isDark ? 0.3 : 0.6, scale: 1 }}
               transition={{ delay: 1.5, duration: 1 }}
               className="transition-colors duration-1000"
-              style={{ color: activeThemeColor }}
+              style={{ color: themeColor }}
             >
               .
             </motion.span>
             {"os".split("").map((char, i) => (
               <motion.span
                 key={i + 10}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{
-                  delay: 1.6 + i * 0.1,
+                  delay: 1.4 + i * 0.08,
                   duration: 0.8,
-                  ease: [0.2, 0.65, 0.3, 0.9]
+                  ease: [0.16, 1, 0.3, 1]
                 }}
                 className="inline-block"
               >
@@ -435,6 +440,9 @@ export default function Home() {
               </motion.span>
             ))}
           </h1>
+          <div className={`mt-4 text-[8px] font-mono uppercase tracking-[0.8em] transition-colors duration-1000 ${isDark ? 'text-white/10' : 'text-black/5'}`}>
+            01001100 01010101 01010011 01001100
+          </div>
         </div>
 
         <div className="grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:gap-8">
