@@ -4,7 +4,10 @@ import React, { useRef } from 'react';
 import Link from 'next/link';
 import { motion, useScroll, useSpring } from 'framer-motion';
 import { ArrowLeft, Mail, Github, Twitter, ExternalLink, Code2, Layers, Cpu, Globe, ArrowDown } from 'lucide-react';
-import DigitalNexus from '@/components/DigitalNexus';
+import dynamic from 'next/dynamic';
+const FloatingParticles = dynamic(() => import('@/components/FloatingParticles'), { ssr: false });
+const LetterGlitch = dynamic(() => import('@/components/LetterGlitch'), { ssr: false });
+
 import { useStore } from '@/utils/store';
 import { PORTFOLIO_CONTENT } from './portfolio-template';
 
@@ -37,19 +40,38 @@ const GLOSS_SHEEN = (
 
 const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolean }) => (
     <div className={`fixed inset-0 z-0 overflow-hidden transition-colors duration-1000 ${isDark ? 'bg-[#010101]' : 'bg-[#fcfcfc]'}`}>
-        <div
-            className="absolute left-1/2 top-1/2 h-[1000px] w-[1000px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[200px] transition-colors duration-1000"
-            style={{ backgroundColor: `${themeColor}${isDark ? '05' : '10'}` }}
+        <motion.div
+            animate={{ opacity: isDark ? [0.03, 0.08, 0.03] : [0.03, 0.06, 0.03] }}
+            transition={{ duration: 10, repeat: Infinity }}
+            className="absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[100px] md:h-[800px] md:w-[800px] md:blur-[150px]"
+            style={{ backgroundColor: themeColor, opacity: 0.1 }}
         />
 
-        <DigitalNexus color={themeColor} isDark={isDark} />
+        <FloatingParticles
+            particleColor={themeColor}
+            particleCount={30}
+            movementSpeed={0.3}
+            mouseInfluence={200}
+            mouseGravity="attract"
+            gravityStrength={80}
+        />
 
-        {/* Subtle Horizontal Rules */}
-        <div className={`absolute inset-0 transition-opacity duration-1000 ${isDark ? 'opacity-[0.03]' : 'opacity-[0.05]'} pointer-events-none`}>
-            {Array.from({ length: 15 }).map((_, i) => (
-                <div key={i} className={`h-px w-full ${isDark ? 'bg-white/20' : 'bg-black/10'}`} style={{ top: `${(i + 1) * 7}%`, position: 'absolute' }} />
-            ))}
-        </div>
+        <LetterGlitch
+            glitchColors={[themeColor, `${themeColor}aa`, `${themeColor}55`]}
+            opacity={isDark ? 0.05 : 0.08}
+            outerVignette={false}
+        />
+
+        {/* Grid Overlay */}
+        <div
+            className="absolute inset-0 opacity-[0.02] md:opacity-[0.03]"
+            style={{
+                backgroundImage: `linear-gradient(${themeColor} 1px, transparent 1px), linear-gradient(90deg, ${themeColor} 1px, transparent 1px)`,
+                backgroundSize: '80px 80px',
+            }}
+        />
+
+        <div className={`absolute inset-0 transition-opacity duration-1000 ${isDark ? 'opacity-100' : 'opacity-40'}`} style={{ background: `radial-gradient(circle at center, transparent 30%, ${isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.85)'} 100%)` }} />
     </div>
 );
 
