@@ -100,33 +100,31 @@ const ProfileAvatar = () => (
 
 const Hero = () => {
     return (
-        <SectionWrapper className="h-screen py-0">
+        <SectionWrapper className="h-screen py-0 flex items-center justify-center">
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 2 }}
-                className="text-center w-full"
+                className="text-center w-full flex flex-col items-center gap-12"
             >
-                <div className="mb-12 flex justify-center">
-                    <ProfileAvatar />
-                </div>
+                <ProfileAvatar />
 
-                <div className="mb-8 flex justify-center">
+                <div className="flex flex-col items-center gap-8">
                     <div className="flex items-center gap-3">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
                         <span className={MICRO_TEXT.replace('text-white/20', 'text-emerald-500/80')}>
                             {PORTFOLIO_CONTENT.hero.status}
                         </span>
                     </div>
+
+                    <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tight text-white leading-tight">
+                        Rijan Ghimire
+                    </h1>
+
+                    <p className="max-w-2xl px-4 text-[10px] md:text-xs font-black text-white/20 uppercase tracking-[0.6em] mb-4">
+                        {PORTFOLIO_CONTENT.hero.subtitle}
+                    </p>
                 </div>
-
-                <h1 className="mb-8 text-4xl sm:text-6xl md:text-8xl font-black tracking-tight text-white leading-tight">
-                    Rijan Ghimire
-                </h1>
-
-                <p className="mx-auto max-w-2xl px-4 text-[10px] md:text-xs font-black text-white/20 uppercase tracking-[0.6em] mb-12">
-                    {PORTFOLIO_CONTENT.hero.subtitle}
-                </p>
 
                 <motion.div
                     initial={{ opacity: 0 }}
@@ -135,7 +133,7 @@ const Hero = () => {
                         opacity: { delay: 2, duration: 1 },
                         y: { duration: 2, repeat: Infinity, ease: "easeInOut" }
                     }}
-                    className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+                    className="flex flex-col items-center gap-2 mt-8"
                 >
                     <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-sm shadow-2xl">
                         <ArrowDown size={18} className="text-white" />
