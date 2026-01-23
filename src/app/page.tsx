@@ -7,7 +7,7 @@ import { Cpu, Terminal, ArrowRight, Grid3X3, ShieldCheck, Activity, Globe, Palet
 import { useStore } from '@/utils/store';
 import dynamic from 'next/dynamic';
 
-const DigitalNexus = dynamic(() => import('@/components/DigitalNexus'), { ssr: false });
+const FloatingParticles = dynamic(() => import('@/components/FloatingParticles'), { ssr: false });
 const LetterGlitch = dynamic(() => import('@/components/LetterGlitch'), { ssr: false });
 const HyperText = dynamic(() => import('@/components/HyperText'), { ssr: false });
 
@@ -21,10 +21,17 @@ const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolea
         animate={{ opacity: isDark ? [0.03, 0.08, 0.03] : [0.03, 0.06, 0.03] }}
         transition={{ duration: 10, repeat: Infinity }}
         className="absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[100px] md:h-[800px] md:w-[800px] md:blur-[150px]"
-        style={{ backgroundColor: themeColor, opacity: 0.1 }}
+        style={{ backgroundColor: themeColor, willChange: "opacity, transform" }}
       />
 
-      <DigitalNexus color={themeColor} isDark={isDark} />
+      <FloatingParticles
+        particleColor={themeColor}
+        particleCount={30}
+        movementSpeed={0.3}
+        mouseInfluence={200}
+        mouseGravity="attract"
+        gravityStrength={80}
+      />
 
       <LetterGlitch
         glitchColors={[themeColor, `${themeColor}aa`, `${themeColor}55`]}
@@ -34,10 +41,10 @@ const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolea
 
       {/* Grid Overlay */}
       <div
-        className="absolute inset-0 opacity-[0.02] md:opacity-[0.03]"
+        className="absolute inset-0 opacity-[0.03] md:opacity-[0.05]"
         style={{
           backgroundImage: `linear-gradient(${themeColor} 1px, transparent 1px), linear-gradient(90deg, ${themeColor} 1px, transparent 1px)`,
-          backgroundSize: '80px 80px',
+          backgroundSize: '120px 120px',
         }}
       />
 
@@ -352,28 +359,15 @@ export default function Home() {
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-4 text-[8px] font-black uppercase tracking-[0.1em] md:gap-8 md:text-[10px] md:tracking-[0.2em]"
+          className="flex items-center gap-4 text-[8px] font-black uppercase tracking-[0.1em] md:gap-10 md:text-[10px] md:tracking-[0.2em]"
         >
-          <div className="hidden items-center gap-3 lg:flex">
+          <div className="flex items-center gap-2 md:gap-3">
             <Activity size={12} className="animate-pulse md:w-3.5 md:h-3.5" style={{ color: securityStatus === 'SECURE' ? activeThemeColor : '#ef4444' }} />
             <span className={`w-16 inline-flex justify-center ${isDark ? 'text-white/60' : 'text-slate-900/60'}`}>
               <HyperText text={securityStatus} />
             </span>
           </div>
-
           <div className={`hidden h-8 w-[1px] md:block ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
-
-          <button
-            onClick={() => useStore.getState().setChatOpen(true)}
-            className={`flex items-center gap-3 rounded-full border px-4 py-2 transition-all transition-all duration-500 group ${isDark ? 'border-emerald-500/20 bg-emerald-500/5 text-white' : 'border-emerald-500/30 bg-emerald-500/10 text-slate-950'}`}
-            style={{ borderColor: `${activeThemeColor}40`, backgroundColor: `${activeThemeColor}10` }}
-          >
-            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Comm_Portal</span>
-            <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 2 }}>
-              <Terminal size={14} style={{ color: activeThemeColor }} />
-            </motion.div>
-          </button>
-
           <ThemeDropdown
             currentTheme={currentTheme}
             onThemeChange={setCurrentTheme}
@@ -384,84 +378,99 @@ export default function Home() {
         </motion.div>
       </header>
 
-      {/* --- HYBRID HERO --- */}
+      {/* --- MAIN DASHBOARD --- */}
       <div className="relative z-20 flex flex-1 flex-col items-center justify-center px-6 md:px-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center"
-        >
-          <div className="mb-8 flex flex-col items-center gap-4 md:mb-12">
-            <div className={`flex items-center gap-2 rounded-full border px-4 py-1 backdrop-blur-md transition-all duration-700 ${isDark ? 'border-white/5 bg-white/[0.02]' : 'border-black/5 bg-black/[0.02]'}`}>
-              <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: activeThemeColor, boxShadow: `0 0 10px ${activeThemeColor}` }} />
-              <span className={`text-[9px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-white/40' : 'text-slate-900/40'}`}>
-                Available for Freelance
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              <p className={`text-[10px] font-bold uppercase tracking-[0.6em] transition-colors duration-1000 ${isDark ? 'text-white/20' : 'text-slate-950/30'}`}>
-                SYSTEM_MSG: "HEY THERE! I'M"
-              </p>
-              <h1 className={`text-6xl font-black tracking-tighter sm:text-8xl md:text-9xl leading-none transition-colors duration-1000`}
-                style={{
-                  color: isDark ? 'white' : 'transparent',
-                  backgroundImage: !isDark ? `linear-gradient(to right, ${activeThemeColor}, ${activeThemeColor}aa)` : 'none',
-                  WebkitBackgroundClip: !isDark ? 'text' : 'none',
-                  backgroundClip: !isDark ? 'text' : 'none'
-                }}
-              >
-                Rijan Ghimire
-              </h1>
-              <p className={`max-w-xl mx-auto text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] transition-colors duration-1000 ${isDark ? 'text-white/30' : 'text-slate-900/40'}`}>
-                Full Stack Engineer & Creative Developer
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row md:mt-20 md:gap-8">
-            <Link href="/interactive">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`relative overflow-hidden group flex items-center gap-4 rounded-full border px-8 py-4 transition-all duration-500 ${isDark ? 'border-white/10 bg-white/5 text-white' : 'border-black/5 bg-black/5 text-slate-950 shadow-sm'}`}
-              >
-                <div className="absolute inset-0 translate-y-full group-hover:translate-y-0 transition-transform duration-500 pointer-events-none" style={{ background: `linear-gradient(to top, ${activeThemeColor}20, transparent)` }} />
-                <Cpu size={18} className="transition-colors duration-500" style={{ color: activeThemeColor }} />
-                <div className="flex flex-col items-start leading-none">
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">Interactive</span>
-                  <span className="text-[7px] font-mono opacity-40 uppercase tracking-tighter mt-1">SYS_WORLD_VER:2.4</span>
-                </div>
-                <ArrowRight size={14} className="opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-              </motion.div>
-            </Link>
-
-            <Link href="/identity">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`relative overflow-hidden group flex items-center gap-4 rounded-full border px-8 py-4 transition-all duration-500 ${isDark ? 'border-white/10 bg-white/5 text-white' : 'border-black/5 bg-black/5 text-slate-950 shadow-sm'}`}
-              >
-                <div className="absolute inset-0 translate-y-full group-hover:translate-y-0 transition-transform duration-500 pointer-events-none" style={{ background: `linear-gradient(to top, ${activeThemeColor}20, transparent)` }} />
-                <Grid3X3 size={18} className="transition-colors duration-500" style={{ color: activeThemeColor }} />
-                <div className="flex flex-col items-start leading-none">
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">Identity</span>
-                  <span className="text-[7px] font-mono opacity-40 uppercase tracking-tighter mt-1">DB_ARCHIVE_SEC:Verified</span>
-                </div>
-                <ArrowRight size={14} className="opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-              </motion.div>
-            </Link>
-          </div>
-
+        <div className="mb-6 text-center md:mb-8">
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.3, y: [0, 5, 0] }}
-            transition={{ delay: 2, duration: 2, repeat: Infinity }}
-            className="mt-20 md:mt-32"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={`mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 backdrop-blur-md md:mb-6 md:gap-3 md:px-6 md:py-2 ${isDark ? 'border-white/5 bg-white/[0.02]' : 'border-black/5 bg-black/[0.02]'}`}
           >
-            <div className={`h-12 w-[1px] ${isDark ? 'bg-gradient-to-b from-white to-transparent' : 'bg-gradient-to-b from-black to-transparent'}`} />
+            <ShieldCheck size={12} className="md:w-3.5 md:h-3.5" style={{ color: activeThemeColor }} />
+            <div className={`text-[8px] font-black tracking-[0.2em] uppercase md:text-[10px] md:tracking-[0.3em] ${isDark ? 'text-white/40' : 'text-slate-900/40'}`}>
+              <HyperText text="Access_Verified" />
+            </div>
           </motion.div>
-        </motion.div>
+
+          <h1 className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl xl:text-[11.5rem] leading-none uppercase transition-colors duration-1000`}
+            style={{
+              color: isDark ? 'white' : 'transparent',
+              backgroundImage: !isDark ? `linear-gradient(to bottom right, ${activeThemeColor}, ${activeThemeColor}aa)` : 'none',
+              WebkitBackgroundClip: !isDark ? 'text' : 'none',
+              backgroundClip: !isDark ? 'text' : 'none'
+            }}
+          >
+            {"Portfolio".split("").map((char, i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  delay: 0.8 + i * 0.04,
+                  duration: 0.8,
+                  ease: [0.16, 1, 0.3, 1]
+                }}
+                className="inline-block px-1"
+              >
+                {char}
+              </motion.span>
+            ))}
+            <motion.span
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: isDark ? 0.3 : 0.6, scale: 1 }}
+              transition={{ delay: 1.5, duration: 1 }}
+              className="transition-colors duration-1000"
+              style={{ color: activeThemeColor }}
+            >
+              .
+            </motion.span>
+            {"os".split("").map((char, i) => (
+              <motion.span
+                key={i + 10}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  delay: 1.4 + i * 0.08,
+                  duration: 0.8,
+                  ease: [0.16, 1, 0.3, 1]
+                }}
+                className="inline-block px-1"
+              >
+                {char}
+              </motion.span>
+            ))}
+          </h1>
+          <div className={`mt-4 text-[8px] font-mono uppercase tracking-[0.8em] transition-colors duration-1000 ${isDark ? 'text-white/10' : 'text-black/5'}`}>
+            01001100 01010101 01010011 01001100
+          </div>
+        </div>
+
+        <div className="grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:gap-8">
+          <div className="h-[200px] sm:h-[220px] md:h-auto lg:h-[320px]">
+            <GlassCard
+              href="/interactive"
+              badge="01 // Environment"
+              title="Interactive"
+              description="Venture into a high-fidelity geospatial motherboard environment. Hardware accelerated."
+              icon={Cpu}
+              delay={0.4}
+              themeColor={activeThemeColor}
+              isDark={isDark}
+            />
+          </div>
+          <div className="h-[200px] sm:h-[220px] md:h-auto lg:h-[320px]">
+            <GlassCard
+              href="/identity"
+              badge="02 // Documentation"
+              title="Identity"
+              description="A structured interface detailing projects and technical stack. Optimized for readability."
+              icon={Grid3X3}
+              delay={0.6}
+              themeColor={activeThemeColor}
+              isDark={isDark}
+            />
+          </div>
+        </div>
       </div>
 
       {/* --- SYSTEM METRICS FOOTER --- */}
