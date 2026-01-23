@@ -4,7 +4,7 @@ import React, { useRef } from 'react';
 import Link from 'next/link';
 import { motion, useScroll, useSpring } from 'framer-motion';
 import { ArrowLeft, Mail, Github, Twitter, ExternalLink, Code2, Layers, Cpu, Globe, ArrowDown } from 'lucide-react';
-import FloatingParticles from '@/components/FloatingParticles';
+import DigitalNexus from '@/components/DigitalNexus';
 import { useStore } from '@/utils/store';
 import { PORTFOLIO_CONTENT } from './portfolio-template';
 
@@ -39,24 +39,17 @@ const Background = ({ themeColor, isDark }: { themeColor: string, isDark: boolea
     <div className={`fixed inset-0 z-0 overflow-hidden transition-colors duration-1000 ${isDark ? 'bg-[#010101]' : 'bg-[#fcfcfc]'}`}>
         <div
             className="absolute left-1/2 top-1/2 h-[1000px] w-[1000px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[200px] transition-colors duration-1000"
-            style={{ backgroundColor: `${themeColor}${isDark ? '05' : '15'}` }}
+            style={{ backgroundColor: `${themeColor}${isDark ? '05' : '10'}` }}
         />
+
+        <DigitalNexus color={themeColor} isDark={isDark} />
 
         {/* Subtle Horizontal Rules */}
         <div className={`absolute inset-0 transition-opacity duration-1000 ${isDark ? 'opacity-[0.03]' : 'opacity-[0.05]'} pointer-events-none`}>
-            {Array.from({ length: 10 }).map((_, i) => (
-                <div key={i} className={`h-px w-full ${isDark ? 'bg-white/20' : 'bg-black/10'}`} style={{ top: `${(i + 1) * 10}%`, position: 'absolute' }} />
+            {Array.from({ length: 15 }).map((_, i) => (
+                <div key={i} className={`h-px w-full ${isDark ? 'bg-white/20' : 'bg-black/10'}`} style={{ top: `${(i + 1) * 7}%`, position: 'absolute' }} />
             ))}
         </div>
-
-        <FloatingParticles
-            particleColor={themeColor}
-            particleCount={20}
-            movementSpeed={0.08}
-            mouseInfluence={80}
-            mouseGravity="attract"
-            gravityStrength={15}
-        />
     </div>
 );
 
@@ -119,43 +112,53 @@ const Hero = ({ isDark, themeColor }: { isDark: boolean, themeColor: string }) =
     return (
         <SectionWrapper className="h-screen py-0 flex items-center justify-center">
             <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 2 }}
-                className="text-center w-full flex flex-col items-center gap-12"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                className="text-center w-full flex flex-col items-center"
             >
-                <ProfileAvatar isDark={isDark} themeColor={themeColor} />
-
-                <div className="flex flex-col items-center gap-8">
-                    <div className="flex items-center gap-3">
-                        <span className="h-1.5 w-1.5 rounded-full shadow-lg" style={{ backgroundColor: themeColor, boxShadow: `0 0 10px ${themeColor}` }} />
-                        <span className={getMicroText(isDark).replace(isDark ? 'text-white/20' : 'text-slate-950/20', '')} style={{ color: `${themeColor}cc` }}>
+                <div className="mb-8 flex flex-col items-center gap-4 md:mb-12">
+                    <div className={`flex items-center gap-2 rounded-full border px-4 py-1.5 backdrop-blur-md transition-all duration-700 ${isDark ? 'border-white/5 bg-white/[0.02]' : 'border-black/5 bg-black/[0.02]'}`}>
+                        <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: themeColor, boxShadow: `0 0 10px ${themeColor}` }} />
+                        <span className={`text-[9px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-white/40' : 'text-slate-900/40'}`}>
                             {PORTFOLIO_CONTENT.hero.status}
                         </span>
                     </div>
 
-                    <h1 className={`text-4xl sm:text-6xl md:text-8xl font-black tracking-tight leading-tight transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        Rijan Ghimire
-                    </h1>
-
-                    <p className={`max-w-2xl px-4 text-[10px] md:text-xs font-black uppercase tracking-[0.6em] mb-4 transition-colors duration-1000 ${isDark ? 'text-white/20' : 'text-slate-950/30'}`}>
-                        {PORTFOLIO_CONTENT.hero.subtitle}
-                    </p>
+                    <div className="space-y-4">
+                        <p className={`text-[10px] font-bold uppercase tracking-[0.6em] transition-colors duration-1000 ${isDark ? 'text-white/20' : 'text-slate-950/30'}`}>
+                            SYSTEM_PROTOCOL_IDX: "ACCESSING IDENTITY"
+                        </p>
+                        <h1 className={`text-6xl font-black tracking-tighter sm:text-8xl md:text-9xl leading-none transition-colors duration-1000`}
+                            style={{
+                                color: isDark ? 'white' : 'transparent',
+                                backgroundImage: !isDark ? `linear-gradient(to right, ${themeColor}, ${themeColor}aa)` : 'none',
+                                WebkitBackgroundClip: !isDark ? 'text' : 'none',
+                                backgroundClip: !isDark ? 'text' : 'none'
+                            }}
+                        >
+                            Rijan Ghimire
+                        </h1>
+                        <p className={`max-w-xl mx-auto text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] transition-colors duration-1000 ${isDark ? 'text-white/30' : 'text-slate-900/40'}`}>
+                            {PORTFOLIO_CONTENT.hero.subtitle}
+                        </p>
+                    </div>
                 </div>
 
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: isDark ? 0.4 : 0.6, y: [0, 8, 0] }}
-                    transition={{
-                        opacity: { delay: 2, duration: 1 },
-                        y: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-                    }}
-                    className="flex flex-col items-center gap-2 mt-8"
-                >
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-sm shadow-2xl transition-colors duration-1000 ${isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-black/5'}`}>
-                        <ArrowDown size={18} className={isDark ? 'text-white' : 'text-slate-900'} />
+                <div className="flex flex-col items-center gap-2 mt-12 md:mt-20">
+                    <div className={`text-[8px] font-mono uppercase tracking-[0.8em] transition-all duration-1000 ${isDark ? 'text-white/10' : 'text-black/5'}`}>
+                        REF_ID: //0xCCFD_L02_G01
                     </div>
-                </motion.div>
+                    <motion.div
+                        animate={{ y: [0, 8, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        className="mt-8"
+                    >
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-sm shadow-xl transition-colors duration-1000 ${isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-black/5'}`}>
+                            <ArrowDown size={18} className={isDark ? 'text-white' : 'text-slate-900'} />
+                        </div>
+                    </motion.div>
+                </div>
             </motion.div>
         </SectionWrapper>
     );
@@ -201,7 +204,7 @@ const About = ({ isDark, themeColor }: { isDark: boolean, themeColor: string }) 
 
 const Experience = ({ isDark, themeColor }: { isDark: boolean, themeColor: string }) => (
     <SectionWrapper>
-        <SectionHeader number="02" title="Architecture History" isDark={isDark} themeColor={themeColor} />
+        <SectionHeader number="02" title="Architecture_History" isDark={isDark} themeColor={themeColor} />
         <div className="space-y-4">
             {PORTFOLIO_CONTENT.experience.items.map((job, i) => (
                 <motion.div
@@ -209,14 +212,18 @@ const Experience = ({ isDark, themeColor }: { isDark: boolean, themeColor: strin
                     initial={{ opacity: 0, y: 10 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className={`group relative overflow-hidden rounded-2xl p-10 md:p-12 transition-all duration-700 ${getGlassStyle(isDark)} hover:bg-emerald-500/[0.03]`}
+                    className={`group relative overflow-hidden rounded-[2rem] p-10 md:p-12 transition-all duration-700 ${getGlassStyle(isDark)} hover:border-emerald-500/20`}
                 >
                     <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
                         <div className="flex-1">
-                            <div className={`mb-4 text-[10px] font-mono tracking-widest transition-colors duration-1000 ${isDark ? 'text-white/20' : 'text-slate-950/20'}`}>{job.period}</div>
-                            <h3 className={`text-3xl font-black mb-2 tracking-tight transition-colors duration-1000 ${isDark ? 'text-white/90' : 'text-slate-900'}`}>{job.role}</h3>
-                            <div className="text-base font-bold uppercase tracking-widest transition-opacity duration-1000" style={{ color: `${themeColor}88` }}>@{job.company}</div>
-                            <p className={`mt-8 max-w-xl text-sm leading-relaxed font-medium transition-colors duration-1000 ${isDark ? 'text-white/50' : 'text-slate-600'}`}>
+                            <div className="mb-4 flex items-center gap-3">
+                                <div className={`text-[8px] font-mono tracking-widest transition-colors duration-1000 ${isDark ? 'text-white/20' : 'text-slate-950/20'}`}>{job.period}</div>
+                                <div className={`h-[1px] w-6 ${isDark ? 'bg-white/5' : 'bg-black/5'}`} />
+                                <div className="text-[7px] font-mono uppercase tracking-tighter opacity-40">EXP_NODE_{i + 1}</div>
+                            </div>
+                            <h3 className={`text-3xl font-black mb-2 tracking-tight transition-colors duration-1000 md:text-5xl ${isDark ? 'text-white/90' : 'text-slate-900'}`}>{job.role}</h3>
+                            <div className="text-base font-bold uppercase tracking-widest transition-opacity duration-1000" style={{ color: `${themeColor}cc` }}>@{job.company}</div>
+                            <p className={`mt-8 max-w-xl text-xs leading-relaxed font-sans font-medium transition-colors duration-1000 md:text-sm ${isDark ? 'text-white/50' : 'text-slate-600'}`}>
                                 {job.description}
                             </p>
                         </div>
@@ -344,18 +351,25 @@ export default function IdentityPage() {
             <Background themeColor={activeThemeColor} isDark={isDark} />
 
             {/* Minimal Nav */}
-            <nav className="fixed top-0 left-0 right-0 z-[100] p-6 pointer-events-none">
+            <nav className="fixed top-0 left-0 right-0 z-[100] p-6 lg:p-10 pointer-events-none">
                 <div className="max-w-[1400px] mx-auto flex items-center justify-between pointer-events-auto">
                     <Link href="/" className="group flex items-center gap-4">
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg border transition-all duration-500 ${isDark ? 'border-white/10 bg-white/5 group-hover:bg-emerald-500/80 group-hover:text-black' : 'border-black/5 bg-black/5 group-hover:bg-black group-hover:text-white shadow-none'}`}>
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-500 ${isDark ? 'border-white/10 bg-white/5 hover:bg-white hover:text-black' : 'border-black/5 bg-black/5 hover:bg-black hover:text-white shadow-none'}`}>
                             <ArrowLeft size={16} />
                         </div>
-                        <span className={getMicroText(isDark).replace(isDark ? 'text-white/20' : 'text-slate-950/20', isDark ? 'text-white/40' : 'text-slate-950/40') + " group-hover:text-emerald-500 transition-colors"}>System root</span>
+                        <div className="flex flex-col items-start leading-none">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Root_Link</span>
+                            <span className="text-[7px] font-mono opacity-40 uppercase tracking-tighter mt-1">SYS_EXIT_PORTAL</span>
+                        </div>
                     </Link>
 
-                    <div className="hidden md:flex items-center gap-6">
-                        <div className={getMicroText(isDark)}>DATA_STREAM :: ACTIVE</div>
-                        <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: `${activeThemeColor}60` }} />
+                    <div className="hidden md:flex items-center gap-8">
+                        <div className="flex items-center gap-6">
+                            <div className={getMicroText(isDark)}>TRANS_ACTIVE :: 0xCCFD</div>
+                            <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: themeColor, boxShadow: `0 0 10px ${themeColor}` }} />
+                        </div>
+                        <div className={`h-8 w-[1px] ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
+                        <div className="text-[9px] font-black uppercase tracking-[0.3em] opacity-40">Identity_Explorer.v3</div>
                     </div>
                 </div>
             </nav>
