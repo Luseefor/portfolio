@@ -5,9 +5,9 @@ export const THEMES = {
         glow: 'rgba(16, 185, 129, 0.4)'
     },
     amber: {
-        name: 'Amber',
-        color: '#f59e0b',
-        glow: 'rgba(245, 158, 11, 0.4)'
+        name: 'Orange',
+        color: '#f97316',
+        glow: 'rgba(249, 115, 22, 0.4)'
     },
     cobalt: {
         name: 'Cobalt',
@@ -23,7 +23,7 @@ export const THEMES = {
 
 export const LIGHT_ACCENTS: Record<string, string> = {
     emerald: '#059669',
-    amber: '#d97706',
+    amber: '#ea580c',
     cobalt: '#2563eb',
     crimson: '#dc2626'
 };
