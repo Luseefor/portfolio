@@ -13,6 +13,12 @@ interface AppState {
     setChatOpen: (open: boolean) => void;
     npcDialogue: { title: string; content: string } | null;
     setNpcDialogue: (npc: { title: string; content: string } | null) => void;
+
+    // Theme State
+    currentTheme: string;
+    setCurrentTheme: (theme: string) => void;
+    isDark: boolean;
+    setIsDark: (isDark: boolean) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -28,4 +34,10 @@ export const useStore = create<AppState>((set) => ({
     setChatOpen: (open) => set({ isChatOpen: open }),
     npcDialogue: null,
     setNpcDialogue: (npc) => set({ npcDialogue: npc }),
+
+    // Theme Defaults
+    currentTheme: 'emerald',
+    setCurrentTheme: (currentTheme) => set({ currentTheme }),
+    isDark: true,
+    setIsDark: (isDark) => set({ isDark }),
 }));
