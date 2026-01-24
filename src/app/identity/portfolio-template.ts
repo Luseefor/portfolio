@@ -3,19 +3,19 @@ export const PORTFOLIO_CONTENT = {
     hero: {
         greeting: "Hello, I am",
         title: "Rijan Ghimire",
-        subtitle: "Computer Engineering & Mathematics",
-        tagline: "Specializing in embedded systems, software engineering, and AI/ML.",
-        status: "Open to Work",
+        subtitle: "Engineer & Mathematician",
+        tagline: "Bridging the gap between Silicon and Intelligence.",
+        status: "Available",
     },
 
     // About Section
     about: {
         title: "01 // ABOUT",
-        description: "I am a Computer Engineering and Mathematics double major at the University of Southern Mississippi with a perfect 4.0 GPA. My passion lies in bridging the gap between hardware and software, with extensive experience in embedded systems, full-stack development, and artificial intelligence.",
+        description: "A multidisciplinary engineer focused on high-performance compute and applied AI. I build systems that bridge hardware constraints with software intelligence, delivering optimized solutions for complex problems.",
         stats: [
             { label: "GPA", value: "4.0" },
             { label: "Projects", value: "10+" },
-            { label: "Focus", value: "AI + HW" },
+            { label: "Domain", value: "AI / HW" },
         ]
     },
 
@@ -27,34 +27,34 @@ export const PORTFOLIO_CONTENT = {
                 role: "Lead Developer",
                 company: "Applied Engineering",
                 period: "2024 - Present",
-                description: "Developed an NFC-based school management platform and a smart library system. Engineered IoT energy monitoring solutions and secure e-voting platforms integrating hardware sensors with web dashboards."
+                description: "Architecting IoT energy solutions and secure e-voting infrastructure. Leading deployment of hardware-integrated web platforms."
             },
             {
                 role: "Full Stack Engineer",
                 company: "Liberty Jewelers",
                 period: "2023 - 2024",
-                description: "Architected a complete e-commerce platform using Next.js and PostgreSQL. Implemented secure payment processing, inventory management, and a custom CMS for jewelry cataloging."
+                description: "Built the digital flagship. Managed payment infrastructure, CMS, and database architecture for high-volume transactions."
             }
         ]
     },
 
-    // Projects (Your Folder Structure Logic)
+    // Projects
     projects: {
         title: "03 // WORKS",
         categories: [
             {
                 name: "Full Stack",
                 items: [
-                    { title: "Liberty Jewelers", desc: "Production e-commerce platform with custom CMS.", stack: ["Next.js", "PostgreSQL", "Stripe"] },
-                    { title: "PayBit", desc: "Secure Bitcoin payment application.", stack: ["Python", "FastAPI", "Blockchain"] }
+                    { title: "Liberty Jewelers", desc: "Enterprise e-commerce with custom CMS.", stack: ["Next.js", "PostgreSQL", "Stripe"] },
+                    { title: "PayBit", desc: "Decentralized payment protocol.", stack: ["Python", "FastAPI", "Blockchain"] }
                 ]
             },
             {
-                name: "AI & Tools",
+                name: "R&D",
                 items: [
-                    { title: "ClassNotes AI", desc: "Automated summarization for lecture recordings.", stack: ["AI/ML", "Python", "NLP"] },
-                    { title: "Figuro", desc: "Generative AI tool converting speech to animated figures.", stack: ["TensorFlow", "React", "WebGL"] },
-                    { title: "IdleOps", desc: "Performance automation tool for in-game tasks.", stack: ["C++", "Python", "Automation"] }
+                    { title: "ClassNotes AI", desc: "Automated lecture intelligence pipeline.", stack: ["Python", "NLP", "Whisper"] },
+                    { title: "Figuro", desc: "Generative voice-to-animation engine.", stack: ["TensorFlow", "React", "WebGL"] },
+                    { title: "IdleOps", desc: "Low-latency automation framework.", stack: ["C++", "Python", "Win32"] }
                 ]
             }
         ]
@@ -64,14 +64,14 @@ export const PORTFOLIO_CONTENT = {
     stack: {
         title: "04 // STACK",
         technologies: [
-            "C / C++",
+            "C++",
             "Python",
-            "TypeScript",
+            "Rust",
             "Next.js",
             "React",
             "PyTorch",
-            "Embedded Systems",
-            "IoT / ESP32"
+            "CUDA",
+            "IoT"
         ]
     },
 
@@ -80,7 +80,7 @@ export const PORTFOLIO_CONTENT = {
         title: "05 // CONTACT",
         email: "ghimirerijan199@gmail.com",
         github: "github.com/Luseefor",
-        twitter: "@Luseefor", // Assuming handle based on Github, can update if incorrect
+        twitter: "@Luseefor",
         cta: "Let's build the future."
     }
 };
