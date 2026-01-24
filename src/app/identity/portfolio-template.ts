@@ -3,19 +3,19 @@ export const PORTFOLIO_CONTENT = {
     hero: {
         greeting: "Hello, I am",
         title: "Rijan Ghimire",
-        subtitle: "Full Stack Engineer & Creative Developer",
-        tagline: "Building digital experiences at the intersection of design and technology.",
-        status: "Available for freelance",
+        subtitle: "Computer Engineering & Mathematics",
+        tagline: "Specializing in embedded systems, software engineering, and AI/ML.",
+        status: "Open to Work",
     },
 
     // About Section
     about: {
         title: "01 // ABOUT",
-        description: "I am a passionate developer with a knack for creating immersive web applications. My work focuses on performance, accessibility, and visual excellence. I believe in code as a form of art.",
+        description: "I am a Computer Engineering and Mathematics double major at the University of Southern Mississippi with a perfect 4.0 GPA. My passion lies in bridging the gap between hardware and software, with extensive experience in embedded systems, full-stack development, and artificial intelligence.",
         stats: [
-            { label: "Years Exp", value: "5+" },
-            { label: "Projects", value: "50+" },
-            { label: "Clients", value: "20+" },
+            { label: "GPA", value: "4.0" },
+            { label: "Projects", value: "10+" },
+            { label: "Focus", value: "AI + HW" },
         ]
     },
 
@@ -24,16 +24,16 @@ export const PORTFOLIO_CONTENT = {
         title: "02 // EXPERIENCE",
         items: [
             {
-                role: "Senior Developer",
-                company: "Tech Corp",
-                period: "2023 - Present",
-                description: "Leading the frontend team, architecting scalable React applications, and mentoring junior developers."
+                role: "Lead Developer",
+                company: "Applied Engineering",
+                period: "2024 - Present",
+                description: "Developed an NFC-based school management platform and a smart library system. Engineered IoT energy monitoring solutions and secure e-voting platforms integrating hardware sensors with web dashboards."
             },
             {
-                role: "Frontend Engineer",
-                company: "Creative Agency",
-                period: "2021 - 2023",
-                description: "Built award-winning websites for high-profile clients using Next.js, WebGL, and Framer Motion."
+                role: "Full Stack Engineer",
+                company: "Liberty Jewelers",
+                period: "2023 - 2024",
+                description: "Architected a complete e-commerce platform using Next.js and PostgreSQL. Implemented secure payment processing, inventory management, and a custom CMS for jewelry cataloging."
             }
         ]
     },
@@ -43,17 +43,18 @@ export const PORTFOLIO_CONTENT = {
         title: "03 // WORKS",
         categories: [
             {
-                name: "Commercial",
+                name: "Full Stack",
                 items: [
-                    { title: "E-Commerce Platform", desc: "A high-performance shopify headless storefront.", stack: ["Next.js", "Shopify", "Tailwind"] },
-                    { title: "SaaS Dashboard", desc: "Real-time analytics platform for finance.", stack: ["React", "D3.js", "Firebase"] }
+                    { title: "Liberty Jewelers", desc: "Production e-commerce platform with custom CMS.", stack: ["Next.js", "PostgreSQL", "Stripe"] },
+                    { title: "PayBit", desc: "Secure Bitcoin payment application.", stack: ["Python", "FastAPI", "Blockchain"] }
                 ]
             },
             {
-                name: "Experimental",
+                name: "AI & Tools",
                 items: [
-                    { title: "3D Portfolio", desc: "Interactive Three.js experience.", stack: ["R3F", "WebGL"] },
-                    { title: "Generative Art", desc: "Algorithmic art generation tool.", stack: ["Canvas API", "Typescript"] }
+                    { title: "ClassNotes AI", desc: "Automated summarization for lecture recordings.", stack: ["AI/ML", "Python", "NLP"] },
+                    { title: "Figuro", desc: "Generative AI tool converting speech to animated figures.", stack: ["TensorFlow", "React", "WebGL"] },
+                    { title: "IdleOps", desc: "Performance automation tool for in-game tasks.", stack: ["C++", "Python", "Automation"] }
                 ]
             }
         ]
@@ -63,23 +64,23 @@ export const PORTFOLIO_CONTENT = {
     stack: {
         title: "04 // STACK",
         technologies: [
-            "React / Next.js",
+            "C / C++",
+            "Python",
             "TypeScript",
-            "Node.js",
-            "Three.js / WebGL",
-            "Tailwind CSS",
-            "PostgreSQL",
-            "GraphQL",
-            "AWS / Vercel"
+            "Next.js",
+            "React",
+            "PyTorch",
+            "Embedded Systems",
+            "IoT / ESP32"
         ]
     },
 
     // Contact
     contact: {
         title: "05 // CONTACT",
-        email: "lucifer@example.com",
-        github: "github.com/lucifer",
-        twitter: "@lucifer_dev",
-        cta: "Let's build something impossible."
+        email: "ghimirerijan199@gmail.com",
+        github: "github.com/Luseefor",
+        twitter: "@Luseefor", // Assuming handle based on Github, can update if incorrect
+        cta: "Let's build the future."
     }
 };
