@@ -16,6 +16,7 @@ const ExperienceSection = dynamic(() => import('@/components/ExperienceSection')
 const ProjectsSection = dynamic(() => import('@/components/ProjectsSection'), { ssr: false });
 const ContactSection = dynamic(() => import('@/components/ContactSection'), { ssr: false });
 const ThemeBackground = dynamic(() => import('@/components/ThemeBackground'), { ssr: false });
+const IdentityHero = dynamic(() => import('@/components/IdentityHero'), { ssr: false });
 
 // --- UTILS ---
 const BentoCard = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
@@ -33,7 +34,7 @@ const GlassyButton = dynamic(() => import('@/components/ui/GlassyButton'), { ssr
 const NavBar = () => (
     <nav className="fixed top-0 inset-x-0 z-50 flex justify-center py-6 pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-8 px-8 py-4 rounded-full bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl">
-            <span className="font-bold text-white text-xl tracking-tight">zeej.</span>
+            <span className="font-bold text-white text-xl tracking-tight">Rijan<span className="text-cyan-400">.</span></span>
             <div className="h-4 w-[1px] bg-white/10" />
             <div className="flex items-center gap-6 text-sm font-medium text-slate-400">
                 <Link href="#about" className="hover:text-white transition-colors">About</Link>
@@ -60,7 +61,9 @@ export default function IdentityPage() {
                 <NavBar />
 
                 {/* Spacer for Nav */}
-                <div className="h-32" />
+                <div className="h-24" />
+
+                <IdentityHero />
 
                 {/* Header / Marquee Section */}
                 <div className="mb-24 space-y-12">
@@ -69,16 +72,7 @@ export default function IdentityPage() {
 
                 <main className="max-w-7xl mx-auto px-6 lg:px-12">
 
-                    {/* Title Section */}
-                    <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-8">
-                        <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-center md:text-left">
-                            A little bit <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 animate-gradient-x">
-                                About Me
-                            </span>
-                        </h1>
-                        <div className="w-3 h-3 rounded-full bg-white animate-pulse" />
-                    </div>
+
 
                     {/* BENTO GRID */}
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[minmax(180px,auto)]">
