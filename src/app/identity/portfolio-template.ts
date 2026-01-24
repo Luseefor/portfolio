@@ -4,7 +4,7 @@ export const PORTFOLIO_CONTENT = {
         greeting: "Hello, I am",
         title: "Rijan Ghimire",
         subtitle: "Engineer & Mathematician",
-        tagline: "Bridging the gap between Silicon and Intelligence.",
+        tagline: "Architecting intelligent digital ecosystems where engineering precision meets artistic vision.",
         status: "Available",
     },
 
