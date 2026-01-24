@@ -2,99 +2,131 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Github, Linkedin, Mail, Twitter } from 'lucide-react';
+import { Send, Github, Linkedin, Instagram, Mail } from 'lucide-react';
+import { useStore } from '@/utils/store';
+import { getThemeColor } from '@/utils/themes';
 import dynamic from 'next/dynamic';
-import { PORTFOLIO_CONTENT } from '@/app/identity/portfolio-template';
 
-const LiquidGlassCard = dynamic(() => import('@/components/LiquidGlassCard'), { ssr: false });
+const FuturisticCard = dynamic(() => import('@/components/FuturisticCard'), { ssr: false });
+const LiquidGlassButton = dynamic(() => import('@/components/ui/LiquidGlassButton'), { ssr: false });
+const PORTFOLIO_CONTENT = {
+    contact: {
+        email: "ghimirerijan199@gmail.com",
+        github: "https://github.com/Luseefor",
+        linkedin: "https://www.linkedin.com/in/rijan-ghimire-37ba4a2b0/",
+        instagram: "https://www.instagram.com/rijanghimire1/"
+    }
+};
 
 export default function ContactSection() {
-    const [status, setStatus] = useState('Send Message');
+    const { currentTheme, isDark } = useStore();
+    const themeColor = React.useMemo(() => getThemeColor(currentTheme, isDark), [currentTheme, isDark]);
+    const [status, setStatus] = useState('Transmit Signal');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        setStatus('Sending...');
+        setStatus(' transmitting...');
         setTimeout(() => {
-            setStatus('Message Sent!');
-            setTimeout(() => setStatus('Send Message'), 3000);
+            setStatus('Signal Received');
+            setTimeout(() => setStatus('Transmit Signal'), 3000);
         }, 1500);
     };
 
+    const socialLinks = [
+        { icon: Github, href: PORTFOLIO_CONTENT.contact.github },
+        { icon: Linkedin, href: PORTFOLIO_CONTENT.contact.linkedin },
+        { icon: Instagram, href: PORTFOLIO_CONTENT.contact.instagram },
+        { icon: Mail, href: `mailto:${PORTFOLIO_CONTENT.contact.email}` }
+    ];
+
     return (
-        <section id="contact" className="relative py-32 px-6 md:px-12 max-w-4xl mx-auto">
-            <motion.h2
-                initial={{ opacity: 0, y: 20 }}
+        <section id="contact" className="relative py-32 px-6 md:px-12 max-w-4xl mx-auto text-center">
+            <motion.div
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="text-4xl md:text-5xl font-black text-white text-center mb-16"
+                transition={{ duration: 0.8 }}
             >
-                Get In Touch
-                <div className="w-24 h-1 bg-gradient-to-r from-orange-400 to-amber-600 mx-auto mt-4 rounded-full shadow-[0_0_15px_rgba(249,115,22,0.6)]" />
-            </motion.h2>
-
-            <LiquidGlassCard className="p-8 md:p-12">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-2">
-                        <label htmlFor="name" className="block text-slate-400 text-sm font-bold">Name</label>
-                        <input
-                            type="text"
-                            id="name"
-                            required
-                            placeholder="John Doe"
-                            className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
-                        />
+                {/* Header */}
+                <div className="mb-12">
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                        <div className="w-2 h-2 rounded-full animate-ping" style={{ backgroundColor: themeColor }} />
+                        <span className="font-mono text-sm uppercase tracking-[0.3em] text-slate-500">
+                            Transmission // OPEN
+                        </span>
                     </div>
-
-                    <div className="space-y-2">
-                        <label htmlFor="email" className="block text-slate-400 text-sm font-bold">Email</label>
-                        <input
-                            type="email"
-                            id="email"
-                            required
-                            placeholder="john@example.com"
-                            className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label htmlFor="message" className="block text-slate-400 text-sm font-bold">Message</label>
-                        <textarea
-                            id="message"
-                            rows={5}
-                            required
-                            placeholder="Tell me about your project..."
-                            className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all resize-none"
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={status !== 'Send Message'}
-                        className="w-full py-4 rounded-lg bg-gradient-to-r from-orange-400 to-amber-600 text-white font-bold tracking-wide hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                        {status}
-                    </button>
-                </form>
-
-                <div className="mt-12 pt-8 border-t border-white/10 flex justify-center gap-8">
-                    <a href={`https://${PORTFOLIO_CONTENT.contact.github}`} className="text-slate-400 hover:text-white transition-colors">
-                        <Github size={24} />
-                    </a>
-                    <a href="#" className="text-slate-400 hover:text-white transition-colors">
-                        <Linkedin size={24} />
-                    </a>
-                    <a href="#" className="text-slate-400 hover:text-white transition-colors">
-                        <Twitter size={24} />
-                    </a>
-                    <a href={`mailto:${PORTFOLIO_CONTENT.contact.email}`} className="text-slate-400 hover:text-white transition-colors">
-                        <Mail size={24} />
-                    </a>
+                    <h2 className="text-4xl md:text-5xl font-black text-white mb-6 uppercase tracking-tight">
+                        Get in <span className="text-transparent bg-clip-text" style={{ backgroundImage: `linear-gradient(to right, ${themeColor}, white)` }}>Touch</span>
+                    </h2>
+                    <p className="text-slate-400 max-w-lg mx-auto leading-relaxed">
+                        Ready to upgrade your digital infrastructure? establishing direct uplink...
+                    </p>
                 </div>
-            </LiquidGlassCard>
 
-            <footer className="mt-24 text-center text-slate-600 text-sm">
-                <p>© {new Date().getFullYear()} Rijan Ghimire. Built with pure HTML, CSS, and JS (adapted to Next.js).</p>
-            </footer>
+                <FuturisticCard themeColor={themeColor} className="p-8 md:p-12 text-left">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-xs font-mono uppercase tracking-widest text-slate-500 ml-1">Identity</label>
+                                <input
+                                    type="text"
+                                    placeholder="Jane Doe"
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-opacity-50 transition-all font-mono text-sm"
+                                    style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                                    onFocus={(e) => e.currentTarget.style.borderColor = themeColor}
+                                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-mono uppercase tracking-widest text-slate-500 ml-1">Frequency</label>
+                                <input
+                                    type="email"
+                                    placeholder="jane@corp.net"
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-opacity-50 transition-all font-mono text-sm"
+                                    style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                                    onFocus={(e) => e.currentTarget.style.borderColor = themeColor}
+                                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-mono uppercase tracking-widest text-slate-500 ml-1">Packet Data</label>
+                            <textarea
+                                rows={4}
+                                placeholder="Initialize project parameters..."
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-opacity-50 transition-all font-mono text-sm resize-none"
+                                style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                                onFocus={(e) => e.currentTarget.style.borderColor = themeColor}
+                                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+                            />
+                        </div>
+
+                        <LiquidGlassButton
+                            type="submit"
+                            className="w-full mt-6"
+                            icon={<Send size={18} />}
+                        >
+                            {status}
+                        </LiquidGlassButton>
+                    </form>
+                </FuturisticCard>
+
+                {/* Social Footer */}
+                <div className="flex justify-center gap-6 mt-16">
+                    {socialLinks.map((item, i) => (
+                        <motion.a
+                            key={i}
+                            href={item.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            whileHover={{ y: -5, color: themeColor }}
+                            className="text-slate-500 hover:text-white transition-colors p-2"
+                        >
+                            <item.icon size={24} />
+                        </motion.a>
+                    ))}
+                </div>
+            </motion.div>
         </section>
     );
 }

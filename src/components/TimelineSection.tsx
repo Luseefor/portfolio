@@ -2,81 +2,73 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { PORTFOLIO_CONTENT } from '@/app/identity/portfolio-template';
+import { useStore } from '@/utils/store';
+import { getThemeColor } from '@/utils/themes';
 import dynamic from 'next/dynamic';
 
-const LiquidGlassCard = dynamic(() => import('@/components/LiquidGlassCard'), { ssr: false });
-
-const experienceData = [
-    {
-        period: "2022 - Present",
-        role: "Senior Full Stack Developer",
-        company: "TechCorp Inc.",
-        description: "Leading a team of 5 developers, architecting scalable microservices, and improving system performance by 40%."
-    },
-    {
-        period: "2020 - 2022",
-        role: "Frontend Developer",
-        company: "Creative Agency",
-        description: "Developed award-winning marketing sites for Fortune 500 clients using React and GSAP animations."
-    },
-    {
-        period: "2018 - 2020",
-        role: "Junior Web Developer",
-        company: "StartUp Hub",
-        description: "Collaborated on MVP development and maintained legacy codebases while learning agile methodologies."
-    }
-];
+const FuturisticCard = dynamic(() => import('@/components/FuturisticCard'), { ssr: false });
 
 export default function TimelineSection() {
+    const { currentTheme, isDark } = useStore();
+    const themeColor = React.useMemo(() => getThemeColor(currentTheme, isDark), [currentTheme, isDark]);
+
     return (
-        <section id="experience" className="py-32 px-6 md:px-12 max-w-5xl mx-auto">
-            <motion.h2
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="text-4xl md:text-5xl font-black text-white text-center mb-20"
-            >
-                Experience
-                <div className="w-24 h-1 bg-gradient-to-r from-orange-400 to-amber-600 mx-auto mt-4 rounded-full shadow-[0_0_15px_rgba(249,115,22,0.6)]" />
-            </motion.h2>
+        <section id="timeline" className="relative py-32 px-6 md:px-12 max-w-5xl mx-auto">
+            <div className="mb-20 text-center">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    className="inline-block mb-4"
+                >
+                    <span className="py-1 px-3 border border-white/10 rounded-none text-xs font-mono uppercase tracking-widest text-slate-400"
+                        style={{ borderColor: `${themeColor}40`, color: themeColor }}>
+                        Chronology // EXP_LOG
+                    </span>
+                </motion.div>
+                <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tight">Experience</h2>
+            </div>
 
             <div className="relative">
-                {/* Center Line */}
-                <div className="absolute left-0 md:left-1/2 top-0 bottom-0 w-0.5 bg-white/10 md:-ml-[1px] ml-4" />
+                {/* Central Laser Spine */}
+                <div className="absolute left-[20px] md:left-1/2 top-0 bottom-0 w-[2px] -translate-x-1/2"
+                    style={{
+                        background: `linear-gradient(to bottom, transparent, ${themeColor}40 10%, ${themeColor}40 90%, transparent)`
+                    }}
+                />
 
-                <div className="space-y-12">
-                    {experienceData.map((item, index) => (
+                <div className="space-y-16">
+                    {PORTFOLIO_CONTENT.experience.items.map((item, i) => (
                         <motion.div
-                            key={index}
+                            key={i}
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6, delay: index * 0.1 }}
-                            className={`relative flex flex-col md:flex-row ${index % 2 === 0 ? 'md:flex-row-reverse' : ''} items-center`}
+                            transition={{ delay: i * 0.1 }}
+                            className={`relative flex flex-col md:flex-row gap-8 ${i % 2 === 0 ? 'md:flex-row-reverse' : ''}`}
                         >
-                            {/* Spacer for opposite side */}
-                            <div className="flex-1 hidden md:block" />
-
-                            {/* Timeline Node */}
-                            <div className="absolute left-4 md:left-1/2 w-4 h-4 rounded-full bg-[#020410] border-[3px] border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)] z-10 md:-ml-2 translate-y-6 md:translate-y-0" />
-
-                            {/* Content Card */}
-                            <div className="flex-1 w-full pl-12 md:pl-0 md:px-12">
-                                <LiquidGlassCard className="p-8 relative">
-                                    {/* Arrow connecting to line */}
-                                    <div className={`absolute top-6 w-0 h-0 border-[10px] border-transparent 
-                                        ${index % 2 === 0
-                                            ? 'hidden md:block md:right-[-20px] md:border-l-white/10 md:border-r-0'
-                                            : 'hidden md:block md:left-[-20px] md:border-r-white/10 md:border-l-0'
-                                        } 
-                                        block left-[-20px] border-r-white/10 border-l-0
-                                    `} />
-
-                                    <span className="text-orange-400 font-bold text-sm mb-2 block">{item.period}</span>
-                                    <h3 className="text-xl font-bold text-white mb-1">{item.role}</h3>
-                                    <h4 className="text-slate-400 text-sm font-medium mb-4">{item.company}</h4>
-                                    <p className="text-slate-300 text-sm leading-relaxed">{item.description}</p>
-                                </LiquidGlassCard>
+                            {/* Node Point */}
+                            <div className="absolute left-[20px] md:left-1/2 -translate-x-1/2 w-4 h-4 bg-black border-2 rotate-45 z-10"
+                                style={{ borderColor: themeColor, boxShadow: `0 0 15px ${themeColor}` }}
+                            >
+                                <div className="absolute inset-0 bg-white animate-pulse opacity-20" />
                             </div>
+
+                            {/* Content */}
+                            <div className="ml-12 md:ml-0 md:w-1/2 pt-1">
+                                <FuturisticCard themeColor={themeColor} className={`p-6 ${i % 2 === 0 ? 'md:text-left' : 'md:text-right'}`}>
+                                    <span className="font-mono text-sm tracking-wider opacity-80 mb-2 block" style={{ color: themeColor }}>
+                                        {item.period}
+                                    </span>
+                                    <h3 className="text-2xl font-bold text-white mb-1">{item.company}</h3>
+                                    <h4 className="text-lg text-slate-300 mb-4">{item.role}</h4>
+                                    <p className="text-slate-400 text-sm leading-relaxed">
+                                        {item.description}
+                                    </p>
+                                </FuturisticCard>
+                            </div>
+
+                            {/* Empty spacer for alternating layout */}
+                            <div className="hidden md:block md:w-1/2" />
                         </motion.div>
                     ))}
                 </div>

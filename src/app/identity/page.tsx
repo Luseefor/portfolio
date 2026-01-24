@@ -14,7 +14,6 @@ const TechMarquee = dynamic(() => import('@/components/TechMarquee'), { ssr: fal
 const CodeTyper = dynamic(() => import('@/components/CodeTyper'), { ssr: false });
 const ServicesSection = dynamic(() => import('@/components/ServicesSection'), { ssr: false });
 const TimelineSection = dynamic(() => import('@/components/TimelineSection'), { ssr: false });
-const TestimonialsSection = dynamic(() => import('@/components/TestimonialsSection'), { ssr: false });
 const ProjectsSection = dynamic(() => import('@/components/ProjectsSection'), { ssr: false });
 const ContactSection = dynamic(() => import('@/components/ContactSection'), { ssr: false });
 const ThemeBackground = dynamic(() => import('@/components/ThemeBackground'), { ssr: false });
@@ -162,8 +161,7 @@ export default function IdentityPage() {
                     {/* PROJECTS SECTION */}
                     <ProjectsSection />
 
-                    {/* TESTIMONIALS */}
-                    <TestimonialsSection />
+
 
                     {/* CONTACT SECTION */}
                     <ContactSection />
