@@ -18,7 +18,7 @@ const HolographicAvatar = () => {
 
     return (
         <Float speed={2} rotationIntensity={1} floatIntensity={1}>
-            <Sphere ref={meshRef} args={[1.5, 64, 64]} scale={2}>
+            <Sphere ref={meshRef} args={[1.5, 64, 64]} scale={[1.5, 1.5, 0.1]}>
                 <MeshDistortMaterial
                     color="#00f0ff"
                     emissive="#06b6d4"
@@ -31,7 +31,7 @@ const HolographicAvatar = () => {
                 />
             </Sphere>
             {/* Inner Core Glow */}
-            <Sphere args={[1.0, 32, 32]} scale={1.8}>
+            <Sphere args={[1.0, 32, 32]} scale={[1.2, 1.2, 0.1]}>
                 <meshBasicMaterial color="#ffffff" wireframe transparent opacity={0.15} />
             </Sphere>
         </Float>
