@@ -19,6 +19,7 @@ const ContactSection = dynamic(() => import('@/components/ContactSection'), { ss
 const ThemeBackground = dynamic(() => import('@/components/ThemeBackground'), { ssr: false });
 const IdentityHero = dynamic(() => import('@/components/IdentityHero'), { ssr: false });
 const FuturisticNavbar = dynamic(() => import('@/components/FuturisticNavbar'), { ssr: false });
+const TimeLocationCard = dynamic(() => import('@/components/TimeLocationCard'), { ssr: false });
 
 // --- UTILS ---
 const BentoCard = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
@@ -33,15 +34,22 @@ const BentoCard = ({ children, className = "" }: { children: React.ReactNode, cl
 
 const GlassyButton = dynamic(() => import('@/components/ui/GlassyButton'), { ssr: false });
 
+const LuseeforBadge = dynamic(() => import('@/components/LuseeforBadge'), { ssr: false });
+
 export default function IdentityPage() {
     const { currentTheme, isDark } = useStore();
     const themeColor = React.useMemo(() => getThemeColor(currentTheme, isDark), [currentTheme, isDark]);
 
     return (
-        <div className={`min-h-screen font-sans pb-32 transition-colors duration-1000 ${isDark ? 'text-white selection:bg-cyan-500/30' : 'text-slate-900 selection:bg-cyan-500/30'}`}>
+        <div className={`min-h-screen font-sans transition-colors duration-1000 ${isDark ? 'text-white selection:bg-cyan-500/30' : 'text-slate-900 selection:bg-cyan-500/30'}`}>
             <ThemeBackground themeColor={themeColor} isDark={isDark} />
 
             <div className="relative z-10">
+                {/* Luseefor Badge (Scrolls away) */}
+                <div className="absolute top-6 left-4 md:left-10 z-40">
+                    <LuseeforBadge />
+                </div>
+
                 <FuturisticNavbar />
 
                 {/* Spacer for Nav */}
@@ -56,7 +64,6 @@ export default function IdentityPage() {
 
                 <main className="max-w-7xl mx-auto px-6 lg:px-12">
 
-                    {/* BENTO GRID (Maintained as About) */}
                     {/* BENTO GRID (Maintained as About) */}
                     <div id="about" className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[minmax(180px,auto)] mb-32">
                         {/* 1. Main Profile Card (Large Left) */}
@@ -75,11 +82,11 @@ export default function IdentityPage() {
 
                             <div className="absolute bottom-0 left-0 p-8 md:p-10 z-10 max-w-xl">
                                 <h2 className="text-4xl md:text-6xl font-black leading-[0.9] mb-6 tracking-tighter text-white">
-                                    I build software that <br />
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 animate-gradient-x">drives revenue.</span>
+                                    Building high-performance, <br />
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 animate-gradient-x">scalable systems.</span>
                                 </h2>
                                 <p className="text-slate-300 text-lg md:text-xl font-light leading-relaxed border-l-2 border-cyan-500/50 pl-4">
-                                    Combining engineering precision with artistic flair to create digital experiences that perform.
+                                    Delivering robust engineering solutions with a focus on reliability, efficiency, and user experience.
                                 </p>
                             </div>
                         </BentoCard>
@@ -103,52 +110,9 @@ export default function IdentityPage() {
                             </div>
                         </BentoCard>
 
-                        {/* 3. Socials / Contact (Right Bottom) */}
-                        <BentoCard className="md:col-span-5 md:row-span-1 bg-[#080a12] border border-white/10 group relative overflow-hidden">
-                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent" />
-
-                            <div className="p-8 h-full flex flex-col justify-between relative z-10">
-                                <div className="flex justify-between items-start">
-                                    <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-[220px]">
-                                        Creating products fully optimized for performance and premium aesthetics.
-                                    </p>
-
-                                    <motion.div
-                                        whileHover={{ scale: 1.1, rotate: 90 }}
-                                        className="relative w-20 h-20 -mt-2 -mr-2 cursor-pointer"
-                                    >
-                                        <svg viewBox="0 0 100 100" className="w-full h-full animate-spin-slow">
-                                            <path
-                                                id="curve"
-                                                d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"
-                                                fill="transparent"
-                                            />
-                                            <text className="text-[10px] font-bold uppercase tracking-widest fill-white/80">
-                                                <textPath href="#curve">
-                                                    Get in Touch • Let's Talk • Connect •
-                                                </textPath>
-                                            </text>
-                                        </svg>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center">
-                                                <ArrowUpRight size={18} strokeWidth={3} />
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                </div>
-
-                                <div className="flex gap-4 mt-6">
-                                    {[Github, Linkedin, Twitter, Mail].map((Icon, i) => (
-                                        <motion.button
-                                            key={i}
-                                            whileHover={{ y: -5 }}
-                                            className="p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-cyan-500/30 hover:text-cyan-400 transition-all shadow-lg"
-                                        >
-                                            <Icon size={20} />
-                                        </motion.button>
-                                    ))}
-                                </div>
-                            </div>
+                        {/* 3. Location & Time (Right Bottom) */}
+                        <BentoCard className="md:col-span-12 lg:col-span-5 lg:row-span-1 bg-[#080a12] border border-white/10 group relative overflow-hidden">
+                            <TimeLocationCard />
                         </BentoCard>
                     </div>
 
@@ -161,13 +125,13 @@ export default function IdentityPage() {
                     {/* PROJECTS SECTION */}
                     <ProjectsSection />
 
-
-
                     {/* CONTACT SECTION */}
                     <ContactSection />
 
                 </main>
             </div>
+
+
         </div>
     );
 }

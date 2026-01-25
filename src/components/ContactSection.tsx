@@ -23,13 +23,36 @@ export default function ContactSection() {
     const themeColor = React.useMemo(() => getThemeColor(currentTheme, isDark), [currentTheme, isDark]);
     const [status, setStatus] = useState('Transmit Signal');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setStatus(' transmitting...');
-        setTimeout(() => {
-            setStatus('Signal Received');
+
+        try {
+            const response = await fetch('/api/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            });
+
+            if (response.ok) {
+                setStatus('Signal Received');
+                setFormData({ name: '', email: '', message: '' });
+                setTimeout(() => setStatus('Transmit Signal'), 3000);
+            } else {
+                setStatus('Transmission Failed');
+                setTimeout(() => setStatus('Transmit Signal'), 3000);
+            }
+        } catch (error) {
+            console.error('Transmission Error:', error);
+            setStatus('Connection Error');
             setTimeout(() => setStatus('Transmit Signal'), 3000);
-        }, 1500);
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const socialLinks = [
@@ -69,7 +92,11 @@ export default function ContactSection() {
                                 <label className="text-xs font-mono uppercase tracking-widest text-slate-500 ml-1">Identity</label>
                                 <input
                                     type="text"
-                                    placeholder="Jane Doe"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Your Full Name"
                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-opacity-50 transition-all font-mono text-sm"
                                     style={{ borderColor: 'rgba(255,255,255,0.1)' }}
                                     onFocus={(e) => e.currentTarget.style.borderColor = themeColor}
@@ -80,7 +107,11 @@ export default function ContactSection() {
                                 <label className="text-xs font-mono uppercase tracking-widest text-slate-500 ml-1">Frequency</label>
                                 <input
                                     type="email"
-                                    placeholder="jane@corp.net"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="you@example.com"
                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-opacity-50 transition-all font-mono text-sm"
                                     style={{ borderColor: 'rgba(255,255,255,0.1)' }}
                                     onFocus={(e) => e.currentTarget.style.borderColor = themeColor}
@@ -92,8 +123,12 @@ export default function ContactSection() {
                         <div className="space-y-2">
                             <label className="text-xs font-mono uppercase tracking-widest text-slate-500 ml-1">Packet Data</label>
                             <textarea
+                                name="message"
+                                value={formData.message}
+                                onChange={handleChange}
+                                required
                                 rows={4}
-                                placeholder="Initialize project parameters..."
+                                placeholder="Describe your project connection..."
                                 className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-opacity-50 transition-all font-mono text-sm resize-none"
                                 style={{ borderColor: 'rgba(255,255,255,0.1)' }}
                                 onFocus={(e) => e.currentTarget.style.borderColor = themeColor}
@@ -125,6 +160,11 @@ export default function ContactSection() {
                             <item.icon size={24} />
                         </motion.a>
                     ))}
+                </div>
+
+                {/* Copyright */}
+                <div className="mt-12 text-slate-600 text-xs font-mono uppercase tracking-widest">
+                    <p>&copy; {new Date().getFullYear()} Rijan Ghimire. <span className="hidden md:inline">All rights reserved.</span></p>
                 </div>
             </motion.div>
         </section>

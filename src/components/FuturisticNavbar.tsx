@@ -51,12 +51,12 @@ export default function FuturisticNavbar() {
                 </div>
 
                 {/* Links */}
-                <div className="hidden md:flex items-center bg-black/20 rounded-full px-2 py-1.5 border border-white/5 mx-2">
+                <div className="flex items-center bg-black/20 rounded-full px-1 py-1.5 border border-white/5 mx-1 md:mx-2 overflow-x-auto max-w-[200px] md:max-w-none no-scrollbar">
                     {navItems.map((item) => (
                         <Link
                             key={item.name}
                             href={item.href}
-                            className="relative px-4 py-1.5 text-sm font-medium text-slate-400 hover:text-white transition-colors group"
+                            className="relative px-3 md:px-4 py-1.5 text-xs md:text-sm font-medium text-slate-400 hover:text-white transition-colors group whitespace-nowrap"
                         >
                             {/* Hover Pill */}
                             <span className="absolute inset-0 rounded-full bg-white/10 scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300" />
