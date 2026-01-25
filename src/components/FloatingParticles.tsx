@@ -125,22 +125,46 @@ export default function FloatingParticles({
     const drawParticles = useCallback((ctx: CanvasRenderingContext2D) => {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-        particlesRef.current.forEach((particle) => {
-            if (particle.opacity <= 0) return;
+        // Draw connections
+        ctx.lineWidth = 0.5;
+        const particles = particlesRef.current;
 
+        for (let i = 0; i < particles.length; i++) {
+            const p1 = particles[i];
+            if (p1.opacity <= 0) continue;
+
+            // Connect to other particles
+            for (let j = i + 1; j < particles.length; j++) {
+                const p2 = particles[j];
+                const dx = p1.x - p2.x;
+                const dy = p1.y - p2.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 150) { // Connection distance
+                    const opacity = (1 - distance / 150) * Math.min(p1.opacity, p2.opacity) * 0.5;
+                    if (opacity > 0) {
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // Draw particle
             ctx.save();
-            const currentGlow = glowIntensity * (particle.glowMultiplier || 1);
-
+            const currentGlow = glowIntensity * (p1.glowMultiplier || 1);
             ctx.shadowColor = particleColor;
             ctx.shadowBlur = currentGlow;
-            ctx.globalAlpha = particle.opacity;
+            ctx.globalAlpha = p1.opacity;
             ctx.fillStyle = particleColor;
 
             ctx.beginPath();
-            ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+            ctx.arc(p1.x, p1.y, p1.size, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
-        });
+        }
     }, [particleColor, glowIntensity]);
 
     useEffect(() => {

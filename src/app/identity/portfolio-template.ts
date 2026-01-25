@@ -3,19 +3,19 @@ export const PORTFOLIO_CONTENT = {
     hero: {
         greeting: "Hello, I am",
         title: "Rijan Ghimire",
-        subtitle: "Full Stack Engineer & Creative Developer",
-        tagline: "Building digital experiences at the intersection of design and technology.",
-        status: "Available for freelance",
+        subtitle: "Engineer & Mathematician",
+        tagline: "Architecting intelligent digital ecosystems where engineering precision meets artistic vision.",
+        status: "Available",
     },
 
     // About Section
     about: {
         title: "01 // ABOUT",
-        description: "I am a passionate developer with a knack for creating immersive web applications. My work focuses on performance, accessibility, and visual excellence. I believe in code as a form of art.",
+        description: "A multidisciplinary engineer focused on high-performance compute and applied AI. I build systems that bridge hardware constraints with software intelligence, delivering optimized solutions for complex problems.",
         stats: [
-            { label: "Years Exp", value: "5+" },
-            { label: "Projects", value: "50+" },
-            { label: "Clients", value: "20+" },
+            { label: "GPA", value: "4.0" },
+            { label: "Projects", value: "10+" },
+            { label: "Domain", value: "AI / HW" },
         ]
     },
 
@@ -24,36 +24,37 @@ export const PORTFOLIO_CONTENT = {
         title: "02 // EXPERIENCE",
         items: [
             {
-                role: "Senior Developer",
-                company: "Tech Corp",
-                period: "2023 - Present",
-                description: "Leading the frontend team, architecting scalable React applications, and mentoring junior developers."
+                role: "Lead Developer",
+                company: "Applied Engineering",
+                period: "2024 - Present",
+                description: "Architecting IoT energy solutions and secure e-voting infrastructure. Leading deployment of hardware-integrated web platforms."
             },
             {
-                role: "Frontend Engineer",
-                company: "Creative Agency",
-                period: "2021 - 2023",
-                description: "Built award-winning websites for high-profile clients using Next.js, WebGL, and Framer Motion."
+                role: "Full Stack Engineer",
+                company: "Liberty Jewelers",
+                period: "2023 - 2024",
+                description: "Built the digital flagship. Managed payment infrastructure, CMS, and database architecture for high-volume transactions."
             }
         ]
     },
 
-    // Projects (Your Folder Structure Logic)
+    // Projects
     projects: {
         title: "03 // WORKS",
         categories: [
             {
-                name: "Commercial",
+                name: "Full Stack",
                 items: [
-                    { title: "E-Commerce Platform", desc: "A high-performance shopify headless storefront.", stack: ["Next.js", "Shopify", "Tailwind"] },
-                    { title: "SaaS Dashboard", desc: "Real-time analytics platform for finance.", stack: ["React", "D3.js", "Firebase"] }
+                    { title: "Liberty Jewelers", desc: "Enterprise e-commerce with custom CMS.", stack: ["Next.js", "PostgreSQL", "Stripe"] },
+                    { title: "PayBit", desc: "Decentralized payment protocol.", stack: ["Python", "FastAPI", "Blockchain"] }
                 ]
             },
             {
-                name: "Experimental",
+                name: "R&D",
                 items: [
-                    { title: "3D Portfolio", desc: "Interactive Three.js experience.", stack: ["R3F", "WebGL"] },
-                    { title: "Generative Art", desc: "Algorithmic art generation tool.", stack: ["Canvas API", "Typescript"] }
+                    { title: "ClassNotes AI", desc: "Automated lecture intelligence pipeline.", stack: ["Python", "NLP", "Whisper"] },
+                    { title: "Figuro", desc: "Generative voice-to-animation engine.", stack: ["TensorFlow", "React", "WebGL"] },
+                    { title: "IdleOps", desc: "Low-latency automation framework.", stack: ["C++", "Python", "Win32"] }
                 ]
             }
         ]
@@ -63,23 +64,23 @@ export const PORTFOLIO_CONTENT = {
     stack: {
         title: "04 // STACK",
         technologies: [
-            "React / Next.js",
-            "TypeScript",
-            "Node.js",
-            "Three.js / WebGL",
-            "Tailwind CSS",
-            "PostgreSQL",
-            "GraphQL",
-            "AWS / Vercel"
+            "C++",
+            "Python",
+            "Rust",
+            "Next.js",
+            "React",
+            "PyTorch",
+            "CUDA",
+            "IoT"
         ]
     },
 
     // Contact
     contact: {
         title: "05 // CONTACT",
-        email: "lucifer@example.com",
-        github: "github.com/lucifer",
-        twitter: "@lucifer_dev",
-        cta: "Let's build something impossible."
+        email: "ghimirerijan199@gmail.com",
+        github: "github.com/Luseefor",
+        twitter: "@Luseefor",
+        cta: "Let's build the future."
     }
 };
