@@ -45,6 +45,11 @@ export default function IdentityPage() {
             <ThemeBackground themeColor={themeColor} isDark={isDark} />
 
             <div className="relative z-10">
+                {/* Luseefor Badge (Scrolls away) */}
+                <div className="absolute top-6 left-4 md:left-10 z-40">
+                    <LuseeforBadge />
+                </div>
+
                 <FuturisticNavbar />
 
                 {/* Spacer for Nav */}
@@ -126,8 +131,7 @@ export default function IdentityPage() {
                 </main>
             </div>
 
-            {/* Chat Trigger */}
-            <LuseeforBadge />
+
         </div>
     );
 }
