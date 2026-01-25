@@ -34,6 +34,8 @@ const BentoCard = ({ children, className = "" }: { children: React.ReactNode, cl
 
 const GlassyButton = dynamic(() => import('@/components/ui/GlassyButton'), { ssr: false });
 
+const LuseeforBadge = dynamic(() => import('@/components/LuseeforBadge'), { ssr: false });
+
 export default function IdentityPage() {
     const { currentTheme, isDark } = useStore();
     const themeColor = React.useMemo(() => getThemeColor(currentTheme, isDark), [currentTheme, isDark]);
@@ -57,7 +59,6 @@ export default function IdentityPage() {
 
                 <main className="max-w-7xl mx-auto px-6 lg:px-12">
 
-                    {/* BENTO GRID (Maintained as About) */}
                     {/* BENTO GRID (Maintained as About) */}
                     <div id="about" className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[minmax(180px,auto)] mb-32">
                         {/* 1. Main Profile Card (Large Left) */}
@@ -119,13 +120,14 @@ export default function IdentityPage() {
                     {/* PROJECTS SECTION */}
                     <ProjectsSection />
 
-
-
                     {/* CONTACT SECTION */}
                     <ContactSection />
 
                 </main>
             </div>
+
+            {/* Chat Trigger */}
+            <LuseeforBadge />
         </div>
     );
 }
