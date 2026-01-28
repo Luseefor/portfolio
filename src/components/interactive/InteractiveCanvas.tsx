@@ -2,13 +2,14 @@
 
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars, useTexture, Float } from '@react-three/drei';
-import { Suspense, useMemo, useRef } from 'react';
+import { Suspense, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { EffectComposer, Bloom, Vignette, Noise, GodRays } from '@react-three/postprocessing';
 import LoadingScreen from './LoadingScreen';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import SubmarineController from './SubmarineController';
 import MarineScatter, { MarineAsset } from './MarineScatter';
+import { PointOfInterest, PoiHud, PoiMarkers } from './PoiSystem';
 
 function OceanFloor() {
   const sandTexture = useTexture('/textures/sand.svg');
@@ -96,6 +97,9 @@ function UnderseaLightShafts() {
 
 export default function InteractiveCanvas() {
   const modelUrl = process.env.NEXT_PUBLIC_INTERACTIVE_MODEL_URL || '';
+  const [subPosition, setSubPosition] = useState(new THREE.Vector3(0, -1, 0));
+  const [activePoiId, setActivePoiId] = useState<string | null>(null);
+  const [nearbyPoiId, setNearbyPoiId] = useState<string | null>(null);
   const marineAssets: MarineAsset[] = [
     {
       name: 'FishSchool',
@@ -126,6 +130,49 @@ export default function InteractiveCanvas() {
       materialTint: '#4677a8',
     },
   ];
+
+  const poiList: PointOfInterest[] = useMemo(
+    () => [
+      {
+        id: 'coral-reef',
+        title: 'Explore Coral Reef',
+        description:
+          'Vivid coral growth detected. Scan bio-luminescent patterns for navigation data.',
+        position: [12, -1.6, -18],
+      },
+      {
+        id: 'shipwreck',
+        title: 'Investigate Shipwreck',
+        description:
+          'Residual energy signatures found. Stabilize the hull to extract archival logs.',
+        position: [-20, -1.8, 22],
+      },
+      {
+        id: 'anchor-site',
+        title: 'Inspect Anchor Site',
+        description:
+          'Anchor chain embedded in the seabed. Potential salvage and waypoint data.',
+        position: [26, -2.0, 8],
+      },
+    ],
+    [],
+  );
+
+  useFrame(() => {
+    let nearest: { id: string; distance: number } | null = null;
+    poiList.forEach((poi) => {
+      const distance = subPosition.distanceTo(new THREE.Vector3(...poi.position));
+      if (!nearest || distance < nearest.distance) {
+        nearest = { id: poi.id, distance };
+      }
+    });
+
+    if (nearest && nearest.distance < 6) {
+      setNearbyPoiId(nearest.id);
+    } else {
+      setNearbyPoiId(null);
+    }
+  });
 
   return (
     <div className="absolute inset-0">
@@ -162,6 +209,7 @@ export default function InteractiveCanvas() {
           <Stars radius={80} depth={40} count={2000} factor={3} fade speed={0.6} />
           <OceanFloor />
           <MarineScatter assets={marineAssets} />
+          <PoiMarkers pois={poiList} />
 
           <Physics gravity={[0, -0.25, 0]}>
             <RigidBody type="fixed" colliders={false} position={[0, -3.2, 0]}>
@@ -185,7 +233,12 @@ export default function InteractiveCanvas() {
               <CuboidCollider args={[0.5, 20, 120]} restitution={0.1} />
             </RigidBody>
 
-            <SubmarineController modelUrl={modelUrl} />
+            <SubmarineController
+              modelUrl={modelUrl}
+              nearbyPoiId={nearbyPoiId}
+              onInteract={(poiId) => setActivePoiId(poiId)}
+              onPositionChange={setSubPosition}
+            />
           </Physics>
         </Suspense>
 
@@ -193,6 +246,8 @@ export default function InteractiveCanvas() {
 
         <OrbitControls enablePan={false} enableZoom={false} enabled={false} />
       </Canvas>
+
+      <PoiHud pois={poiList} activePoiId={activePoiId} nearbyPoiId={nearbyPoiId} />
     </div>
   );
 }

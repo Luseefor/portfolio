@@ -8,9 +8,17 @@ import SubmarineModel from './SubmarineModel';
 
 interface SubmarineControllerProps {
   modelUrl?: string;
+  nearbyPoiId?: string | null;
+  onInteract?: (poiId: string) => void;
+  onPositionChange?: (position: THREE.Vector3) => void;
 }
 
-export default function SubmarineController({ modelUrl }: SubmarineControllerProps) {
+export default function SubmarineController({
+  modelUrl,
+  nearbyPoiId,
+  onInteract,
+  onPositionChange,
+}: SubmarineControllerProps) {
   const bodyRef = useRef<THREE.Object3D>(null);
   const rigidRef = useRef<any>(null);
   const { gl } = useThree();
@@ -47,11 +55,15 @@ export default function SubmarineController({ modelUrl }: SubmarineControllerPro
         case 'KeyD':
           input.current.right = true;
           break;
+        case 'KeyE':
+          if (nearbyPoiId && onInteract) {
+            onInteract(nearbyPoiId);
+            break;
+          }
+          input.current.up = true;
+          break;
         case 'KeyQ':
           input.current.down = true;
-          break;
-        case 'KeyE':
-          input.current.up = true;
           break;
         default:
           break;
@@ -124,6 +136,11 @@ export default function SubmarineController({ modelUrl }: SubmarineControllerPro
   useFrame((state, delta) => {
     const rigidbody = rigidRef.current;
     if (!rigidbody) return;
+
+    const translation = rigidbody.translation();
+    if (onPositionChange) {
+      onPositionChange(new THREE.Vector3(translation.x, translation.y, translation.z));
+    }
 
     const quaternion = new THREE.Quaternion().setFromEuler(
       new THREE.Euler(pitchRef.current, yawRef.current, 0, 'YXZ'),
