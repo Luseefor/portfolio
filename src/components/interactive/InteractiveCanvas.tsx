@@ -1,6 +1,6 @@
 'use client';
 
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars, useTexture, Float } from '@react-three/drei';
 import { Suspense, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
@@ -9,7 +9,7 @@ import LoadingScreen from './LoadingScreen';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import SubmarineController from './SubmarineController';
 import MarineScatter, { MarineAsset } from './MarineScatter';
-import { PointOfInterest, PoiHud, PoiMarkers } from './PoiSystem';
+import { PointOfInterest, PoiHud, PoiMarkers, ScreenPoi } from './PoiSystem';
 
 function OceanFloor() {
   const sandTexture = useTexture('/textures/sand.svg');
@@ -128,11 +128,103 @@ function PoiProximityUpdater({
   return null;
 }
 
+function PoiScreenProjector({
+  pois,
+  onUpdate,
+}: {
+  pois: PointOfInterest[];
+  onUpdate: (screenPois: ScreenPoi[]) => void;
+}) {
+  const { camera, size } = useThree();
+  const poiVectors = useMemo(
+    () => pois.map((poi) => ({ id: poi.id, position: new THREE.Vector3(...poi.position) })),
+    [pois],
+  );
+
+  useFrame(() => {
+    const next = poiVectors.map(({ id, position }) => {
+      const projected = position.clone().project(camera);
+      const isOffscreen = projected.z < 0 || Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1;
+
+      const clampedX = THREE.MathUtils.clamp(projected.x, -0.9, 0.9);
+      const clampedY = THREE.MathUtils.clamp(projected.y, -0.9, 0.9);
+
+      const screenX = ((isOffscreen ? clampedX : projected.x) * 0.5 + 0.5) * size.width;
+      const screenY = (-(isOffscreen ? clampedY : projected.y) * 0.5 + 0.5) * size.height;
+
+      const angle = Math.atan2(projected.y, projected.x);
+      return { id, x: screenX, y: screenY, offscreen: isOffscreen, angle };
+    });
+
+    onUpdate(next);
+  });
+
+  return null;
+}
+
+function SonarPulse({
+  position,
+  triggeredAt,
+}: {
+  position: THREE.Vector3;
+  triggeredAt: number | null;
+}) {
+  const ringRef = useRef<THREE.Mesh>(null);
+
+  useFrame(() => {
+    if (!triggeredAt || !ringRef.current) return;
+    const elapsed = (Date.now() - triggeredAt) / 1000;
+    const duration = 2.2;
+
+    const progress = Math.min(1, elapsed / duration);
+    const scale = THREE.MathUtils.lerp(0.5, 12, progress);
+    const opacity = THREE.MathUtils.lerp(0.8, 0, progress);
+
+    ringRef.current.scale.setScalar(scale);
+    const material = ringRef.current.material as THREE.MeshBasicMaterial;
+    material.opacity = opacity;
+  });
+
+  if (!triggeredAt) return null;
+
+  return (
+    <mesh ref={ringRef} position={[position.x, position.y, position.z]} rotation={[-Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[0.4, 0.6, 64]} />
+      <meshBasicMaterial color="#22d3ee" transparent opacity={0.8} blending={THREE.AdditiveBlending} />
+    </mesh>
+  );
+}
+
+function SonarCooldownUpdater({
+  cooldownUntil,
+  onUpdate,
+}: {
+  cooldownUntil: number;
+  onUpdate: (remaining: number) => void;
+}) {
+  useFrame(() => {
+    if (!cooldownUntil) {
+      onUpdate(0);
+      return;
+    }
+    const remaining = Math.max(0, (cooldownUntil - Date.now()) / 1000);
+    onUpdate(remaining);
+  });
+
+  return null;
+}
+
 export default function InteractiveCanvas() {
   const modelUrl = process.env.NEXT_PUBLIC_INTERACTIVE_MODEL_URL || '';
   const [subPosition, setSubPosition] = useState(new THREE.Vector3(0, -1, 0));
   const [activePoiId, setActivePoiId] = useState<string | null>(null);
   const [nearbyPoiId, setNearbyPoiId] = useState<string | null>(null);
+  const [screenPois, setScreenPois] = useState<ScreenPoi[]>([]);
+  const [sonarPulseAt, setSonarPulseAt] = useState<number | null>(null);
+  const [sonarCooldownUntil, setSonarCooldownUntil] = useState(0);
+  const [highlightedPoiIds, setHighlightedPoiIds] = useState<string[]>([]);
+  const [telemetry, setTelemetry] = useState({ speed: 0, depth: 0 });
+  const [sonarCooldownRemaining, setSonarCooldownRemaining] = useState(0);
   const marineAssets: MarineAsset[] = [
     {
       name: 'FishSchool',
@@ -191,6 +283,25 @@ export default function InteractiveCanvas() {
     [],
   );
 
+  const highlightedSet = useMemo(() => new Set(highlightedPoiIds), [highlightedPoiIds]);
+  const sonarCooldownMs = 8000;
+  const sonarRange = 12;
+
+  const handleSonar = () => {
+    const now = Date.now();
+    if (now < sonarCooldownUntil) return;
+
+    setSonarPulseAt(now);
+    setSonarCooldownUntil(now + sonarCooldownMs);
+
+    const nearby = poiList
+      .filter((poi) => subPosition.distanceTo(new THREE.Vector3(...poi.position)) < sonarRange)
+      .map((poi) => poi.id);
+    setHighlightedPoiIds(nearby);
+
+    window.setTimeout(() => setHighlightedPoiIds([]), 2000);
+  };
+
   return (
     <div className="absolute inset-0">
       <LoadingScreen />
@@ -226,12 +337,20 @@ export default function InteractiveCanvas() {
           <Stars radius={80} depth={40} count={2000} factor={3} fade speed={0.6} />
           <OceanFloor />
           <MarineScatter assets={marineAssets} />
-          <PoiMarkers pois={poiList} />
+          <PoiMarkers pois={poiList} highlightedIds={highlightedSet} activePoiId={activePoiId} />
 
           <PoiProximityUpdater
             pois={poiList}
             subPosition={subPosition}
             onNearbyChange={setNearbyPoiId}
+          />
+
+          <PoiScreenProjector pois={poiList} onUpdate={setScreenPois} />
+
+          <SonarPulse position={subPosition} triggeredAt={sonarPulseAt} />
+          <SonarCooldownUpdater
+            cooldownUntil={sonarCooldownUntil}
+            onUpdate={setSonarCooldownRemaining}
           />
 
           <Physics gravity={[0, -0.25, 0]}>
@@ -261,6 +380,8 @@ export default function InteractiveCanvas() {
               nearbyPoiId={nearbyPoiId}
               onInteract={(poiId) => setActivePoiId(poiId)}
               onPositionChange={setSubPosition}
+              onSonar={handleSonar}
+              onTelemetry={setTelemetry}
             />
           </Physics>
         </Suspense>
@@ -270,7 +391,27 @@ export default function InteractiveCanvas() {
         <OrbitControls enablePan={false} enableZoom={false} enabled={false} />
       </Canvas>
 
-      <PoiHud pois={poiList} activePoiId={activePoiId} nearbyPoiId={nearbyPoiId} />
+        <PoiHud
+          pois={poiList}
+          activePoiId={activePoiId}
+          nearbyPoiId={nearbyPoiId}
+          screenPois={screenPois}
+        />
+
+        <div className="pointer-events-none absolute bottom-6 right-8 z-40 rounded-2xl border border-white/10 bg-[#020410]/70 px-4 py-3 text-[10px] uppercase tracking-[0.3em] text-cyan-200 shadow-[0_0_20px_rgba(34,211,238,0.2)] backdrop-blur">
+          <div className="flex items-center justify-between gap-6">
+            <span className="text-white/50">Speed</span>
+            <span>{telemetry.speed.toFixed(1)} m/s</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-6">
+            <span className="text-white/50">Depth</span>
+            <span>{telemetry.depth.toFixed(1)} m</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-6">
+            <span className="text-white/50">Sonar</span>
+            <span>{sonarCooldownRemaining > 0 ? `${sonarCooldownRemaining.toFixed(1)}s` : 'Ready'}</span>
+          </div>
+        </div>
     </div>
   );
 }

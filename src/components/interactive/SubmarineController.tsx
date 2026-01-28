@@ -11,6 +11,8 @@ interface SubmarineControllerProps {
   nearbyPoiId?: string | null;
   onInteract?: (poiId: string) => void;
   onPositionChange?: (position: THREE.Vector3) => void;
+  onSonar?: () => void;
+  onTelemetry?: (telemetry: { speed: number; depth: number }) => void;
 }
 
 export default function SubmarineController({
@@ -18,6 +20,8 @@ export default function SubmarineController({
   nearbyPoiId,
   onInteract,
   onPositionChange,
+  onSonar,
+  onTelemetry,
 }: SubmarineControllerProps) {
   const bodyRef = useRef<THREE.Object3D>(null);
   const rigidRef = useRef<any>(null);
@@ -61,6 +65,9 @@ export default function SubmarineController({
             break;
           }
           input.current.up = true;
+          break;
+        case 'Space':
+          if (onSonar) onSonar();
           break;
         case 'KeyQ':
           input.current.down = true;
@@ -140,6 +147,13 @@ export default function SubmarineController({
     const translation = rigidbody.translation();
     if (onPositionChange) {
       onPositionChange(new THREE.Vector3(translation.x, translation.y, translation.z));
+    }
+
+    if (onTelemetry) {
+      const velocity = rigidbody.linvel();
+      const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2);
+      const depth = Math.max(0, -translation.y);
+      onTelemetry({ speed, depth });
     }
 
     const quaternion = new THREE.Quaternion().setFromEuler(

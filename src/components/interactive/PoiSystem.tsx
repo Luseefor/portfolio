@@ -1,8 +1,6 @@
 'use client';
 
 import { Float, Html } from '@react-three/drei';
-import { useFrame, useThree } from '@react-three/fiber';
-import { useMemo, useState } from 'react';
 import * as THREE from 'three';
 
 export interface PointOfInterest {
@@ -14,9 +12,11 @@ export interface PointOfInterest {
 
 interface PoiMarkersProps {
   pois: PointOfInterest[];
+  highlightedIds?: Set<string>;
+  activePoiId?: string | null;
 }
 
-export function PoiMarkers({ pois }: PoiMarkersProps) {
+export function PoiMarkers({ pois, highlightedIds, activePoiId }: PoiMarkersProps) {
   return (
     <group>
       {pois.map((poi) => (
@@ -24,12 +24,38 @@ export function PoiMarkers({ pois }: PoiMarkersProps) {
           <group position={poi.position}>
             <mesh>
               <sphereGeometry args={[0.1, 16, 16]} />
-              <meshStandardMaterial emissive="#38bdf8" emissiveIntensity={1} color="#0ea5e9" />
+              <meshStandardMaterial
+                emissive="#38bdf8"
+                emissiveIntensity={highlightedIds?.has(poi.id) ? 2.2 : 1}
+                color={highlightedIds?.has(poi.id) ? '#7dd3fc' : '#0ea5e9'}
+              />
             </mesh>
             <mesh rotation={[Math.PI / 2, 0, 0]}>
               <ringGeometry args={[0.2, 0.32, 32]} />
-              <meshStandardMaterial color="#7dd3fc" emissive="#38bdf8" emissiveIntensity={0.6} />
+              <meshStandardMaterial
+                color="#7dd3fc"
+                emissive="#38bdf8"
+                emissiveIntensity={highlightedIds?.has(poi.id) ? 1.2 : 0.6}
+              />
             </mesh>
+
+            {activePoiId === poi.id && (
+              <group position={[0, 0.9, 0]}>
+                <mesh>
+                  <coneGeometry args={[0.18, 0.4, 16]} />
+                  <meshStandardMaterial
+                    color="#22d3ee"
+                    emissive="#38bdf8"
+                    emissiveIntensity={1.6}
+                  />
+                </mesh>
+                <mesh position={[0, -0.3, 0]} rotation={[Math.PI / 2, 0, 0]}>
+                  <ringGeometry args={[0.12, 0.18, 24]} />
+                  <meshStandardMaterial color="#7dd3fc" emissive="#38bdf8" emissiveIntensity={1} />
+                </mesh>
+              </group>
+            )}
+
             <Html distanceFactor={10} center>
               <div className="pointer-events-none rounded-full border border-cyan-300/30 bg-[#020410]/70 px-3 py-1 text-[9px] font-black uppercase tracking-[0.3em] text-cyan-200">
                 {poi.title}
@@ -42,51 +68,22 @@ export function PoiMarkers({ pois }: PoiMarkersProps) {
   );
 }
 
+export interface ScreenPoi {
+  id: string;
+  x: number;
+  y: number;
+  offscreen: boolean;
+  angle: number;
+}
+
 interface PoiHudProps {
   pois: PointOfInterest[];
   activePoiId: string | null;
   nearbyPoiId: string | null;
+  screenPois: ScreenPoi[];
 }
 
-export function PoiHud({ pois, activePoiId, nearbyPoiId }: PoiHudProps) {
-  const { camera, size } = useThree();
-  const [screenPois, setScreenPois] = useState<
-    { id: string; x: number; y: number; offscreen: boolean; angle: number }[]
-  >([]);
-
-  const poiVectors = useMemo(
-    () =>
-      pois.map((poi) => ({
-        id: poi.id,
-        position: new THREE.Vector3(...poi.position),
-      })),
-    [pois],
-  );
-
-  useFrame(() => {
-    const next = poiVectors.map(({ id, position }) => {
-      const projected = position.clone().project(camera);
-      const isOffscreen = projected.z < 0 || Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1;
-
-      const clampedX = THREE.MathUtils.clamp(projected.x, -0.9, 0.9);
-      const clampedY = THREE.MathUtils.clamp(projected.y, -0.9, 0.9);
-
-      const screenX = ((isOffscreen ? clampedX : projected.x) * 0.5 + 0.5) * size.width;
-      const screenY = (-(isOffscreen ? clampedY : projected.y) * 0.5 + 0.5) * size.height;
-
-      const angle = Math.atan2(projected.y, projected.x);
-      return {
-        id,
-        x: screenX,
-        y: screenY,
-        offscreen: isOffscreen,
-        angle,
-      };
-    });
-
-    setScreenPois(next);
-  });
-
+export function PoiHud({ pois, activePoiId, nearbyPoiId, screenPois }: PoiHudProps) {
   const activePoi = pois.find((poi) => poi.id === activePoiId) ?? null;
   const nearbyPoi = pois.find((poi) => poi.id === nearbyPoiId) ?? null;
 
