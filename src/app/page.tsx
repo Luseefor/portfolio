@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Cpu, Terminal, ArrowRight, Grid3X3, ShieldCheck, Activity, Globe, Palette, Sun, Moon } from 'lucide-react';
+import { Terminal, ArrowRight, Grid3X3, ShieldCheck, Activity, Palette, Sun, Moon } from 'lucide-react';
 import { useStore } from '@/utils/store';
 import dynamic from 'next/dynamic';
 
@@ -445,23 +445,11 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:gap-8">
-          <div className="h-[200px] sm:h-[220px] md:h-auto lg:h-[320px]">
-            <GlassCard
-              href="/interactive"
-              badge="01 // Environment"
-              title="Interactive"
-              description="Venture into a high-fidelity geospatial motherboard environment. Hardware accelerated."
-              icon={Cpu}
-              delay={0.4}
-              themeColor={activeThemeColor}
-              isDark={isDark}
-            />
-          </div>
+        <div className="grid w-full max-w-6xl grid-cols-1 gap-4 md:gap-6 lg:gap-8">
           <div className="h-[200px] sm:h-[220px] md:h-auto lg:h-[320px]">
             <GlassCard
               href="/identity"
-              badge="02 // Documentation"
+              badge="01 // Documentation"
               title="Identity"
               description="A structured interface detailing projects and technical stack. Optimized for readability."
               icon={Grid3X3}

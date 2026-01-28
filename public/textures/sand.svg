@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <rect width="256" height="256" fill="#0c2f4f" />
+  <g opacity="0.35" fill="#1b4a6b">
+    <circle cx="18" cy="22" r="2" />
+    <circle cx="54" cy="38" r="2" />
+    <circle cx="92" cy="18" r="1.5" />
+    <circle cx="130" cy="46" r="2" />
+    <circle cx="172" cy="28" r="1.5" />
+    <circle cx="210" cy="52" r="2" />
+    <circle cx="240" cy="18" r="1.5" />
+    <circle cx="22" cy="88" r="2" />
+    <circle cx="64" cy="98" r="1.5" />
+    <circle cx="110" cy="84" r="2" />
+    <circle cx="154" cy="110" r="2" />
+    <circle cx="190" cy="90" r="1.5" />
+    <circle cx="232" cy="96" r="2" />
+    <circle cx="28" cy="142" r="2" />
+    <circle cx="72" cy="148" r="1.5" />
+    <circle cx="116" cy="132" r="2" />
+    <circle cx="160" cy="160" r="2" />
+    <circle cx="206" cy="142" r="1.5" />
+    <circle cx="236" cy="156" r="2" />
+    <circle cx="22" cy="212" r="2" />
+    <circle cx="58" cy="214" r="1.5" />
+    <circle cx="104" cy="198" r="2" />
+    <circle cx="146" cy="226" r="2" />
+    <circle cx="190" cy="206" r="1.5" />
+    <circle cx="222" cy="222" r="2" />
+  </g>
+  <g opacity="0.22" fill="#3a6a8a">
+    <path d="M0 64 Q32 54 64 64 T128 64 T192 64 T256 64" />
+    <path d="M0 128 Q32 118 64 128 T128 128 T192 128 T256 128" />
+    <path d="M0 192 Q32 182 64 192 T128 192 T192 192 T256 192" />
+  </g>
+</svg>
