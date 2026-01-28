@@ -95,6 +95,39 @@ function UnderseaLightShafts() {
   );
 }
 
+function PoiProximityUpdater({
+  pois,
+  subPosition,
+  onNearbyChange,
+}: {
+  pois: PointOfInterest[];
+  subPosition: THREE.Vector3;
+  onNearbyChange: (id: string | null) => void;
+}) {
+  const poiVectors = useMemo(
+    () => pois.map((poi) => ({ id: poi.id, position: new THREE.Vector3(...poi.position) })),
+    [pois],
+  );
+
+  useFrame(() => {
+    let nearest: { id: string; distance: number } | null = null;
+    poiVectors.forEach((poi) => {
+      const distance = subPosition.distanceTo(poi.position);
+      if (!nearest || distance < nearest.distance) {
+        nearest = { id: poi.id, distance };
+      }
+    });
+
+    if (nearest && nearest.distance < 6) {
+      onNearbyChange(nearest.id);
+    } else {
+      onNearbyChange(null);
+    }
+  });
+
+  return null;
+}
+
 export default function InteractiveCanvas() {
   const modelUrl = process.env.NEXT_PUBLIC_INTERACTIVE_MODEL_URL || '';
   const [subPosition, setSubPosition] = useState(new THREE.Vector3(0, -1, 0));
@@ -158,22 +191,6 @@ export default function InteractiveCanvas() {
     [],
   );
 
-  useFrame(() => {
-    let nearest: { id: string; distance: number } | null = null;
-    poiList.forEach((poi) => {
-      const distance = subPosition.distanceTo(new THREE.Vector3(...poi.position));
-      if (!nearest || distance < nearest.distance) {
-        nearest = { id: poi.id, distance };
-      }
-    });
-
-    if (nearest && nearest.distance < 6) {
-      setNearbyPoiId(nearest.id);
-    } else {
-      setNearbyPoiId(null);
-    }
-  });
-
   return (
     <div className="absolute inset-0">
       <LoadingScreen />
@@ -210,6 +227,12 @@ export default function InteractiveCanvas() {
           <OceanFloor />
           <MarineScatter assets={marineAssets} />
           <PoiMarkers pois={poiList} />
+
+          <PoiProximityUpdater
+            pois={poiList}
+            subPosition={subPosition}
+            onNearbyChange={setNearbyPoiId}
+          />
 
           <Physics gravity={[0, -0.25, 0]}>
             <RigidBody type="fixed" colliders={false} position={[0, -3.2, 0]}>
