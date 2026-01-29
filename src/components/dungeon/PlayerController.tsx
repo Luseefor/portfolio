@@ -6,6 +6,7 @@ import { PositionalAudio } from '@react-three/drei';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
 import { Quaternion, Vector3, type Group, type PositionalAudio as PositionalAudioImpl } from 'three';
 import PlayerCharacter, { type PlayerAnimation } from '@/components/dungeon/PlayerCharacter';
+import { usePlayerState } from '@/lib/playerState';
 
 const WALK_SPEED = 2.4;
 const RUN_SPEED = 4.2;
@@ -18,6 +19,7 @@ const START_POSITION: [number, number, number] = [0, -1.5, 0];
 const direction = new Vector3();
 const targetVelocity = new Vector3();
 const rotation = new Quaternion();
+const forwardVector = new Vector3();
 
 const FOOTSTEP_INTERVAL = {
   walk: 0.48,
@@ -171,6 +173,16 @@ export default function PlayerController({
     } else {
       footstepTimer.current = 0;
     }
+
+    const speed = Math.hypot(nextVelocityX, nextVelocityZ);
+    forwardVector.set(0, 0, 1).applyQuaternion(rotation);
+    usePlayerState.getState().setPlayerState({
+      position: { x: position.x, y: position.y, z: position.z },
+      forward: { x: forwardVector.x, y: forwardVector.y, z: forwardVector.z },
+      speed,
+      grounded: groundedRef.current,
+      isMoving: isMoving && speed > 0.1,
+    });
   });
 
   return (
