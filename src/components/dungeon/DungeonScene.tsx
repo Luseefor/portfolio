@@ -1,6 +1,7 @@
 'use client';
 
 import { useGLTF } from '@react-three/drei';
+import { MeshCollider, Physics, RigidBody } from '@react-three/rapier';
 import { useRef } from 'react';
 import { Color, type Group } from 'three';
 import PlayerController from '@/components/dungeon/PlayerController';
@@ -24,14 +25,24 @@ export default function DungeonScene() {
       <pointLight position={[-5, 3, 4]} intensity={1.8} color="#ff9f5a" distance={16} />
       <pointLight position={[0, 3, 8]} intensity={1.6} color="#ffbf75" distance={16} />
 
-      <primitive object={scene} position={[0, -1.5, 0]} />
-      <PlayerController playerRef={playerRef} />
-      <CameraRig target={playerRef} />
+      <Physics gravity={[0, -25, 0]}>
+        <RigidBody type="fixed" colliders={false}>
+          <MeshCollider type="trimesh">
+            <primitive object={scene} position={[0, -1.5, 0]} />
+          </MeshCollider>
+        </RigidBody>
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.55, 0]} receiveShadow>
-        <planeGeometry args={[200, 200]} />
-        <meshStandardMaterial color="#2a1f19" roughness={0.95} />
-      </mesh>
+        <RigidBody type="fixed" colliders="cuboid">
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.55, 0]} receiveShadow>
+            <planeGeometry args={[200, 200]} />
+            <meshStandardMaterial color="#2a1f19" roughness={0.95} />
+          </mesh>
+        </RigidBody>
+
+        <PlayerController playerRef={playerRef} />
+      </Physics>
+
+      <CameraRig target={playerRef} />
     </group>
   );
 }

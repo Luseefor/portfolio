@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Vector3, type Group } from 'three';
+import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
+import { Quaternion, Vector3, type Group } from 'three';
 import PlayerCharacter, { type PlayerAnimation } from '@/components/dungeon/PlayerCharacter';
 
 const WALK_SPEED = 2.4;
@@ -11,10 +12,11 @@ const ACCELERATION = 18;
 const FRICTION = 14;
 const JUMP_SPEED = 5.2;
 const GRAVITY = 14;
-const GROUND_Y = -1.5;
+const START_POSITION: [number, number, number] = [0, -1.5, 0];
 
 const direction = new Vector3();
-const velocity = new Vector3();
+const targetVelocity = new Vector3();
+const rotation = new Quaternion();
 
 export default function PlayerController({
   playerRef,
@@ -23,6 +25,12 @@ export default function PlayerController({
 }) {
   const internalRef = useRef<Group>(null);
   const groupRef = playerRef ?? internalRef;
+  const bodyRef = useRef<RapierRigidBody | null>(null);
+  const [animation, setAnimation] = useState<PlayerAnimation>('idle');
+  const groundedRef = useRef(false);
+  const { rapier, world } = useRapier();
+  const yawRef = useRef(0);
+
   const inputRef = useRef({
     forward: false,
     backward: false,
@@ -31,8 +39,6 @@ export default function PlayerController({
     run: false,
     jump: false,
   });
-  const [animation, setAnimation] = useState<PlayerAnimation>('idle');
-  const groundedRef = useRef(true);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent, pressed: boolean) => {
@@ -76,8 +82,14 @@ export default function PlayerController({
   }, []);
 
   useFrame((_, delta) => {
-    const group = groupRef.current;
-    if (!group) return;
+    const body = bodyRef.current;
+    if (!body) return;
+
+    const position = body.translation();
+    const rayOrigin = { x: position.x, y: position.y - 0.2, z: position.z };
+    const ray = new rapier.Ray(rayOrigin, { x: 0, y: -1, z: 0 });
+    const hit = world.castRay(ray, 0.7, true);
+    groundedRef.current = Boolean(hit && hit.toi < 0.5);
 
     direction.set(0, 0, 0);
     if (inputRef.current.forward) direction.z -= 1;
@@ -89,45 +101,57 @@ export default function PlayerController({
     const targetSpeed = inputRef.current.run ? RUN_SPEED : WALK_SPEED;
 
     if (isMoving) {
-      direction.normalize().multiplyScalar(targetSpeed);
-      velocity.x = moveToward(velocity.x, direction.x, ACCELERATION * delta);
-      velocity.z = moveToward(velocity.z, direction.z, ACCELERATION * delta);
+      direction.normalize();
+      targetVelocity.copy(direction).multiplyScalar(targetSpeed);
     } else {
-      velocity.x = moveToward(velocity.x, 0, FRICTION * delta);
-      velocity.z = moveToward(velocity.z, 0, FRICTION * delta);
+      targetVelocity.set(0, 0, 0);
     }
 
-    if (groundedRef.current && inputRef.current.jump) {
-      velocity.y = JUMP_SPEED;
-      groundedRef.current = false;
+    const currentVelocity = body.linvel();
+    const nextVelocityX = moveToward(currentVelocity.x, targetVelocity.x, ACCELERATION * delta);
+    const nextVelocityZ = moveToward(currentVelocity.z, targetVelocity.z, ACCELERATION * delta);
+
+    let nextVelocityY = currentVelocity.y;
+    if (groundedRef.current) {
+      nextVelocityY = Math.max(currentVelocity.y, -1);
+      if (inputRef.current.jump) {
+        nextVelocityY = JUMP_SPEED;
+        groundedRef.current = false;
+      }
     }
     inputRef.current.jump = false;
+    nextVelocityY -= GRAVITY * delta;
 
-    velocity.y -= GRAVITY * delta;
-
-    group.position.x += velocity.x * delta;
-    group.position.y += velocity.y * delta;
-    group.position.z += velocity.z * delta;
-
-    if (group.position.y <= GROUND_Y) {
-      group.position.y = GROUND_Y;
-      velocity.y = 0;
-      groundedRef.current = true;
-    }
+    body.setLinvel({ x: nextVelocityX, y: nextVelocityY, z: nextVelocityZ }, true);
+    body.setAngvel({ x: 0, y: 0, z: 0 }, true);
 
     if (isMoving) {
+      yawRef.current = Math.atan2(nextVelocityX, nextVelocityZ);
       const targetAnimation = inputRef.current.run ? 'run' : 'walk';
       setAnimation(targetAnimation);
-      group.rotation.y = Math.atan2(velocity.x, velocity.z);
-    } else {
+    } else if (groundedRef.current) {
       setAnimation('idle');
     }
+
+    rotation.setFromAxisAngle(new Vector3(0, 1, 0), yawRef.current);
+    body.setRotation(rotation, true);
   });
 
   return (
-    <group ref={groupRef} position={[0, GROUND_Y, 0]}>
-      <PlayerCharacter animation={animation} />
-    </group>
+    <RigidBody
+      ref={bodyRef}
+      position={START_POSITION}
+      colliders={false}
+      enabledRotations={[false, true, false]}
+      gravityScale={0}
+      linearDamping={1.4}
+      angularDamping={1.2}
+    >
+      <CapsuleCollider args={[0.8, 0.35]} />
+      <group ref={groupRef}>
+        <PlayerCharacter animation={animation} />
+      </group>
+    </RigidBody>
   );
 }
 

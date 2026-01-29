@@ -48,7 +48,7 @@ export default function PlayerCharacter({
   }, [scene]);
 
   return (
-    <group ref={group} position={[0, -1.5, 0]} scale={1.1}>
+    <group ref={group} scale={1.1}>
       <primitive object={scene} />
     </group>
   );
