@@ -1,15 +1,12 @@
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Instance, Instances, useGLTF } from '@react-three/drei';
 import type { Mesh, Object3D } from 'three';
 import { DUNGEON_LAYOUT, type DungeonPlacement } from '@/constants/DungeonLayout';
 
-// Debug flag - set to true to log available nodes and missing keys
-const DEBUG_NODES = true;
-
-function resolveNode(nodes: Record<string, Object3D>, key: string) {
-  return nodes[key];
+function getNode(nodes: Record<string, Object3D>, name: string) {
+  return nodes[name] ?? null;
 }
 
 export default function DungeonLayout() {
@@ -17,29 +14,38 @@ export default function DungeonLayout() {
     nodes: Record<string, Object3D>;
   };
 
-  // Debug: Log available nodes and identify missing keys
-  useEffect(() => {
-    if (!DEBUG_NODES) return;
-    
-    const availableNodes = Object.keys(nodes).filter(key => {
-      const node = nodes[key];
-      return node && ((node as Mesh).isMesh || node.type === 'Group' || node.type === 'Object3D');
+  const placements = useMemo(() => DUNGEON_LAYOUT, []);
+  const nodeKeys = useMemo(() => Object.keys(nodes), [nodes]);
+  const missingKeys = useMemo(() => {
+    const missing = new Set<string>();
+    placements.forEach((placement) => {
+      if (!nodes[placement.key]) {
+        missing.add(placement.key);
+      }
     });
-    
-    console.log('[DungeonLayout] Available mesh/group nodes:', availableNodes.sort());
-    
-    const usedKeys = new Set(DUNGEON_LAYOUT.map(p => p.key));
-    const missingKeys = Array.from(usedKeys).filter(key => !nodes[key]);
-    
-    if (missingKeys.length > 0) {
-      console.warn('[DungeonLayout] MISSING KEYS:', missingKeys);
-      console.log('[DungeonLayout] Did you mean one of these?', availableNodes);
-    } else {
-      console.log('[DungeonLayout] All keys found! Layout should render.');
+    return Array.from(missing);
+  }, [nodes, placements]);
+
+  const fallbackMesh = useMemo(() => {
+    const preferred = ['Floor_Standard', 'Wall', 'Floor_Squares'];
+    for (const name of preferred) {
+      const node = nodes[name];
+      if (node && (node as Mesh).isMesh) return node as Mesh;
     }
+    const firstMesh = Object.values(nodes).find((node) => (node as Mesh).isMesh);
+    return (firstMesh as Mesh) ?? null;
   }, [nodes]);
 
-  const placements = useMemo(() => DUNGEON_LAYOUT, []);
+  useEffect(() => {
+    if (placements.length === 0) {
+      console.warn('[DungeonLayout] DUNGEON_LAYOUT is empty.');
+    }
+    if (missingKeys.length > 0) {
+      missingKeys.forEach((key) => {
+        console.warn('[DungeonLayout] Missing node:', key, nodeKeys);
+      });
+    }
+  }, [missingKeys, nodeKeys, placements.length]);
   const grouped = useMemo(() => {
     const map = new Map<string, DungeonPlacement[]>();
     placements.forEach((placement) => {
@@ -49,6 +55,7 @@ export default function DungeonLayout() {
     });
     return map;
   }, [placements]);
+  const hasRenderable = useMemo(() => placements.some((placement) => Boolean(nodes[placement.key])), [nodes, placements]);
 
   const instancedKeys = useMemo(
     () =>
@@ -70,15 +77,18 @@ export default function DungeonLayout() {
 
   return (
     <group>
+      {placements.length > 0 && !hasRenderable && fallbackMesh && (
+        <mesh
+          geometry={fallbackMesh.geometry}
+          material={fallbackMesh.material}
+          position={[0, 0, 0]}
+          castShadow
+          receiveShadow
+        />
+      )}
       {Array.from(grouped.entries()).map(([key, items]) => {
-        const node = resolveNode(nodes, key);
-        if (!node) {
-          // Log missing node once per key
-          if (DEBUG_NODES) {
-            console.warn(`[DungeonLayout] Node not found: "${key}"`);
-          }
-          return null;
-        }
+        const node = getNode(nodes, key);
+        if (!node) return null;
 
         const isMesh = (node as Mesh).isMesh;
         if (!isMesh) {
