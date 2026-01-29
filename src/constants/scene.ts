@@ -4,16 +4,16 @@ export const sceneLighting = {
   fogDensity: 0.028, // Slightly reduced for better visibility at distance
   
   // Ambient - soft base fill to prevent crushed blacks
-  ambientIntensity: 0.4, // Bumped up slightly for readability
+  ambientIntensity: 0.52, // Stronger base fill for visibility
   ambientColor: '#f4d7b0',
   
   // Hemisphere - sky/ground color bleed for natural feel
-  hemisphereIntensity: 0.45, // Slightly increased
+  hemisphereIntensity: 0.5, // Slightly increased
   hemisphereSky: '#f7e6cd',
   hemisphereGround: '#1a1410',
   
   // Fill directional - subtle key light from above-right
-  fillDirectionalIntensity: 0.55, // Reduced to not overpower torch lights
+  fillDirectionalIntensity: 0.7, // Soft key light to lift shadows
   fillDirectionalColor: '#ffe6c4',
   fillDirectionalPosition: [8, 15, 6] as const, // Raised higher
   
@@ -34,5 +34,5 @@ export const sceneLighting = {
 };
 
 export const rendererToneMapping = {
-  exposure: 1.2, // Slightly higher for dungeon readability
+  exposure: 1.25, // Slightly higher for dungeon readability
 };
