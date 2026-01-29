@@ -1,6 +1,5 @@
 'use client';
 
-import { useGLTF } from '@react-three/drei';
 import { MeshCollider, Physics, RigidBody } from '@react-three/rapier';
 import { useRef } from 'react';
 import { Color, type Group } from 'three';
@@ -11,11 +10,11 @@ import { TorchSystem } from '@/components/dungeon/Torch';
 import DungeonPostProcessing from '@/components/dungeon/DungeonPostProcessing';
 import DungeonParticles from '@/components/dungeon/DungeonParticles';
 import { sceneLighting } from '@/constants/scene';
+import DungeonLayout from '@/components/dungeon/DungeonLayout';
 
 const FOG_COLOR = new Color(sceneLighting.fogColor);
 
 export default function DungeonScene() {
-  const { scene } = useGLTF('/models/dungeon/structure/Modular Ruins Pack.glb');
   const playerRef = useRef<Group>(null);
   const cameraYawRef = useRef(0);
 
@@ -59,15 +58,8 @@ export default function DungeonScene() {
       <Physics gravity={[0, -25, 0]}>
         <RigidBody type="fixed" colliders={false}>
           <MeshCollider type="trimesh">
-            <primitive object={scene} position={[0, -1.5, 0]} />
+            <DungeonLayout />
           </MeshCollider>
-        </RigidBody>
-
-        <RigidBody type="fixed" colliders="cuboid">
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.55, 0]} receiveShadow>
-            <planeGeometry args={[200, 200]} />
-            <meshStandardMaterial color="#2a1f19" roughness={0.95} />
-          </mesh>
         </RigidBody>
 
         <PlayerController playerRef={playerRef} cameraYawRef={cameraYawRef} />
@@ -79,5 +71,3 @@ export default function DungeonScene() {
     </group>
   );
 }
-
-useGLTF.preload('/models/dungeon/structure/Modular Ruins Pack.glb');
