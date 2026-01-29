@@ -14,6 +14,7 @@ import DungeonLayout from '@/components/dungeon/DungeonLayout';
 import DungeonColliders from '@/components/dungeon/DungeonColliders';
 
 const FOG_COLOR = new Color(sceneLighting.fogColor);
+const DEBUG_TOGGLE_KEY = 'F1';
 
 export default function DungeonScene() {
   const playerRef = useRef<Group>(null);
@@ -23,7 +24,7 @@ export default function DungeonScene() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== 'F1') return;
+      if (event.code !== DEBUG_TOGGLE_KEY && event.key !== DEBUG_TOGGLE_KEY) return;
       event.preventDefault();
       setDebugEnabled((prev) => !prev);
     };
