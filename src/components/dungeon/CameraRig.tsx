@@ -94,6 +94,9 @@ export default function CameraRig({
 
     rayDirection.copy(desiredPosition).sub(targetPosition);
     const rayDistance = rayDirection.length();
+    if (!Number.isFinite(rayDistance) || rayDistance < 1e-4) {
+      return;
+    }
     rayDirection.normalize();
 
     const ray = new rapier.Ray(
@@ -107,6 +110,9 @@ export default function CameraRig({
       cameraTarget = targetPosition.clone().add(rayDirection.multiplyScalar(safeDistance));
     }
 
+    if (!Number.isFinite(cameraTarget.x) || !Number.isFinite(cameraTarget.y) || !Number.isFinite(cameraTarget.z)) {
+      return;
+    }
     camera.position.lerp(cameraTarget, 1 - Math.pow(0.001, delta));
     camera.lookAt(targetPosition.x, targetPosition.y + 1.3, targetPosition.z);
   });
