@@ -15,7 +15,8 @@ export default function InteractiveCanvas() {
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         camera={{ fov: 50, near: 0.1, far: 200, position: [0, 4, 10] }}
         onCreated={({ gl }) => {
-          gl.physicallyCorrectLights = true;
+          // Note: physicallyCorrectLights is deprecated in Three.js r155+
+          // Modern Three.js uses physically correct lighting by default
           gl.toneMapping = ACESFilmicToneMapping;
           gl.toneMappingExposure = rendererToneMapping.exposure;
         }}

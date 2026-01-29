@@ -45,6 +45,11 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
     settingsActions.setMouseSensitivity(value);
   }, []);
 
+  const handleExposureChange = useCallback((value: number) => {
+    setLocalSettings((prev) => ({ ...prev, exposure: value }));
+    settingsActions.setExposure(value);
+  }, []);
+
   const qualityOptions: Array<{ value: 'low' | 'medium' | 'high'; label: string }> = [
     { value: 'low', label: 'Low' },
     { value: 'medium', label: 'Medium' },
@@ -222,6 +227,40 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
                     step="0.1"
                     value={localSettings.mouseSensitivity}
                     onChange={(e) => handleSensitivityChange(parseFloat(e.target.value))}
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-stone-700/50 accent-amber-500"
+                  />
+                </div>
+
+                {/* Brightness / Exposure */}
+                <div>
+                  <label className="mb-3 flex items-center justify-between text-xs font-bold uppercase tracking-[0.2em] text-stone-400">
+                    <span className="flex items-center gap-2">
+                      <svg
+                        className="h-4 w-4 text-amber-500/70"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                        />
+                      </svg>
+                      Brightness
+                    </span>
+                    <span className="font-mono text-amber-300">
+                      {Math.round((localSettings.exposure ?? 1.0) * 100)}%
+                    </span>
+                  </label>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="2.0"
+                    step="0.05"
+                    value={localSettings.exposure ?? 1.0}
+                    onChange={(e) => handleExposureChange(parseFloat(e.target.value))}
                     className="h-2 w-full cursor-pointer appearance-none rounded-full bg-stone-700/50 accent-amber-500"
                   />
                 </div>

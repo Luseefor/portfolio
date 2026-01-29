@@ -24,11 +24,11 @@ export interface ChestPOI {
 
 export const CHEST_POIS: ChestPOI[] = [
   {
-    id: 'chest-1',
+    id: 'chest-main',
     title: 'Ancient Project Scroll',
     description: 'A weathered scroll containing blueprints for a legendary web application. The craftsmanship is remarkable.',
-    position: [4, 0, -6],
-    rotation: [0, -0.5, 0],
+    position: [0, 0, 24], // Room B (Chest Room) center - on diamond floor tile
+    rotation: [0, 0, 0], // Facing the entrance
     interactionRadius: 2.5,
     loot: {
       type: 'project',
@@ -40,8 +40,8 @@ export const CHEST_POIS: ChestPOI[] = [
     id: 'chest-2',
     title: 'Enchanted Code Tome',
     description: 'This mystical tome contains powerful algorithms and arcane programming knowledge passed down through generations.',
-    position: [-5, 0, 3],
-    rotation: [0, 0.8, 0],
+    position: [18, 0.3, 42], // Room C (Showcase) near statue
+    rotation: [0, -Math.PI / 4, 0],
     interactionRadius: 2.5,
     loot: {
       type: 'artifact',
@@ -53,7 +53,7 @@ export const CHEST_POIS: ChestPOI[] = [
     id: 'chest-3',
     title: 'Hidden Treasure',
     description: 'A secret cache of valuable experience points and rare skills. Few adventurers have discovered this trove.',
-    position: [8, 0, 8],
+    position: [0, 0, -6], // Room A (Spawn Hall) - optional starter chest
     rotation: [0, Math.PI, 0],
     interactionRadius: 2.5,
     loot: {
@@ -114,7 +114,7 @@ function Chest({ chest, isOpen, isNearby, masterVolume }: ChestProps) {
       {/* Positional audio for chest open sound */}
       <PositionalAudio
         ref={audioRef}
-        url="/sounds/props/chest_open.wav"
+        url="/sounds/props/chest_open.mp3"
         distance={5}
         loop={false}
         autoplay={false}

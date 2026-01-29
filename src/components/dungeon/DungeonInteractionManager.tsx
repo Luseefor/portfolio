@@ -70,30 +70,47 @@ export function useDungeonInteraction() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const masterVolume = useSettings((s: Settings) => s.masterVolume);
-  const uiAudioRef = useRef<HTMLAudioElement | null>(null);
+  const uiOpenAudioRef = useRef<HTMLAudioElement | null>(null);
+  const uiCloseAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Initialize UI audio
   useEffect(() => {
-    uiAudioRef.current = new Audio('/sounds/ui/ui_open.wav');
-    uiAudioRef.current.volume = masterVolume * 0.5;
+    uiOpenAudioRef.current = new Audio('/sounds/ui/ui_open.wav');
+    uiCloseAudioRef.current = new Audio('/sounds/ui/ui_close.wav');
+    uiOpenAudioRef.current.volume = masterVolume * 0.5;
+    uiCloseAudioRef.current.volume = masterVolume * 0.5;
     return () => {
-      if (uiAudioRef.current) {
-        uiAudioRef.current.pause();
-        uiAudioRef.current = null;
+      if (uiOpenAudioRef.current) {
+        uiOpenAudioRef.current.pause();
+        uiOpenAudioRef.current = null;
+      }
+      if (uiCloseAudioRef.current) {
+        uiCloseAudioRef.current.pause();
+        uiCloseAudioRef.current = null;
       }
     };
   }, []);
 
   useEffect(() => {
-    if (uiAudioRef.current) {
-      uiAudioRef.current.volume = masterVolume * 0.5;
+    if (uiOpenAudioRef.current) {
+      uiOpenAudioRef.current.volume = masterVolume * 0.5;
+    }
+    if (uiCloseAudioRef.current) {
+      uiCloseAudioRef.current.volume = masterVolume * 0.5;
     }
   }, [masterVolume]);
 
-  const playUISound = useCallback(() => {
-    if (uiAudioRef.current) {
-      uiAudioRef.current.currentTime = 0;
-      uiAudioRef.current.play().catch(() => {});
+  const playUIOpenSound = useCallback(() => {
+    if (uiOpenAudioRef.current) {
+      uiOpenAudioRef.current.currentTime = 0;
+      uiOpenAudioRef.current.play().catch(() => {});
+    }
+  }, []);
+
+  const playUICloseSound = useCallback(() => {
+    if (uiCloseAudioRef.current) {
+      uiCloseAudioRef.current.currentTime = 0;
+      uiCloseAudioRef.current.play().catch(() => {});
     }
   }, []);
 
@@ -101,8 +118,8 @@ export function useDungeonInteraction() {
     if (openedChests.has(chest.id)) return;
     setOpenedChests((prev) => new Set([...prev, chest.id]));
     setActivePanel(chest);
-    playUISound();
-  }, [openedChests, playUISound]);
+    playUIOpenSound();
+  }, [openedChests, playUIOpenSound]);
 
   const handleNearbyChange = useCallback((chestId: string | null) => {
     setNearbyChestId(chestId);
@@ -110,16 +127,18 @@ export function useDungeonInteraction() {
 
   const handleClosePanel = useCallback(() => {
     setActivePanel(null);
-  }, []);
+    playUICloseSound();
+  }, [playUICloseSound]);
 
   const handleOpenSettings = useCallback(() => {
     setIsSettingsOpen(true);
-    playUISound();
-  }, [playUISound]);
+    playUIOpenSound();
+  }, [playUIOpenSound]);
 
   const handleCloseSettings = useCallback(() => {
     setIsSettingsOpen(false);
-  }, []);
+    playUICloseSound();
+  }, [playUICloseSound]);
 
   // Keyboard handler
   useEffect(() => {
