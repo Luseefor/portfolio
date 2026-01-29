@@ -1,116 +1,48 @@
-/**
- * Settings Store with localStorage persistence
- * Manages quality, mouse sensitivity, and volume settings
- */
-
-export type QualityLevel = 'low' | 'medium' | 'high';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface Settings {
-  quality: QualityLevel;
-  mouseSensitivity: number;
+  graphicsQuality: 'low' | 'medium' | 'high';
   masterVolume: number;
-  showFps: boolean;
-  invertY: boolean;
+  mouseSensitivity: number;
 }
 
-const DEFAULT_SETTINGS: Settings = {
-  quality: 'medium',
+interface SettingsStore extends Settings {
+  setGraphicsQuality: (quality: Settings['graphicsQuality']) => void;
+  setMasterVolume: (volume: number) => void;
+  setMouseSensitivity: (sensitivity: number) => void;
+}
+
+const defaultSettings: Settings = {
+  graphicsQuality: 'medium',
+  masterVolume: 0.7,
   mouseSensitivity: 1.0,
-  masterVolume: 0.8,
-  showFps: false,
-  invertY: false,
 };
 
-const STORAGE_KEY = 'underwater-portfolio-settings';
-
-type Listener = (settings: Settings) => void;
-const listeners = new Set<Listener>();
-
-let currentSettings: Settings = DEFAULT_SETTINGS;
-
-// Load from localStorage on init
-function loadSettings(): Settings {
-  if (typeof window === 'undefined') return DEFAULT_SETTINGS;
-  
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return { ...DEFAULT_SETTINGS, ...parsed };
+export const useSettings = create<SettingsStore>()(
+  persist(
+    (set) => ({
+      ...defaultSettings,
+      setGraphicsQuality: (quality) => set({ graphicsQuality: quality }),
+      setMasterVolume: (volume) => set({ masterVolume: Math.max(0, Math.min(1, volume)) }),
+      setMouseSensitivity: (sensitivity) =>
+        set({ mouseSensitivity: Math.max(0.1, Math.min(3, sensitivity)) }),
+    }),
+    {
+      name: 'dungeon-settings',
     }
-  } catch (e) {
-    console.warn('Failed to load settings:', e);
-  }
-  return DEFAULT_SETTINGS;
-}
+  )
+);
 
-function saveSettings(settings: Settings): void {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  } catch (e) {
-    console.warn('Failed to save settings:', e);
-  }
-}
-
-function notifyListeners(): void {
-  listeners.forEach((fn) => fn(currentSettings));
-}
-
-// Public API
-export function getSettings(): Settings {
-  return currentSettings;
-}
-
-export function updateSettings(partial: Partial<Settings>): void {
-  currentSettings = { ...currentSettings, ...partial };
-  saveSettings(currentSettings);
-  notifyListeners();
-}
-
-export function subscribeSettings(fn: Listener): () => void {
-  listeners.add(fn);
-  return () => listeners.delete(fn);
-}
-
-export function resetSettings(): void {
-  currentSettings = DEFAULT_SETTINGS;
-  saveSettings(currentSettings);
-  notifyListeners();
-}
-
-// Quality-based configs
-export function getQualityConfig(quality: QualityLevel) {
-  switch (quality) {
-    case 'low':
-      return {
-        particleCount: 50,
-        instanceDensity: 0.5,
-        shadowMapSize: 512,
-        postProcessing: false,
-        offscreenUpdateRate: 200, // ms
-      };
-    case 'medium':
-      return {
-        particleCount: 150,
-        instanceDensity: 0.8,
-        shadowMapSize: 1024,
-        postProcessing: true,
-        offscreenUpdateRate: 100,
-      };
-    case 'high':
-      return {
-        particleCount: 300,
-        instanceDensity: 1.0,
-        shadowMapSize: 2048,
-        postProcessing: true,
-        offscreenUpdateRate: 50,
-      };
-  }
-}
-
-// Initialize
-if (typeof window !== 'undefined') {
-  currentSettings = loadSettings();
-}
+// Direct actions for non-component usage
+export const settingsActions = {
+  setGraphicsQuality: (quality: Settings['graphicsQuality']) =>
+    useSettings.getState().setGraphicsQuality(quality),
+  setMasterVolume: (volume: number) => useSettings.getState().setMasterVolume(volume),
+  setMouseSensitivity: (sensitivity: number) =>
+    useSettings.getState().setMouseSensitivity(sensitivity),
+  getSettings: () => {
+    const { graphicsQuality, masterVolume, mouseSensitivity } = useSettings.getState();
+    return { graphicsQuality, masterVolume, mouseSensitivity };
+  },
+};

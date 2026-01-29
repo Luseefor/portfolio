@@ -1,40 +1,57 @@
 import { create } from 'zustand';
 
-export type Vec3 = { x: number; y: number; z: number };
+/**
+ * PlayerState - Read-only state for Agent B components
+ * 
+ * This state is populated by Agent A's player controller.
+ * Agent B components should ONLY read from this state, never write.
+ * 
+ * Usage:
+ *   const position = usePlayerState(playerStateSelectors.position);
+ *   const speed = usePlayerState(playerStateSelectors.speed);
+ */
 
-export type PlayerState = {
-  position: Vec3;
-  forward: Vec3;
+export interface PlayerState {
+  position: { x: number; y: number; z: number };
+  forward: { x: number; y: number; z: number };
   speed: number;
-  depth: number;
-};
+  grounded: boolean;
+  isMoving: boolean;
+}
 
-type PlayerStore = PlayerState & {
-  setPlayerState: (next: Partial<PlayerState>) => void;
-};
+interface PlayerStateStore extends PlayerState {
+  // Internal setter - only used by Agent A's player controller
+  _setPlayerState: (state: Partial<PlayerState>) => void;
+}
 
-export const usePlayerState = create<PlayerStore>((set) => ({
+const initialState: PlayerState = {
   position: { x: 0, y: 0, z: 0 },
   forward: { x: 0, y: 0, z: 1 },
   speed: 0,
-  depth: 0,
-  setPlayerState: (next) => set(next),
-}));
-
-export const playerStateSelectors = {
-  position: (state: PlayerStore) => state.position,
-  forward: (state: PlayerStore) => state.forward,
-  speed: (state: PlayerStore) => state.speed,
-  depth: (state: PlayerStore) => state.depth,
+  grounded: true,
+  isMoving: false,
 };
 
-export const subscribeToPlayerState = usePlayerState.subscribe;
+export const usePlayerState = create<PlayerStateStore>((set) => ({
+  ...initialState,
+  _setPlayerState: (state) => set(state),
+}));
 
-/*
-Usage example (Agent B):
+// Selectors for optimized subscriptions
+export const playerStateSelectors = {
+  position: (state: PlayerStateStore) => state.position,
+  forward: (state: PlayerStateStore) => state.forward,
+  speed: (state: PlayerStateStore) => state.speed,
+  grounded: (state: PlayerStateStore) => state.grounded,
+  isMoving: (state: PlayerStateStore) => state.isMoving,
+};
 
-import { usePlayerState, playerStateSelectors } from '@/lib/playerState';
-
-const position = usePlayerState(playerStateSelectors.position);
-const speed = usePlayerState(playerStateSelectors.speed);
-*/
+// Subscribe function for non-React usage
+export function subscribeToPlayerState(
+  selector: (state: PlayerStateStore) => unknown,
+  callback: (value: unknown) => void
+) {
+  return usePlayerState.subscribe((state) => {
+    callback(selector(state));
+  });
+}

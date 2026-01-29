@@ -1,7 +1,24 @@
 'use client';
 
-import { useEffect } from 'react';
-import CanvasRoot from '@/components/CanvasRoot';
+import { Canvas } from '@react-three/fiber';
+import { Suspense, useEffect } from 'react';
+
+function PlaceholderScene() {
+  return (
+    <group>
+      <ambientLight intensity={0.6} />
+      <directionalLight position={[6, 12, 6]} intensity={1} />
+      <mesh>
+        <boxGeometry args={[2, 2, 2]} />
+        <meshStandardMaterial color="#cbd5f5" />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.5, 0]}>
+        <planeGeometry args={[40, 40]} />
+        <meshStandardMaterial color="#1f2937" />
+      </mesh>
+    </group>
+  );
+}
 
 export default function InteractivePage() {
   useEffect(() => {
@@ -16,12 +33,14 @@ export default function InteractivePage() {
   }, []);
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-[#020611] text-white">
-      <CanvasRoot />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(45,212,191,0.15),transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(140deg,rgba(56,189,248,0.1),transparent_45%,rgba(16,185,129,0.08))]" />
-      <div className="pointer-events-none absolute bottom-8 left-8 z-10 max-w-sm text-xs uppercase tracking-[0.35em] text-cyan-200/70">
-        Pilot the sub · click to lock mouse · press C to free-look
+    <main className="relative h-screen w-screen overflow-hidden bg-[#0b0f1a] text-white">
+      <Canvas camera={{ position: [0, 3, 8], fov: 50 }}>
+        <Suspense fallback={null}>
+          <PlaceholderScene />
+        </Suspense>
+      </Canvas>
+      <div className="pointer-events-none absolute bottom-6 left-6 text-xs uppercase tracking-[0.3em] text-white/60">
+        Dungeon scene placeholder
       </div>
     </main>
   );
