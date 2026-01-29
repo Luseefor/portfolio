@@ -10,8 +10,8 @@ import { usePlayerState } from '@/lib/playerState';
 
 const WALK_SPEED = 2.4;
 const RUN_SPEED = 4.2;
-const ACCELERATION = 18;
-const FRICTION = 14;
+const ACCELERATION = 16;
+const FRICTION = 20;
 const JUMP_SPEED = 5.2;
 const GRAVITY = 14;
 const START_POSITION: [number, number, number] = [0, -1.5, 0];
