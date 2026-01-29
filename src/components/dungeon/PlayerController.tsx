@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Vector3, type Group } from 'three';
 import PlayerCharacter, { type PlayerAnimation } from '@/components/dungeon/PlayerCharacter';
@@ -16,8 +16,13 @@ const GROUND_Y = -1.5;
 const direction = new Vector3();
 const velocity = new Vector3();
 
-export default function PlayerController() {
-  const groupRef = useRef<Group>(null);
+export default function PlayerController({
+  playerRef,
+}: {
+  playerRef?: RefObject<Group>;
+}) {
+  const internalRef = useRef<Group>(null);
+  const groupRef = playerRef ?? internalRef;
   const inputRef = useRef({
     forward: false,
     backward: false,

@@ -1,13 +1,16 @@
 'use client';
 
 import { useGLTF } from '@react-three/drei';
-import { Color } from 'three';
+import { useRef } from 'react';
+import { Color, type Group } from 'three';
 import PlayerController from '@/components/dungeon/PlayerController';
+import CameraRig from '@/components/dungeon/CameraRig';
 
 const FOG_COLOR = new Color('#1b1410');
 
 export default function DungeonScene() {
   const { scene } = useGLTF('/models/dungeon/structure/Modular Ruins Pack.glb');
+  const playerRef = useRef<Group>(null);
 
   return (
     <group>
@@ -22,7 +25,8 @@ export default function DungeonScene() {
       <pointLight position={[0, 3, 8]} intensity={1.6} color="#ffbf75" distance={16} />
 
       <primitive object={scene} position={[0, -1.5, 0]} />
-      <PlayerController />
+      <PlayerController playerRef={playerRef} />
+      <CameraRig target={playerRef} />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.55, 0]} receiveShadow>
         <planeGeometry args={[200, 200]} />
