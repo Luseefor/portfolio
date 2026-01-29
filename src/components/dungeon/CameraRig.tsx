@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, type MutableRefObject, type RefObject } fro
 import { useRapier } from '@react-three/rapier';
 import { MathUtils, Vector3, type Group } from 'three';
 import { useSettings } from '@/lib/settings';
+import { useDungeonInput } from '@/lib/dungeonInput';
 import {
   CAMERA_DISTANCE,
   CAMERA_OFFSET,
@@ -29,9 +30,10 @@ export default function CameraRig({
   yawRef?: MutableRefObject<number>;
   pitchRef?: MutableRefObject<number>;
 }) {
-  const { camera, gl } = useThree();
+  const { camera } = useThree();
   const { rapier, world } = useRapier();
   const mouseSensitivity = useSettings((state) => state.mouseSensitivity);
+  const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
   const up = useMemo(() => new Vector3(0, 1, 0), []);
   const internalYaw = useRef(0);
   const internalPitch = useRef(CAMERA_PITCH.initial);
@@ -41,16 +43,8 @@ export default function CameraRig({
   const pitchValue = pitchRef ?? internalPitch;
 
   useEffect(() => {
-    const canvas = gl.domElement;
-
-    const handlePointerDown = () => {
-      if (document.pointerLockElement !== canvas) {
-        canvas.requestPointerLock();
-      }
-    };
-
     const handleMouseMove = (event: MouseEvent) => {
-      if (document.pointerLockElement !== canvas) return;
+      if (!isPointerLocked) return;
       yawValue.current -= event.movementX * CAMERA_SENSITIVITY.yaw * mouseSensitivity;
       pitchValue.current -= event.movementY * CAMERA_SENSITIVITY.pitch * mouseSensitivity;
       pitchValue.current = MathUtils.clamp(pitchValue.current, CAMERA_PITCH.min, CAMERA_PITCH.max);
@@ -61,21 +55,18 @@ export default function CameraRig({
       distanceRef.current = MathUtils.clamp(next, CAMERA_DISTANCE.min, CAMERA_DISTANCE.max);
     };
 
-    canvas.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('wheel', handleWheel, { passive: true });
 
     return () => {
-      canvas.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('wheel', handleWheel);
     };
-  }, [gl, mouseSensitivity, pitchValue, yawValue]);
+  }, [isPointerLocked, mouseSensitivity, pitchValue, yawValue]);
 
   useFrame((_, delta) => {
     const targetGroup = target.current;
     if (!targetGroup) return;
-
     targetGroup.getWorldPosition(targetPosition);
 
     const yaw = yawValue.current;
