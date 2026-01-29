@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars, useTexture, Float } from '@react-three/drei';
-import { Suspense, useMemo, useRef, useState } from 'react';
+import { Suspense, useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import {
   EffectComposer,
@@ -19,7 +19,17 @@ import LoadingScreen from './LoadingScreen';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import SubmarineController from './SubmarineController';
 import MarineScatter, { MarineAsset } from './MarineScatter';
-import { PointOfInterest, PoiHud, PoiMarkers, ScreenPoi } from './PoiSystem';
+import { PointOfInterest, PoiMarkers, ScreenPoi } from './PoiSystem';
+import ZoneManager from '@/components/ZoneManager';
+import EnvironmentInstances from '@/components/EnvironmentInstances';
+import { POI_LIST, POIData, POIMarkersEnhanced } from '@/components/POIMarker';
+import POIPanel from '@/ui/POIPanel';
+import HUD from '@/ui/HUD';
+import SettingsMenu from '@/ui/SettingsMenu';
+import OffscreenIndicators, { ScreenPOI } from '@/ui/OffscreenIndicators';
+import MobileFallback from '@/ui/MobileFallback';
+import { updatePlayerState } from '@/lib/playerState';
+import { getSettings, subscribeSettings } from '@/lib/settings';
 
 /* -------------------------------------------------------------------------- */
 /*                          Floating Dust Particles                          */
@@ -485,12 +495,39 @@ export default function InteractiveCanvas() {
   const [subPosition, setSubPosition] = useState(new THREE.Vector3(0, -1, 0));
   const [activePoiId, setActivePoiId] = useState<string | null>(null);
   const [nearbyPoiId, setNearbyPoiId] = useState<string | null>(null);
-  const [screenPois, setScreenPois] = useState<ScreenPoi[]>([]);
+  const [screenPois, setScreenPois] = useState<ScreenPOI[]>([]);
   const [sonarPulseAt, setSonarPulseAt] = useState<number | null>(null);
   const [sonarCooldownUntil, setSonarCooldownUntil] = useState(0);
   const [highlightedPoiIds, setHighlightedPoiIds] = useState<string[]>([]);
   const [telemetry, setTelemetry] = useState({ speed: 0, depth: 0 });
   const [sonarCooldownRemaining, setSonarCooldownRemaining] = useState(0);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [currentObjective, setCurrentObjective] = useState<POIData | null>(POI_LIST[0] || null);
+
+  // Sync player state for Agent B components
+  useEffect(() => {
+    updatePlayerState({
+      position: { x: subPosition.x, y: subPosition.y, z: subPosition.z },
+      speed: telemetry.speed,
+      depth: telemetry.depth,
+    });
+  }, [subPosition, telemetry]);
+
+  // ESC key handler for settings
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (activePoiId) {
+          setActivePoiId(null);
+        } else {
+          setSettingsOpen((prev) => !prev);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activePoiId]);
+
   const marineAssets: MarineAsset[] = [
     {
       name: 'FishSchool',
@@ -522,32 +559,8 @@ export default function InteractiveCanvas() {
     },
   ];
 
-  const poiList: PointOfInterest[] = useMemo(
-    () => [
-      {
-        id: 'coral-reef',
-        title: 'Explore Coral Reef',
-        description:
-          'Vivid coral growth detected. Scan bio-luminescent patterns for navigation data.',
-        position: [12, -1.6, -18],
-      },
-      {
-        id: 'shipwreck',
-        title: 'Investigate Shipwreck',
-        description:
-          'Residual energy signatures found. Stabilize the hull to extract archival logs.',
-        position: [-20, -1.8, 22],
-      },
-      {
-        id: 'anchor-site',
-        title: 'Inspect Anchor Site',
-        description:
-          'Anchor chain embedded in the seabed. Potential salvage and waypoint data.',
-        position: [26, -2.0, 8],
-      },
-    ],
-    [],
-  );
+  // Use enhanced POI data model
+  const poiList = POI_LIST;
 
   const highlightedSet = useMemo(() => new Set(highlightedPoiIds), [highlightedPoiIds]);
   const sonarCooldownMs = 8000;
@@ -613,7 +626,20 @@ export default function InteractiveCanvas() {
           <Stars radius={80} depth={40} count={1200} factor={2.5} fade speed={0.4} />
           <OceanFloor />
           <MarineScatter assets={marineAssets} />
-          <PoiMarkers pois={poiList} highlightedIds={highlightedSet} activePoiId={activePoiId} />
+          
+          {/* Zone streaming manager */}
+          <ZoneManager playerPosition={{ x: subPosition.x, y: subPosition.y, z: subPosition.z }} />
+          
+          {/* Procedural environment instances (rocks, coral, seaweed) */}
+          <EnvironmentInstances />
+          
+          {/* Enhanced POI markers */}
+          <POIMarkersEnhanced
+            pois={poiList}
+            highlightedIds={highlightedSet}
+            activePoiId={activePoiId}
+            nearbyPoiId={nearbyPoiId}
+          />
 
           <PoiProximityUpdater
             pois={poiList}
@@ -667,27 +693,29 @@ export default function InteractiveCanvas() {
         <OrbitControls enablePan={false} enableZoom={false} enabled={false} />
       </Canvas>
 
-        <PoiHud
-          pois={poiList}
-          activePoiId={activePoiId}
-          nearbyPoiId={nearbyPoiId}
-          screenPois={screenPois}
-        />
+      {/* Mobile fallback */}
+      <MobileFallback onPoiSelect={(poi) => setActivePoiId(poi.id)} />
 
-        <div className="pointer-events-none absolute bottom-6 right-8 z-40 rounded-2xl border border-white/10 bg-[#020410]/70 px-4 py-3 text-[10px] uppercase tracking-[0.3em] text-cyan-200 shadow-[0_0_20px_rgba(34,211,238,0.2)] backdrop-blur">
-          <div className="flex items-center justify-between gap-6">
-            <span className="text-white/50">Speed</span>
-            <span>{telemetry.speed.toFixed(1)} m/s</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-6">
-            <span className="text-white/50">Depth</span>
-            <span>{telemetry.depth.toFixed(1)} m</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-6">
-            <span className="text-white/50">Sonar</span>
-            <span>{sonarCooldownRemaining > 0 ? `${sonarCooldownRemaining.toFixed(1)}s` : 'Ready'}</span>
-          </div>
-        </div>
+      {/* Offscreen POI indicators */}
+      <OffscreenIndicators screenPois={screenPois} activePoiId={activePoiId} />
+
+      {/* Premium HUD */}
+      <HUD
+        speed={telemetry.speed}
+        depth={telemetry.depth}
+        sonarCooldown={sonarCooldownRemaining}
+        currentObjective={currentObjective}
+        nearbyPoi={nearbyPoiId ? poiList.find((p) => p.id === nearbyPoiId) || null : null}
+      />
+
+      {/* POI Detail Panel */}
+      <POIPanel
+        poi={activePoiId ? poiList.find((p) => p.id === activePoiId) || null : null}
+        onClose={() => setActivePoiId(null)}
+      />
+
+      {/* Settings Menu */}
+      <SettingsMenu isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
