@@ -1,7 +1,7 @@
 'use client';
 
 import { Physics } from '@react-three/rapier';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { AxesHelper, Color, type Group } from 'three';
 import PlayerController from '@/components/dungeon/PlayerController';
 import CameraRig from '@/components/dungeon/CameraRig';
@@ -77,20 +77,26 @@ export default function DungeonScene() {
         />
       ))}
 
-      {/* Agent B: Torch system with flickering lights */}
-      <TorchSystem />
+      <Suspense fallback={null}>
+        {/* Agent B: Torch system with flickering lights */}
+        <TorchSystem />
+      </Suspense>
 
       {/* Agent B: Atmospheric particles (dust motes + torch embers) */}
       <DungeonParticles />
 
       <DungeonAmbience />
 
-      <Physics gravity={[0, -25, 0]}>
+      <Suspense fallback={null}>
         <DungeonLayout />
-        <DungeonColliders />
+      </Suspense>
 
-        <PlayerController playerRef={playerRef} cameraYawRef={cameraYawRef} />
+      <Physics gravity={[0, -25, 0]}>
+        <DungeonColliders />
         <CameraRig target={playerRef} yawRef={cameraYawRef} />
+        <Suspense fallback={null}>
+          <PlayerController playerRef={playerRef} cameraYawRef={cameraYawRef} />
+        </Suspense>
       </Physics>
 
       {/* Agent B: Postprocessing (bloom, vignette, tone mapping) */}

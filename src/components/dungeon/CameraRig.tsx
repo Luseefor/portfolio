@@ -4,6 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, type MutableRefObject, type RefObject } from 'react';
 import { useRapier } from '@react-three/rapier';
 import { MathUtils, Vector3, type Group } from 'three';
+import { useSettings } from '@/lib/settings';
 import {
   CAMERA_DISTANCE,
   CAMERA_OFFSET,
@@ -30,6 +31,7 @@ export default function CameraRig({
 }) {
   const { camera, gl } = useThree();
   const { rapier, world } = useRapier();
+  const mouseSensitivity = useSettings((state) => state.mouseSensitivity);
   const up = useMemo(() => new Vector3(0, 1, 0), []);
   const internalYaw = useRef(0);
   const internalPitch = useRef(CAMERA_PITCH.initial);
@@ -49,8 +51,8 @@ export default function CameraRig({
 
     const handleMouseMove = (event: MouseEvent) => {
       if (document.pointerLockElement !== canvas) return;
-      yawValue.current -= event.movementX * CAMERA_SENSITIVITY.yaw;
-      pitchValue.current -= event.movementY * CAMERA_SENSITIVITY.pitch;
+      yawValue.current -= event.movementX * CAMERA_SENSITIVITY.yaw * mouseSensitivity;
+      pitchValue.current -= event.movementY * CAMERA_SENSITIVITY.pitch * mouseSensitivity;
       pitchValue.current = MathUtils.clamp(pitchValue.current, CAMERA_PITCH.min, CAMERA_PITCH.max);
     };
 
@@ -60,15 +62,15 @@ export default function CameraRig({
     };
 
     canvas.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('wheel', handleWheel, { passive: true });
 
     return () => {
       canvas.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('wheel', handleWheel);
     };
-  }, [gl, pitchValue, yawValue]);
+  }, [gl, mouseSensitivity, pitchValue, yawValue]);
 
   useFrame((_, delta) => {
     const targetGroup = target.current;

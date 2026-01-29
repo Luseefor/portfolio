@@ -1,7 +1,6 @@
 'use client';
 
 import { Canvas } from '@react-three/fiber';
-import { Suspense } from 'react';
 import { ACESFilmicToneMapping } from 'three';
 import LoadingScreen from '@/components/interactive/LoadingScreen';
 import DungeonScene from '@/components/dungeon/DungeonScene';
@@ -21,9 +20,7 @@ export default function InteractiveCanvas() {
           gl.toneMappingExposure = rendererToneMapping.exposure;
         }}
       >
-        <Suspense fallback={null}>
-          <DungeonScene />
-        </Suspense>
+        <DungeonScene />
       </Canvas>
       <LoadingScreen />
     </div>
