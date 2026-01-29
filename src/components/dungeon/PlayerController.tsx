@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { PositionalAudio } from '@react-three/drei';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
-import { Quaternion, Vector3, type Group } from 'three';
+import { Quaternion, Vector3, type Group, type PositionalAudio as PositionalAudioImpl } from 'three';
 import PlayerCharacter, { type PlayerAnimation } from '@/components/dungeon/PlayerCharacter';
 
 const WALK_SPEED = 2.4;
@@ -18,6 +19,17 @@ const direction = new Vector3();
 const targetVelocity = new Vector3();
 const rotation = new Quaternion();
 
+const FOOTSTEP_INTERVAL = {
+  walk: 0.48,
+  run: 0.32,
+};
+
+const FOOTSTEP_URLS = [
+  '/sounds/footsteps/footstep_1.wav',
+  '/sounds/footsteps/footstep_2.wav',
+  '/sounds/footsteps/footstep_3.wav',
+];
+
 export default function PlayerController({
   playerRef,
 }: {
@@ -30,6 +42,12 @@ export default function PlayerController({
   const groundedRef = useRef(false);
   const { rapier, world } = useRapier();
   const yawRef = useRef(0);
+
+  const footstepRefs = useRef<PositionalAudioImpl[]>([]);
+  const jumpRef = useRef<PositionalAudioImpl | null>(null);
+  const landRef = useRef<PositionalAudioImpl | null>(null);
+  const footstepTimer = useRef(0);
+  const wasGroundedRef = useRef(false);
 
   const inputRef = useRef({
     forward: false,
@@ -91,6 +109,11 @@ export default function PlayerController({
     const hit = world.castRay(ray, 0.7, true);
     groundedRef.current = Boolean(hit && hit.toi < 0.5);
 
+    if (!wasGroundedRef.current && groundedRef.current) {
+      landRef.current?.play();
+    }
+    wasGroundedRef.current = groundedRef.current;
+
     direction.set(0, 0, 0);
     if (inputRef.current.forward) direction.z -= 1;
     if (inputRef.current.backward) direction.z += 1;
@@ -117,6 +140,7 @@ export default function PlayerController({
       if (inputRef.current.jump) {
         nextVelocityY = JUMP_SPEED;
         groundedRef.current = false;
+        jumpRef.current?.play();
       }
     }
     inputRef.current.jump = false;
@@ -135,6 +159,18 @@ export default function PlayerController({
 
     rotation.setFromAxisAngle(new Vector3(0, 1, 0), yawRef.current);
     body.setRotation(rotation, true);
+
+    if (groundedRef.current && isMoving) {
+      footstepTimer.current += delta;
+      const interval = inputRef.current.run ? FOOTSTEP_INTERVAL.run : FOOTSTEP_INTERVAL.walk;
+      if (footstepTimer.current >= interval) {
+        footstepTimer.current = 0;
+        const index = Math.floor(Math.random() * footstepRefs.current.length);
+        footstepRefs.current[index]?.play();
+      }
+    } else {
+      footstepTimer.current = 0;
+    }
   });
 
   return (
@@ -150,6 +186,35 @@ export default function PlayerController({
       <CapsuleCollider args={[0.8, 0.35]} />
       <group ref={groupRef}>
         <PlayerCharacter animation={animation} />
+        {FOOTSTEP_URLS.map((url, index) => (
+          <PositionalAudio
+            key={url}
+            ref={(audio) => {
+              if (audio) footstepRefs.current[index] = audio;
+            }}
+            url={url}
+            distance={6}
+            loop={false}
+            autoplay={false}
+            volume={0.5}
+          />
+        ))}
+        <PositionalAudio
+          ref={jumpRef}
+          url="/sounds/player/jump.wav"
+          distance={8}
+          loop={false}
+          autoplay={false}
+          volume={0.6}
+        />
+        <PositionalAudio
+          ref={landRef}
+          url="/sounds/player/land.wav"
+          distance={8}
+          loop={false}
+          autoplay={false}
+          volume={0.6}
+        />
       </group>
     </RigidBody>
   );

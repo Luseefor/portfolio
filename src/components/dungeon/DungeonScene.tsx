@@ -6,6 +6,7 @@ import { useRef } from 'react';
 import { Color, type Group } from 'three';
 import PlayerController from '@/components/dungeon/PlayerController';
 import CameraRig from '@/components/dungeon/CameraRig';
+import DungeonAmbience from '@/components/dungeon/DungeonAmbience';
 
 const FOG_COLOR = new Color('#1b1410');
 
@@ -24,6 +25,7 @@ export default function DungeonScene() {
       <pointLight position={[4, 3, -2]} intensity={2.2} color="#ffb35c" distance={18} />
       <pointLight position={[-5, 3, 4]} intensity={1.8} color="#ff9f5a" distance={16} />
       <pointLight position={[0, 3, 8]} intensity={1.6} color="#ffbf75" distance={16} />
+      <DungeonAmbience />
 
       <Physics gravity={[0, -25, 0]}>
         <RigidBody type="fixed" colliders={false}>
