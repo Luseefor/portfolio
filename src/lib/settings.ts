@@ -22,19 +22,41 @@ const defaultSettings: Settings = {
   exposure: 1.0,
 };
 
+const clampNumber = (value: number, min: number, max: number, fallback: number) =>
+  Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+
+export const clampVolume = (value: number) =>
+  clampNumber(value, 0, 1, defaultSettings.masterVolume);
+
+const sanitizeSettings = (state: SettingsStore) => ({
+  ...state,
+  masterVolume: clampVolume(state.masterVolume),
+  mouseSensitivity: clampNumber(state.mouseSensitivity, 0.1, 3, defaultSettings.mouseSensitivity),
+  exposure: clampNumber(state.exposure, 0.5, 2.0, defaultSettings.exposure),
+});
+
 export const useSettings = create<SettingsStore>()(
   persist(
     (set) => ({
       ...defaultSettings,
       setGraphicsQuality: (quality) => set({ graphicsQuality: quality }),
-      setMasterVolume: (volume) => set({ masterVolume: Math.max(0, Math.min(1, volume)) }),
+      setMasterVolume: (volume) => set({ masterVolume: clampVolume(volume) }),
       setMouseSensitivity: (sensitivity) =>
-        set({ mouseSensitivity: Math.max(0.1, Math.min(3, sensitivity)) }),
+        set({
+          mouseSensitivity: clampNumber(sensitivity, 0.1, 3, defaultSettings.mouseSensitivity),
+        }),
       setExposure: (exposure) =>
-        set({ exposure: Math.max(0.5, Math.min(2.0, exposure)) }),
+        set({ exposure: clampNumber(exposure, 0.5, 2.0, defaultSettings.exposure) }),
     }),
     {
       name: 'dungeon-settings',
+      merge: (persistedState, currentState) => {
+        const merged = {
+          ...currentState,
+          ...(persistedState as SettingsStore),
+        };
+        return sanitizeSettings(merged as SettingsStore);
+      },
     }
   )
 );

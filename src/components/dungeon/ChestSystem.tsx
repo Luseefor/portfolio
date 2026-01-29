@@ -6,7 +6,7 @@ import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { useRef, useState, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { usePlayerState, playerStateSelectors } from '@/lib/playerState';
-import { useSettings } from '@/lib/settings';
+import { clampVolume, useSettings } from '@/lib/settings';
 
 export interface ChestPOI {
   id: string;
@@ -85,7 +85,7 @@ function Chest({ chest, isOpen, isNearby, masterVolume }: ChestProps) {
   // Play open sound when chest opens
   useEffect(() => {
     if (isOpen && !hasPlayedOpenSound && audioRef.current) {
-      audioRef.current.setVolume(masterVolume);
+      audioRef.current.setVolume(clampVolume(masterVolume));
       audioRef.current.play();
       setHasPlayedOpenSound(true);
     }
