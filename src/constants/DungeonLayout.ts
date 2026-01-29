@@ -9,6 +9,9 @@
  * - Room C (Showcase): Statue, rails, optional stairs
  * 
  * Agent A will use these placements to render via instancing.
+ * 
+ * IMPORTANT NODE KEY MAPPING (GLB nodes use underscores, case-sensitive):
+ * Check console for "[DungeonLayout] Available mesh/group nodes" to verify.
  */
 
 export interface DungeonPlacement {
@@ -17,6 +20,77 @@ export interface DungeonPlacement {
   rotY?: number;
   scale?: number;
 }
+
+// ========================================
+// MINIMAL LAYOUT - GUARANTEED TO RENDER
+// Uses only core structural pieces that exist in most modular dungeon packs
+// Player spawns at [0, 1.5, 0] so this layout centers around origin
+// ========================================
+export const DUNGEON_LAYOUT_MINIMAL: DungeonPlacement[] = [
+  // === SPAWN ROOM FLOOR (3x3 grid centered at origin) ===
+  { key: 'Floor_Standard', pos: [0, 0, 0] },
+  { key: 'Floor_Standard', pos: [4, 0, 0] },
+  { key: 'Floor_Standard', pos: [-4, 0, 0] },
+  { key: 'Floor_Standard', pos: [0, 0, 4] },
+  { key: 'Floor_Standard', pos: [4, 0, 4] },
+  { key: 'Floor_Standard', pos: [-4, 0, 4] },
+  { key: 'Floor_Standard', pos: [0, 0, -4] },
+  { key: 'Floor_Standard', pos: [4, 0, -4] },
+  { key: 'Floor_Standard', pos: [-4, 0, -4] },
+  
+  // === SPAWN ROOM WALLS ===
+  // Back wall
+  { key: 'Wall', pos: [-4, 0, -6], rotY: 0 },
+  { key: 'Wall', pos: [0, 0, -6], rotY: 0 },
+  { key: 'Wall', pos: [4, 0, -6], rotY: 0 },
+  
+  // Left wall
+  { key: 'Wall', pos: [-6, 0, -4], rotY: Math.PI / 2 },
+  { key: 'Wall', pos: [-6, 0, 0], rotY: Math.PI / 2 },
+  { key: 'Wall', pos: [-6, 0, 4], rotY: Math.PI / 2 },
+  
+  // Right wall  
+  { key: 'Wall', pos: [6, 0, -4], rotY: -Math.PI / 2 },
+  { key: 'Wall', pos: [6, 0, 0], rotY: -Math.PI / 2 },
+  { key: 'Wall', pos: [6, 0, 4], rotY: -Math.PI / 2 },
+  
+  // Front wall with opening
+  { key: 'Wall', pos: [-4, 0, 6], rotY: Math.PI },
+  { key: 'Wall', pos: [4, 0, 6], rotY: Math.PI },
+  
+  // === CORRIDOR FLOOR ===
+  { key: 'Floor_Standard', pos: [0, 0, 10] },
+  { key: 'Floor_Standard', pos: [0, 0, 14] },
+  
+  // === CORRIDOR WALLS ===
+  { key: 'Wall', pos: [-2, 0, 10], rotY: Math.PI / 2 },
+  { key: 'Wall', pos: [-2, 0, 14], rotY: Math.PI / 2 },
+  { key: 'Wall', pos: [2, 0, 10], rotY: -Math.PI / 2 },
+  { key: 'Wall', pos: [2, 0, 14], rotY: -Math.PI / 2 },
+  
+  // === CHEST ROOM FLOOR ===
+  { key: 'Floor_Standard', pos: [-4, 0, 18] },
+  { key: 'Floor_Standard', pos: [0, 0, 18] },
+  { key: 'Floor_Standard', pos: [4, 0, 18] },
+  { key: 'Floor_Standard', pos: [-4, 0, 22] },
+  { key: 'Floor_Standard', pos: [0, 0, 22] },
+  { key: 'Floor_Standard', pos: [4, 0, 22] },
+  
+  // === CHEST ROOM WALLS ===
+  { key: 'Wall', pos: [-6, 0, 18], rotY: Math.PI / 2 },
+  { key: 'Wall', pos: [-6, 0, 22], rotY: Math.PI / 2 },
+  { key: 'Wall', pos: [6, 0, 18], rotY: -Math.PI / 2 },
+  { key: 'Wall', pos: [6, 0, 22], rotY: -Math.PI / 2 },
+  { key: 'Wall', pos: [-4, 0, 24], rotY: Math.PI },
+  { key: 'Wall', pos: [0, 0, 24], rotY: Math.PI },
+  { key: 'Wall', pos: [4, 0, 24], rotY: Math.PI },
+  
+  // === COLUMNS (if available) ===
+  { key: 'Column_Round', pos: [-3, 0, 19] },
+  { key: 'Column_Round', pos: [3, 0, 19] },
+  { key: 'Column_Round', pos: [-3, 0, 21] },
+  { key: 'Column_Round', pos: [3, 0, 21] },
+];
 
 // ========================================
 // ROOM A - SPAWN HALL (Player starts here)
@@ -192,32 +266,47 @@ export const PROP_PLACEMENTS: DungeonPlacement[] = [
 
 // ========================================
 // TORCH PLACEMENTS (for Agent B TorchSystem)
+// Aligned with DUNGEON_LAYOUT_MINIMAL coordinates
 // ========================================
 export const TORCH_PLACEMENTS: Array<{
   position: [number, number, number];
   rotation?: [number, number, number];
 }> = [
-  // Room A - spawn hall
-  { position: [-5.8, 2, -2], rotation: [0, Math.PI / 2, 0] },
-  { position: [5.8, 2, -2], rotation: [0, -Math.PI / 2, 0] },
+  // Room A - spawn hall (4 torches on walls)
+  { position: [-5.8, 2.2, -2], rotation: [0, Math.PI / 2, 0] },
+  { position: [5.8, 2.2, -2], rotation: [0, -Math.PI / 2, 0] },
+  { position: [-5.8, 2.2, 2], rotation: [0, Math.PI / 2, 0] },
+  { position: [5.8, 2.2, 2], rotation: [0, -Math.PI / 2, 0] },
   
-  // Corridor 1
-  { position: [-2.8, 2, 12], rotation: [0, Math.PI / 2, 0] },
-  { position: [2.8, 2, 16], rotation: [0, -Math.PI / 2, 0] },
+  // Corridor (2 torches)
+  { position: [-1.8, 2.2, 12], rotation: [0, Math.PI / 2, 0] },
+  { position: [1.8, 2.2, 12], rotation: [0, -Math.PI / 2, 0] },
   
-  // Room B - chest room (dramatic lighting)
-  { position: [-5.8, 2, 22], rotation: [0, Math.PI / 2, 0] },
-  { position: [5.8, 2, 22], rotation: [0, -Math.PI / 2, 0] },
-  { position: [-5.8, 2, 26], rotation: [0, Math.PI / 2, 0] },
-  { position: [5.8, 2, 26], rotation: [0, -Math.PI / 2, 0] },
-  
-  // Corridor 2
-  { position: [10, 2, 26.8], rotation: [0, Math.PI, 0] },
-  
-  // Room C - showcase
-  { position: [8.2, 2, 8], rotation: [0, Math.PI / 2, 0] },
-  { position: [19.8, 2, 8], rotation: [0, -Math.PI / 2, 0] },
+  // Room B - chest room (4 torches for dramatic lighting)
+  { position: [-5.8, 2.2, 19], rotation: [0, Math.PI / 2, 0] },
+  { position: [5.8, 2.2, 19], rotation: [0, -Math.PI / 2, 0] },
+  { position: [-5.8, 2.2, 21], rotation: [0, Math.PI / 2, 0] },
+  { position: [5.8, 2.2, 21], rotation: [0, -Math.PI / 2, 0] },
 ];
+
+// ========================================
+// WARM POINT LIGHTS (companion to torches)
+// For use in scene lighting - place near each torch
+// ========================================
+export const TORCH_LIGHT_CONFIG = {
+  color: '#ff9040',
+  intensity: 2.5,
+  distance: 12,
+  decay: 2,
+} as const;
+
+// ========================================
+// FOG RECOMMENDATION
+// ========================================
+export const FOG_CONFIG = {
+  color: '#1a1410',
+  density: 0.025, // Soft density for readability
+} as const;
 
 // ========================================
 // COMBINED LAYOUT (for Agent A to consume)

@@ -1,8 +1,8 @@
 'use client';
 
 import { Physics } from '@react-three/rapier';
-import { useRef } from 'react';
-import { Color, type Group } from 'three';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AxesHelper, Color, type Group } from 'three';
 import PlayerController from '@/components/dungeon/PlayerController';
 import CameraRig from '@/components/dungeon/CameraRig';
 import DungeonAmbience from '@/components/dungeon/DungeonAmbience';
@@ -18,6 +18,19 @@ const FOG_COLOR = new Color(sceneLighting.fogColor);
 export default function DungeonScene() {
   const playerRef = useRef<Group>(null);
   const cameraYawRef = useRef(0);
+  const [debugEnabled, setDebugEnabled] = useState(false);
+  const axesHelper = useMemo(() => new AxesHelper(6), []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== 'F1') return;
+      event.preventDefault();
+      setDebugEnabled((prev) => !prev);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <group>
@@ -36,6 +49,21 @@ export default function DungeonScene() {
         intensity={sceneLighting.fillDirectionalIntensity}
         color={sceneLighting.fillDirectionalColor}
       />
+
+      {debugEnabled && (
+        <group name="debug-primitives">
+          <directionalLight position={[6, 12, 4]} intensity={3.5} color="#ffffff" />
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
+            <planeGeometry args={[80, 80]} />
+            <meshStandardMaterial color="#2f5d57" />
+          </mesh>
+          <mesh position={[0, 1.2, 0]} castShadow>
+            <boxGeometry args={[2.5, 2.5, 2.5]} />
+            <meshStandardMaterial color="#ff2d55" />
+          </mesh>
+          <primitive object={axesHelper} />
+        </group>
+      )}
 
       {/* Static point lights for base illumination */}
       {sceneLighting.torchLights.map((torch, index) => (

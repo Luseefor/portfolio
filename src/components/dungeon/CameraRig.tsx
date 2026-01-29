@@ -4,20 +4,20 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, type MutableRefObject, type RefObject } from 'react';
 import { useRapier } from '@react-three/rapier';
 import { MathUtils, Vector3, type Group } from 'three';
+import {
+  CAMERA_DISTANCE,
+  CAMERA_OFFSET,
+  CAMERA_FOLLOW,
+  CAMERA_SENSITIVITY,
+  CAMERA_PITCH,
+  CAMERA_COLLISION,
+} from '@/constants/camera';
 
 const targetPosition = new Vector3();
 const desiredPosition = new Vector3();
 const forward = new Vector3();
 const right = new Vector3();
 const rayDirection = new Vector3();
-
-const DEFAULT_DISTANCE = 6.6;
-const MIN_DISTANCE = 4.2;
-const MAX_DISTANCE = 9.5;
-const SIDE_OFFSET = 0.9;
-const HEIGHT_OFFSET = 1.8;
-const PITCH_MIN = MathUtils.degToRad(-30);
-const PITCH_MAX = MathUtils.degToRad(35);
 
 export default function CameraRig({
   target,
@@ -32,8 +32,8 @@ export default function CameraRig({
   const { rapier, world } = useRapier();
   const up = useMemo(() => new Vector3(0, 1, 0), []);
   const internalYaw = useRef(0);
-  const internalPitch = useRef(MathUtils.degToRad(-10));
-  const distanceRef = useRef(DEFAULT_DISTANCE);
+  const internalPitch = useRef(CAMERA_PITCH.initial);
+  const distanceRef = useRef(CAMERA_DISTANCE.default);
 
   const yawValue = yawRef ?? internalYaw;
   const pitchValue = pitchRef ?? internalPitch;
@@ -49,14 +49,14 @@ export default function CameraRig({
 
     const handleMouseMove = (event: MouseEvent) => {
       if (document.pointerLockElement !== canvas) return;
-      yawValue.current -= event.movementX * 0.0025;
-      pitchValue.current -= event.movementY * 0.0022;
-      pitchValue.current = MathUtils.clamp(pitchValue.current, PITCH_MIN, PITCH_MAX);
+      yawValue.current -= event.movementX * CAMERA_SENSITIVITY.yaw;
+      pitchValue.current -= event.movementY * CAMERA_SENSITIVITY.pitch;
+      pitchValue.current = MathUtils.clamp(pitchValue.current, CAMERA_PITCH.min, CAMERA_PITCH.max);
     };
 
     const handleWheel = (event: WheelEvent) => {
-      const next = distanceRef.current + Math.sign(event.deltaY) * 0.4;
-      distanceRef.current = MathUtils.clamp(next, MIN_DISTANCE, MAX_DISTANCE);
+      const next = distanceRef.current + Math.sign(event.deltaY) * CAMERA_DISTANCE.scrollStep;
+      distanceRef.current = MathUtils.clamp(next, CAMERA_DISTANCE.min, CAMERA_DISTANCE.max);
     };
 
     canvas.addEventListener('pointerdown', handlePointerDown);
@@ -89,8 +89,8 @@ export default function CameraRig({
     desiredPosition
       .copy(targetPosition)
       .add(forward.clone().multiplyScalar(-horizontalDistance))
-      .add(right.clone().multiplyScalar(SIDE_OFFSET))
-      .add(up.clone().multiplyScalar(HEIGHT_OFFSET + verticalOffset));
+      .add(right.clone().multiplyScalar(CAMERA_OFFSET.side))
+      .add(up.clone().multiplyScalar(CAMERA_OFFSET.height + verticalOffset));
 
     rayDirection.copy(desiredPosition).sub(targetPosition);
     const rayDistance = rayDirection.length();
@@ -106,15 +106,15 @@ export default function CameraRig({
     const hit = world.castRay(ray, rayDistance, true);
     let cameraTarget = desiredPosition;
     if (hit) {
-      const safeDistance = Math.max(0.5, hit.toi - 0.3);
+      const safeDistance = Math.max(CAMERA_COLLISION.minCameraDistance, hit.toi - CAMERA_COLLISION.minDistanceFromWall);
       cameraTarget = targetPosition.clone().add(rayDirection.multiplyScalar(safeDistance));
     }
 
     if (!Number.isFinite(cameraTarget.x) || !Number.isFinite(cameraTarget.y) || !Number.isFinite(cameraTarget.z)) {
       return;
     }
-    camera.position.lerp(cameraTarget, 1 - Math.pow(0.001, delta));
-    camera.lookAt(targetPosition.x, targetPosition.y + 1.3, targetPosition.z);
+    camera.position.lerp(cameraTarget, 1 - Math.pow(CAMERA_FOLLOW.smoothing, delta));
+    camera.lookAt(targetPosition.x, targetPosition.y + CAMERA_OFFSET.lookAtHeight, targetPosition.z);
   });
 
   return null;

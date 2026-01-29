@@ -5,11 +5,11 @@ import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { DUNGEON_LAYOUT, type DungeonPlacement } from '@/constants/DungeonLayout';
 
 const FLOOR_HALF = 2;
-const FLOOR_HEIGHT = 0.15;
+const FLOOR_HEIGHT = 0.25; // Thicker floor collider to prevent falling through
 const WALL_HALF_LENGTH = 2;
-const WALL_HALF_THICKNESS = 0.2;
+const WALL_HALF_THICKNESS = 0.25; // Slightly thicker for better collision
 const WALL_HALF_HEIGHT = 2.2;
-const COLUMN_HALF = 0.45;
+const COLUMN_HALF = 0.5;
 const COLUMN_HALF_HEIGHT = 2.2;
 
 function isFloorKey(key: string) {
@@ -48,7 +48,14 @@ export default function DungeonColliders() {
   }, []);
 
   return (
-    <RigidBody type="fixed" colliders={false}>
+    <RigidBody type="fixed" colliders={false} name="dungeon-colliders">
+      {/* Large ground plane to catch player if dungeon floors haven't loaded */}
+      <CuboidCollider
+        args={[50, 0.5, 50]}
+        position={[0, -0.5, 20]}
+        name="ground-safety"
+      />
+
       {floors.map((floor, index) => (
         <CuboidCollider
           key={`floor-${index}`}

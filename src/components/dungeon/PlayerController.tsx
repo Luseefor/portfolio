@@ -14,7 +14,11 @@ const ACCELERATION = 16;
 const FRICTION = 20;
 const JUMP_SPEED = 5.2;
 const GRAVITY = 14;
-const START_POSITION: [number, number, number] = [0, -1.5, 0];
+// Spawn position: Room A center, Y = capsule half-height (0.8) + radius (0.35) + margin = ~1.5
+const START_POSITION: [number, number, number] = [0, 1.5, 0];
+
+// Debug mode - set to true to log movement vectors
+const DEBUG_MOVEMENT = false;
 
 const direction = new Vector3();
 const targetVelocity = new Vector3();
@@ -175,8 +179,21 @@ export default function PlayerController({
     inputRef.current.jump = false;
     nextVelocityY -= GRAVITY * delta;
 
+    // Wake the body and apply velocity
+    body.wakeUp();
     body.setLinvel({ x: nextVelocityX, y: nextVelocityY, z: nextVelocityZ }, true);
     body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+
+    // Debug logging
+    if (DEBUG_MOVEMENT && inputActive) {
+      console.log('[Movement]', {
+        input: { ...inputRef.current },
+        direction: direction.toArray(),
+        velocity: { x: nextVelocityX, y: nextVelocityY, z: nextVelocityZ },
+        position: body.translation(),
+        grounded: groundedRef.current,
+      });
+    }
 
     if (inputActive) {
       const desiredYaw = Math.atan2(direction.x, direction.z);
@@ -220,12 +237,17 @@ export default function PlayerController({
       ref={bodyRef}
       position={START_POSITION}
       colliders={false}
-      enabledRotations={[false, true, false]}
+      type="dynamic"
+      mass={1}
+      enabledRotations={[false, false, false]}
+      lockRotations
       gravityScale={0}
-      linearDamping={1.4}
-      angularDamping={1.2}
+      linearDamping={0.5}
+      angularDamping={1}
+      ccd
     >
-      <CapsuleCollider args={[0.8, 0.35]} />
+      {/* Capsule: half-height=0.8, radius=0.35, total height ~2.3 */}
+      <CapsuleCollider args={[0.8, 0.35]} position={[0, 1.15, 0]} />
       <group ref={groupRef}>
         <PlayerCharacter animation={animation} />
         {FOOTSTEP_URLS.map((url, index) => (

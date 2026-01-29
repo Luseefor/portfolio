@@ -1,230 +1,324 @@
-# Dungeon Upgrade Pass — Real Layout + Particles + Animation State Fix
+# Emergency Fix Pass — Dungeon Not Rendering + Camera Rig Broken + Mouse Look Not Working
 ## Two Agents: Codex (Agent A) + Claude (Agent B)
 
-CONTEXT
-We have a modular library GLB with many meshes (nodes). Current scene wrongly shows the entire asset sheet and movement/animation feel is buggy. We must assemble a curated dungeon and fix animation states.
+SYMPTOMS (CURRENT)
+- Screen is mostly black; dungeon geometry not visible.
+- Player model appears, but dungeon does not.
+- Camera is NOT following the player.
+- Mouse look does nothing; viewpoint cannot be controlled.
 
-LOCKED ASSETS (DO NOT RENAME)
+GOAL
+- Dungeon renders reliably (NOT the asset library sheet, but assembled layout).
+- Camera follows player in stable third-person mode.
+- Mouse controls yaw/pitch (pointer lock or drag).
+- Scene lighting is readable.
+
+LOCKED ASSETS (DO NOT CHANGE PATHS)
 public/models/dungeon/
+- structure/Modular Ruins Pack.glb
 - character/character.glb
 - props/closed_chest.glb
 - props/open_chest.glb
 - props/wall_torch.glb
-- structure/Modular Ruins Pack.glb
-
-NODE NAMES AVAILABLE (SAMPLE, NOT EXHAUSTIVE)
-Environment:
-- Floor_Standard, Floor_Squares, Floor_SquareLarge, Floor_Standard_Half, Floor_Diamond
-- Wall, Wall_Broken, Wall_Half, Wall_Overgrown, Wall_Double_Broken, Wall_Double_Hole, Wall_Hole
-- Wall_ArchGothic, Wall_ArchRound, Wall_ArchRound_Broken, Wall_ArchRound_Overgrown, Wall_ArchRound_Overgrown_Broken
-- Arch_Gothic, Arch_Round (+ *_RoundColumn variants)
-- Column_Round, Column_Round_Short, Column_Square, Column_BridgeSupport
-- Doors_GothicArch_L, Doors_GothicArch_R, Doors_GothicArch_Covered
-- Doors_RoundArch_L, Doors_RoundArch_R, Doors_RoundArch_Covered
-- Stairs, Stairs_2, BridgeSection, Rail_Straight, Rail_Corner, Rail_Divider
-Props:
-- Torch, Candles_1, Candles_2, Barrel, Crate, Cart, Skull, Pots (Pot1/2/3 + broken)
-- Trapdoor, BearTrap_Open/Closed
-Nature/Decor:
-- Bush_* , Grass, DeadTree_1/2/3, Tree_1/2/3, Statue_Fox, Statue_Stag
-Windows:
-- Window_Bars, Window_Bars_Overgrown, Window_Bars_Double_Overgrown, Window_Open, Window_Open_Double
-Flags:
-- Flag_Wall, Flag_Wall2, Flag_GothicArch, Flag_RoundArch
-
-NOTE: Use as many of these as reasonable, but DO NOT render the entire library. Only instantiate selected items in the dungeon layout.
-
-==================================================
-QUALITY BAR
-==================================================
-- A real dungeon: at least 3 rooms + 2 corridors + one turn + one chest room.
-- Readable lighting: moody but not crushed blacks.
-- Correct third-person controls: camera-relative movement, mouse look.
-- Animation state correct: Idle plays when no movement input; Walk/Run plays when moving.
-- Particles: subtle dust motes + optional torch embers, lightweight.
 
 ==================================================
 VERSION CONTROL RULES
 ==================================================
-Commit after each milestone with small commits:
-- fix: animation state returns to idle
-- feat: dungeon layout assembled from nodes
-- feat: simple colliders for dungeon layout
-- feat: dust and ember particles
-- polish: lighting, fog, postprocessing tuned
-- polish: instancing and perf pass
+Commit after each milestone:
+- fix: dungeon render pipeline restored
+- fix: camera rig follow + mouse look
+- fix: scene lighting baseline
+- chore: add debug overlay toggles
 
 ==================================================
-DIVISION OF LABOR
+ROOT CAUSES (LIKELY)
 ==================================================
-
-AGENT A (CODEX) OWNS (ENGINE):
-- Load GLB nodes and build dungeon layout from selected meshes
-- Instancing strategy (Instances / InstancedMesh) for repeated pieces
-- Physics colliders aligned to layout (simple cuboids)
-- Player controller bugfix: input state + idle/walk/run blending
-- Camera rig & movement basis if still incorrect
-- Expose tuning constants (speed thresholds, accel, exposure)
-
-AGENT B (CLAUDE) OWNS (ART DIRECTION + PARTICLES + PLACEMENT):
-- Layout design: decide where to use arches, doors, columns, stairs, windows, flags, props
-- Torch placement plan (lighting + guidance)
-- Particles system implementation (dust motes, ember sparks near torches)
-- Lighting/fog/postprocessing parameters (subtle)
-- POI placement improvements (chest room composition)
+One or more of these is happening:
+1) Dungeon is not being instantiated (placements array empty or keys not found in nodes).
+2) Dungeon is rendering at a far position/scale or culled (frustum, wrong transforms).
+3) Scene has no baseline light (everything black except emissives).
+4) Camera rig not attached to player ref, or useFrame not running due to Suspense/conditional render.
+5) Mouse look not active due to missing pointer lock / event listeners not bound to canvas.
 
 ==================================================
-AGENT A (CODEX) — TASKS
+AGENT A (CODEX) — ENGINE RECOVERY (MANDATORY)
 ==================================================
 
-A1 — FIX IDLE NOT RETURNING (MANDATORY FIRST)
-Problem: after releasing movement keys, animation remains Walk/Run.
-Fix requirements:
-- Input system must correctly represent "no movement" state.
-- Movement vector magnitude should be computed AFTER applying camera-relative basis.
-- Animation selection should use speed threshold & input state:
-  - if (speed < EPS && noMovementInput) => Idle
-  - else if (isRunning) => Run
-  - else => Walk
-- Use crossfade between actions (0.15–0.25s).
-- Ensure keyup events are handled and no stuck keys.
-- If using pointer lock, ensure focus/blur clears movement inputs.
+A1 — ADD DEBUG VISIBILITY MODE (DO THIS FIRST)
+Add a temporary debug flag to confirm rendering pipeline:
+- Render a visible ground plane + axis helper + bright directional light.
+- Add a big colored cube at world origin (0,0,0).
+- Add a UI toggle (keyboard: `F1`) to enable/disable debug primitives.
 
 Acceptance:
-- Hold W -> Walk
-- Release W -> returns to Idle within 0.2s
-- Tap keys rapidly -> never stuck in Walk
+- With debug ON, you can see plane + cube + axes.
+- Confirms renderer + camera are working.
 
-Commit: "fix: animation state returns to idle"
+Commit: "chore: add debug overlay toggles"
 
-A2 — BUILD DUNGEON FROM NODES (NO ASSET SHEET)
-Implementation requirements:
-- Load the ruins pack GLB but do not render gltf.scene directly.
-- Create a piece registry from gltf.nodes:
-  - Floor_* (choose 1-2 primary)
-  - Wall (primary), Wall_Broken/Overgrown (variants)
-  - Arch_Gothic / Wall_ArchGothic
-  - Column_Round / Column_Square
-  - Doors_* (optional)
-  - Stairs (for a small elevation change)
-- Build `DungeonLayout.ts` containing placements:
-  - { key, pos:[x,y,z], rotY, scale? }
-- Render by cloning geometry/material from nodes and using instancing for repeated floors/walls.
+A2 — RESTORE DUNGEON RENDER PIPELINE
+Fix dungeon assembly so it actually draws:
+- Load GLB with useGLTF('/models/dungeon/structure/Modular Ruins Pack.glb')
+- Create a registry:
+  - const getNode = (name) => gltf.nodes[name] (guard for missing)
+- Ensure `DUNGEON_LAYOUT` is NOT empty.
+- Ensure each placement key exists in nodes.
+- If a node is missing, log a clear error:
+  - console.warn("Missing node:", key, Object.keys(nodes))
+
+IMPORTANT:
+- If you are currently not rendering anything because keys mismatch, temporarily render ONE known mesh (e.g., "Floor_Standard" or "Wall") at origin to verify.
 
 Acceptance:
-- Only dungeon is visible; unused library items not visible.
-- Rooms and corridors exist (minimum 3 rooms, 2 corridors).
-- Layout is editable via the placements array.
+- Dungeon pieces appear in the scene.
+- You can see floors/walls around the player.
 
-Commit: "feat: dungeon layout assembled from nodes"
+Commit: "fix: dungeon render pipeline restored"
 
-A3 — SIMPLE COLLIDERS MATCHING LAYOUT
-- Create colliders per room/corridor chunk:
-  - floors: fixed cuboid/plane colliders
-  - walls: fixed cuboid strips
-- Avoid trimesh colliders for the whole dungeon.
-- Ensure player capsule doesn’t snag: slightly inset wall colliders.
+A3 — FIX CAMERA FOLLOW (THIRD PERSON RIG)
+Implement a dedicated CameraRig that:
+- Receives `playerRef` (or rigidBody ref)
+- Each frame:
+  - reads player position
+  - computes desired camera position using yaw/pitch + distance
+  - lerps camera position toward desired
+  - camera.lookAt(playerPos + offset)
 
-Acceptance:
-- No falling through.
-- Wall blocking consistent.
-- Smooth sliding along walls.
-
-Commit: "feat: simple colliders for dungeon layout"
-
-A4 — INSTANCING + PERFORMANCE PASS
-- Use InstancedMesh / drei Instances for high-repeat meshes:
-  - floors, base walls, columns
-- Avoid cloning full scenes per placement.
-- No per-frame allocations in useFrame.
+Hard requirement:
+- CameraRig MUST be mounted even when dungeon is in Suspense.
+- CameraRig useFrame must run always.
 
 Acceptance:
-- Stable FPS.
-- No huge memory spikes.
+- Camera follows player smoothly.
+- Player stays framed.
 
-Commit: "polish: instancing and perf pass"
+Commit: "fix: camera rig follow"
 
-==================================================
-AGENT B (CLAUDE) — TASKS
-==================================================
+A4 — FIX MOUSE LOOK (POINTER LOCK OR DRAG)
+Implement one of these modes (choose and make it consistent):
+MODE 1 (preferred): Pointer lock
+- Click canvas => requestPointerLock
+- Listen to `mousemove` while locked and update yaw/pitch
+- Escape => unlock
 
-B1 — DUNGEON ART DIRECTION (USE MANY NODES, INTELLIGENTLY)
-Design the layout to feel “real” without clutter:
-- Room A (Spawn Hall): Floor_Standard + Wall + Arch_Gothic doorway + 2 Columns + Flags
-- Corridor 1: Floor_Standard_Half or Floor_Squares, occasional Wall_Broken, 2 torches
-- Room B (Chest Room): Floor_Diamond center tile, 4 columns, 2 candles, chest in center, window bars
-- Corridor 2 (Turn): add Wall_Overgrown or Wall_Hole, skull/pot as micro-prop
-- Room C (Showcase): statue (Stag/Fox), rails, optional small stairs elevation
-
-Output:
-- Provide exact placements for:
-  - torches (positions)
-  - columns/arches/doors/windows/flags
-  - props (barrel/crate/candles/pots/skull)
-- Keep prop count reasonable (10–25 total).
-
-Commit: "feat: dungeon dressing and prop placements"
-
-B2 — PARTICLES (LIGHTWEIGHT “PHYSICS”)
-Implement 2 particle layers:
-1) Dust motes (global, subtle):
-   - Points or sprites
-   - Slow upward drift + noise
-   - Very low opacity, camera-facing
-2) Ember sparks near torches (local):
-   - Small count per torch (10–40)
-   - Upward drift + random reset
-   - Optional simple collision: clamp to not go below floor (NO rapier collisions)
+MODE 2: Click-and-drag orbit
+- On mousedown, start dragging
+- On mousemove update yaw/pitch
+- On mouseup stop
 
 Rules:
-- No heavy physics per particle.
-- Must be performant.
+- Pitch clamp: [-30°, +35°]
+- Yaw wraps freely
+- Sensitivity constant exposed
 
 Acceptance:
-- Adds atmosphere but doesn’t tank FPS.
-- Not visually noisy; subtle.
+- Moving mouse changes camera direction.
+- Viewpoint changes smoothly.
 
-Commit: "feat: dust and ember particles"
+Commit: "fix: mouse look controls"
 
-B3 — LIGHTING + FOG + POSTPROCESS TUNING
-Requirements:
-- Fix crushed blacks: add soft fill (HemisphereLight or low Ambient).
-- Add 1-2 gentle fill lights to reveal geometry.
-- Torches emit warm point light (Agent A/B can coordinate).
-- Add fog (FogExp2) for depth.
-- Optional postprocessing: subtle bloom + vignette AFTER base lighting is correct.
+A5 — BASELINE LIGHTING (MAKE SCENE VISIBLE)
+Even with torches, you need baseline fill:
+- Add HemisphereLight or AmbientLight low intensity.
+- Add DirectionalLight soft fill.
+- Set toneMapping + exposure to reasonable values.
 
 Acceptance:
-- Dungeon readable; mood preserved.
-- Character visible.
+- Dungeon is visible without relying solely on emissives.
 
-Commit: "polish: lighting, fog, postprocessing tuned"
-
-B4 — CHEST ROOM COMPOSITION
-- Place the chest POI in Room B center.
-- Ensure the chest is framed by:
-  - columns
-  - torch/candle lighting
-  - distinct floor tile (Floor_Diamond recommended)
-- Interaction prompt appears in a clean line-of-sight.
-
-Commit: "polish: chest room composition"
+Commit: "fix: scene lighting baseline"
 
 ==================================================
-INTEGRATION NOTES
+AGENT B (CLAUDE) — SCENE VALIDATION + PLACEMENTS + LIGHTING ASSIST
 ==================================================
-- Agent B provides placement arrays/constants; Agent A implements rendering/instancing.
-- Do not overuse every node; use variety strategically:
-  - base walls/floors repeated
-  - broken/overgrown variants as accents
-  - statues/flags/windows as landmarks
+
+B1 — VALIDATE NODE KEYS USED IN DUNGEON_LAYOUT
+Check the layout keys match actual node names (case-sensitive):
+- Prefer these as core pieces:
+  - Floor_Standard, Floor_Squares, Floor_SquareLarge
+  - Wall, Wall_Half, Wall_Broken, Wall_Overgrown
+  - Arch_Gothic, Wall_ArchGothic, Wall_ArchRound
+  - Column_Round, Column_Square
+  - Torch, Candles_1, Candles_2
+- Provide a corrected minimal layout that uses ONLY confirmed nodes:
+  - Spawn room floor + 4 walls
+  - Corridor floor strip + walls
+  - Chest room floor + arches + columns
+
+Deliverable:
+- A `DUNGEON_LAYOUT_MINIMAL` array that is guaranteed to render.
+- Include coordinates that place the dungeon near origin and player spawn inside it.
+
+Acceptance:
+- Minimal layout renders reliably every run.
+
+Commit: "feat: minimal verified dungeon layout"
+
+B2 — TORCH + LIGHT PLACEMENTS FOR READABILITY
+Provide torch placements for corridors/rooms:
+- Torch meshes at wall height
+- Warm point lights near each torch
+- Soft fog density recommendation
+
+Acceptance:
+- Visibility improved; player not lost in black.
+
+Commit: "polish: torch lighting placements"
+
+B3 — CAMERA TUNING VALUES (CONSTANTS)
+Recommend good starting constants:
+- distance (e.g., 4.5–6)
+- height offset (e.g., 1.2–1.6)
+- follow smoothing (e.g., 0.08–0.15)
+- sensitivity (e.g., 0.002–0.004)
+- pitch clamp degrees
+
+Commit: "chore: camera tuning constants"
 
 ==================================================
-TEST CHECKLIST
+MANDATORY DEBUG CHECKLIST
 ==================================================
-- Idle animation returns reliably after key release.
-- Camera-relative movement works in all directions.
-- Layout looks like a dungeon, not asset library.
-- Player can traverse Room A -> Corridor -> Room B -> Corridor turn -> Room C.
-- Torches + fog make it readable, not black.
-- Particles visible but subtle; FPS stable.
+1) With debug ON: cube + axes visible.
+2) With dungeon minimal layout: at least 1 floor and 1 wall visible at origin.
+3) Player spawn placed on floor and inside layout.
+4) Camera follow confirms: moving player shifts camera.
+5) Mouse look confirms: yaw/pitch updates.
+
+==================================================
+DO NOT DO
+==================================================
+- Do NOT rely on rendering gltf.scene of ruins pack (asset library sheet).
+- Do NOT hide everything by accident (visible=false on root).
+- Do NOT set camera position once and never update.
+- Do NOT bind mouse events to window without verifying canvas focus.
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+- Dungeon is visible and navigable.
+- Camera follows player.
+- Mouse controls viewpoint.
+- Lighting is readable.
+
+==================================================
+MANDATORY TESTING — EXTREME CASES (NO EXCEPTIONS)
+==================================================
+
+ALL FIXES MUST BE VERIFIED BY RUNNING THE FOLLOWING TESTS.
+DO NOT MERGE WITHOUT PASSING THESE.
+
+==================================================
+TEST SUITE A — MOVEMENT & INPUT STRESS TESTS
+==================================================
+
+A1 — KEY SPAM & RELEASE TEST
+- Hold W for 5 seconds → release → character MUST return to Idle within 0.2s.
+- Rapidly tap W/A/S/D in random order for 10 seconds.
+- Hold two keys (W+D), release one, then the other.
+EXPECTED:
+- No stuck movement.
+- No stuck Walk/Run animation.
+- Idle always resumes.
+
+A2 — FOCUS / BLUR TEST
+- Click outside canvas (lose focus).
+- Return to canvas.
+- Attempt to move immediately.
+EXPECTED:
+- Input state resets correctly.
+- Movement works again.
+- No permanent lock.
+
+A3 — POINTER LOCK EDGE CASE
+- Enter pointer lock.
+- Press ESC (exit pointer lock).
+- Re-enter pointer lock.
+EXPECTED:
+- Mouse look resumes correctly.
+- No inverted or frozen camera.
+
+==================================================
+TEST SUITE B — CAMERA & VIEW EXTREMES
+==================================================
+
+B1 — CAMERA ORIENTATION EXTREMES
+- Rotate camera 360° continuously.
+- Look straight up and straight down (within clamp).
+- Move while camera faces backward.
+EXPECTED:
+- Movement remains camera-relative.
+- No inverted controls.
+- No NaN or zero vectors.
+
+B2 — CAMERA FOLLOW FAILURE TEST
+- Teleport player rapidly (debug key).
+- Move player near walls and corners.
+EXPECTED:
+- Camera snaps/lerps correctly.
+- No loss of follow.
+- No jitter or camera clipping into player.
+
+==================================================
+TEST SUITE C — PHYSICS & COLLISION STRESS
+==================================================
+
+C1 — SPAWN EDGE CASES
+- Spawn player:
+  - slightly above floor
+  - exactly on floor
+  - near wall edge
+EXPECTED:
+- Player never freezes.
+- Player never falls through.
+- Capsule resolves penetration correctly.
+
+C2 — COLLISION SCRAPE TEST
+- Walk along walls at shallow angles.
+- Run into corners repeatedly.
+EXPECTED:
+- Smooth sliding.
+- No vibration.
+- No full movement lock.
+
+==================================================
+TEST SUITE D — DUNGEON RENDER VALIDATION
+==================================================
+
+D1 — EMPTY / INVALID LAYOUT TEST
+- Run with empty dungeon layout array.
+EXPECTED:
+- Debug geometry still visible.
+- No black screen.
+- Clear console warning, not crash.
+
+D2 — INVALID NODE KEY TEST
+- Use a non-existent node name once.
+EXPECTED:
+- Console warning listing valid node names.
+- Scene continues rendering.
+
+==================================================
+TEST SUITE E — PERFORMANCE & SAFETY
+==================================================
+
+E1 — PARTICLE LOAD TEST
+- Increase dust particles 3× temporarily.
+EXPECTED:
+- FPS degrades gracefully.
+- No crash or freeze.
+
+E2 — HOT RELOAD / SCENE RESET
+- Reload scene multiple times.
+EXPECTED:
+- No duplicate event listeners.
+- No exponential slowdown.
+
+==================================================
+TESTING RULES
+==================================================
+- Tests must be RUN, not assumed.
+- Console logs allowed during testing, removed after.
+- If any test fails, fix before proceeding.
+
+FINAL COMMIT MESSAGE AFTER ALL TESTS PASS:
+"test: validated extreme input, camera, physics, and render cases"
