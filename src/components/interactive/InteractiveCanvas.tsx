@@ -1,8 +1,8 @@
 'use client';
 
-import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
-import { OrbitControls, Stars, useTexture, Float, shaderMaterial } from '@react-three/drei';
-import { Suspense, useMemo, useRef, useState, useCallback } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, Stars, useTexture, Float } from '@react-three/drei';
+import { Suspense, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import {
   EffectComposer,
@@ -13,7 +13,6 @@ import {
   ToneMapping,
   HueSaturation,
   BrightnessContrast,
-  DepthOfField,
 } from '@react-three/postprocessing';
 import { ToneMappingMode } from 'postprocessing';
 import LoadingScreen from './LoadingScreen';
@@ -25,7 +24,7 @@ import { PointOfInterest, PoiHud, PoiMarkers, ScreenPoi } from './PoiSystem';
 /* -------------------------------------------------------------------------- */
 /*                          Floating Dust Particles                          */
 /* -------------------------------------------------------------------------- */
-const DUST_PARTICLE_COUNT = 400;
+const DUST_PARTICLE_COUNT = 200;
 
 function FloatingDust() {
   const pointsRef = useRef<THREE.Points>(null);
@@ -327,41 +326,34 @@ function UnderseaLightShafts() {
         <GodRays
           sun={sunRef}
           blendFunction={THREE.AdditiveBlending}
-          density={0.5}
-          decay={0.93}
-          weight={0.5}
-          exposure={0.18}
-          samples={32}
+          density={0.4}
+          decay={0.92}
+          weight={0.4}
+          exposure={0.15}
+          samples={24}
         />
 
         {/* Subtle bloom for glowing effects */}
         <Bloom
-          intensity={0.35}
-          luminanceThreshold={0.2}
-          luminanceSmoothing={0.85}
+          intensity={0.3}
+          luminanceThreshold={0.25}
+          luminanceSmoothing={0.9}
           mipmapBlur
-          radius={0.7}
-        />
-
-        {/* Depth of field for subtle focus */}
-        <DepthOfField
-          focusDistance={0.02}
-          focalLength={0.04}
-          bokehScale={1.5}
+          radius={0.6}
         />
 
         {/* Underwater color grading - blue-cyan tint */}
-        <HueSaturation hue={0.05} saturation={0.12} />
-        <BrightnessContrast brightness={-0.02} contrast={0.08} />
+        <HueSaturation hue={0.05} saturation={0.1} />
+        <BrightnessContrast brightness={-0.02} contrast={0.06} />
 
         {/* Tone mapping for cinematic look */}
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
 
         {/* Vignette for focus */}
-        <Vignette eskil={false} offset={0.15} darkness={0.7} />
+        <Vignette eskil={false} offset={0.15} darkness={0.6} />
 
         {/* Film grain */}
-        <Noise opacity={0.025} />
+        <Noise opacity={0.02} />
       </EffectComposer>
     </>
   );
@@ -412,19 +404,21 @@ function PoiScreenProjector({
     () => pois.map((poi) => ({ id: poi.id, position: new THREE.Vector3(...poi.position) })),
     [pois],
   );
+  // Reuse projection vector to avoid GC
+  const projVec = useMemo(() => new THREE.Vector3(), []);
 
   useFrame(() => {
     const next = poiVectors.map(({ id, position }) => {
-      const projected = position.clone().project(camera);
-      const isOffscreen = projected.z < 0 || Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1;
+      projVec.copy(position).project(camera);
+      const isOffscreen = projVec.z < 0 || Math.abs(projVec.x) > 1 || Math.abs(projVec.y) > 1;
 
-      const clampedX = THREE.MathUtils.clamp(projected.x, -0.9, 0.9);
-      const clampedY = THREE.MathUtils.clamp(projected.y, -0.9, 0.9);
+      const clampedX = THREE.MathUtils.clamp(projVec.x, -0.9, 0.9);
+      const clampedY = THREE.MathUtils.clamp(projVec.y, -0.9, 0.9);
 
-      const screenX = ((isOffscreen ? clampedX : projected.x) * 0.5 + 0.5) * size.width;
-      const screenY = (-(isOffscreen ? clampedY : projected.y) * 0.5 + 0.5) * size.height;
+      const screenX = ((isOffscreen ? clampedX : projVec.x) * 0.5 + 0.5) * size.width;
+      const screenY = (-(isOffscreen ? clampedY : projVec.y) * 0.5 + 0.5) * size.height;
 
-      const angle = Math.atan2(projected.y, projected.x);
+      const angle = Math.atan2(projVec.y, projVec.x);
       return { id, x: screenX, y: screenY, offscreen: isOffscreen, angle };
     });
 

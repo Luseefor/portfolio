@@ -39,10 +39,16 @@ export default function SubmarineController({
   const yawRef = useRef(0);
   const pitchRef = useRef(0);
 
+  // Reuse objects to prevent GC thrashing
   const direction = useMemo(() => new THREE.Vector3(), []);
   const forward = useMemo(() => new THREE.Vector3(), []);
   const right = useMemo(() => new THREE.Vector3(), []);
   const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+  const positionVec = useMemo(() => new THREE.Vector3(), []);
+  const quaternion = useMemo(() => new THREE.Quaternion(), []);
+  const euler = useMemo(() => new THREE.Euler(0, 0, 0, 'YXZ'), []);
+  const desiredVelocity = useMemo(() => new THREE.Vector3(), []);
+  const currentVelocity = useMemo(() => new THREE.Vector3(), []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -146,7 +152,8 @@ export default function SubmarineController({
 
     const translation = rigidbody.translation();
     if (onPositionChange) {
-      onPositionChange(new THREE.Vector3(translation.x, translation.y, translation.z));
+      positionVec.set(translation.x, translation.y, translation.z);
+      onPositionChange(positionVec);
     }
 
     if (onTelemetry) {
@@ -156,9 +163,8 @@ export default function SubmarineController({
       onTelemetry({ speed, depth });
     }
 
-    const quaternion = new THREE.Quaternion().setFromEuler(
-      new THREE.Euler(pitchRef.current, yawRef.current, 0, 'YXZ'),
-    );
+    euler.set(pitchRef.current, yawRef.current, 0);
+    quaternion.setFromEuler(euler);
     rigidbody.setRotation(quaternion, true);
 
     const inputState = input.current;
@@ -173,20 +179,20 @@ export default function SubmarineController({
 
     if (direction.lengthSq() > 0) direction.normalize();
 
-    const rotation = new THREE.Euler(pitchRef.current, yawRef.current, 0, 'YXZ');
-    forward.set(0, 0, -1).applyEuler(rotation);
-    right.set(1, 0, 0).applyEuler(rotation);
+    euler.set(pitchRef.current, yawRef.current, 0);
+    forward.set(0, 0, -1).applyEuler(euler);
+    right.set(1, 0, 0).applyEuler(euler);
 
     const moveSpeed = 3.2;
     const verticalSpeed = 2.4;
-    const desiredVelocity = new THREE.Vector3();
+    desiredVelocity.set(0, 0, 0);
 
     desiredVelocity.addScaledVector(forward, direction.z * moveSpeed);
     desiredVelocity.addScaledVector(right, direction.x * moveSpeed);
     desiredVelocity.addScaledVector(up, direction.y * verticalSpeed);
 
     const currentVel = rigidbody.linvel();
-    const currentVelocity = new THREE.Vector3(currentVel.x, currentVel.y, currentVel.z);
+    currentVelocity.set(currentVel.x, currentVel.y, currentVel.z);
 
     const accel = 4.0;
     const drag = 3.0;
