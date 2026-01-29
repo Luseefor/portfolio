@@ -1,15 +1,260 @@
 'use client';
 
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Stars, useTexture, Float } from '@react-three/drei';
-import { Suspense, useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
+import { OrbitControls, Stars, useTexture, Float, shaderMaterial } from '@react-three/drei';
+import { Suspense, useMemo, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
-import { EffectComposer, Bloom, Vignette, Noise, GodRays } from '@react-three/postprocessing';
+import {
+  EffectComposer,
+  Bloom,
+  Vignette,
+  Noise,
+  GodRays,
+  ToneMapping,
+  HueSaturation,
+  BrightnessContrast,
+  DepthOfField,
+} from '@react-three/postprocessing';
+import { ToneMappingMode } from 'postprocessing';
 import LoadingScreen from './LoadingScreen';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import SubmarineController from './SubmarineController';
 import MarineScatter, { MarineAsset } from './MarineScatter';
 import { PointOfInterest, PoiHud, PoiMarkers, ScreenPoi } from './PoiSystem';
+
+/* -------------------------------------------------------------------------- */
+/*                          Floating Dust Particles                          */
+/* -------------------------------------------------------------------------- */
+const DUST_PARTICLE_COUNT = 400;
+
+function FloatingDust() {
+  const pointsRef = useRef<THREE.Points>(null);
+
+  const [positions, velocities] = useMemo(() => {
+    const pos = new Float32Array(DUST_PARTICLE_COUNT * 3);
+    const vel = new Float32Array(DUST_PARTICLE_COUNT * 3);
+    const spread = 50;
+    for (let i = 0; i < DUST_PARTICLE_COUNT; i++) {
+      const i3 = i * 3;
+      pos[i3] = (Math.random() - 0.5) * spread;
+      pos[i3 + 1] = Math.random() * 14 - 2;
+      pos[i3 + 2] = (Math.random() - 0.5) * spread;
+      vel[i3] = (Math.random() - 0.5) * 0.01;
+      vel[i3 + 1] = Math.random() * 0.008 + 0.002;
+      vel[i3 + 2] = (Math.random() - 0.5) * 0.01;
+    }
+    return [pos, vel];
+  }, []);
+
+  useFrame((state, delta) => {
+    if (!pointsRef.current) return;
+    const geometry = pointsRef.current.geometry;
+    const posAttr = geometry.getAttribute('position') as THREE.BufferAttribute;
+    const arr = posAttr.array as Float32Array;
+
+    const time = state.clock.elapsedTime;
+    for (let i = 0; i < DUST_PARTICLE_COUNT; i++) {
+      const i3 = i * 3;
+      arr[i3] += velocities[i3] + Math.sin(time * 0.5 + i) * 0.0015;
+      arr[i3 + 1] += velocities[i3 + 1];
+      arr[i3 + 2] += velocities[i3 + 2] + Math.cos(time * 0.3 + i) * 0.0015;
+
+      // Respawn at bottom when rising too high
+      if (arr[i3 + 1] > 12) {
+        arr[i3 + 1] = -2;
+        arr[i3] = (Math.random() - 0.5) * 50;
+        arr[i3 + 2] = (Math.random() - 0.5) * 50;
+      }
+    }
+    posAttr.needsUpdate = true;
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          args={[positions, 3]}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.06}
+        color="#b8e0f8"
+        transparent
+        opacity={0.55}
+        sizeAttenuation
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                           Volumetric Fog Layer                            */
+/* -------------------------------------------------------------------------- */
+function VolumetricFogLayer() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
+
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uColor: { value: new THREE.Color('#03224a') },
+      uDensity: { value: 0.4 },
+    }),
+    [],
+  );
+
+  const vertexShader = `
+    varying vec2 vUv;
+    varying float vElevation;
+    void main() {
+      vUv = uv;
+      vElevation = position.y;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `;
+
+  const fragmentShader = `
+    uniform float uTime;
+    uniform vec3 uColor;
+    uniform float uDensity;
+    varying vec2 vUv;
+    varying float vElevation;
+
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    float noise(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      return mix(
+        mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
+        f.y
+      );
+    }
+
+    float fbm(vec2 p) {
+      float value = 0.0;
+      float amplitude = 0.5;
+      for (int i = 0; i < 4; i++) {
+        value += amplitude * noise(p);
+        p *= 2.0;
+        amplitude *= 0.5;
+      }
+      return value;
+    }
+
+    void main() {
+      vec2 uv = vUv * 4.0 + uTime * 0.04;
+      float n = fbm(uv);
+      float alpha = n * uDensity * (1.0 - abs(vUv.y - 0.5) * 1.8);
+      alpha = clamp(alpha, 0.0, 0.35);
+      gl_FragColor = vec4(uColor, alpha);
+    }
+  `;
+
+  useFrame((state) => {
+    if (materialRef.current) {
+      materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} position={[0, 4, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[120, 120, 1, 1]} />
+      <shaderMaterial
+        ref={materialRef}
+        vertexShader={vertexShader}
+        fragmentShader={fragmentShader}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                          Caustic Light Projection                         */
+/* -------------------------------------------------------------------------- */
+function CausticProjection() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
+
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uScale: { value: 8.0 },
+      uSpeed: { value: 0.25 },
+      uIntensity: { value: 0.5 },
+      uColor: { value: new THREE.Color('#7dd3fc') },
+    }),
+    [],
+  );
+
+  const vertexShader = `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `;
+
+  const fragmentShader = `
+    uniform float uTime;
+    uniform float uScale;
+    uniform float uSpeed;
+    uniform float uIntensity;
+    uniform vec3 uColor;
+    varying vec2 vUv;
+
+    float caustic(vec2 uv, float time) {
+      float c = 0.0;
+      for (int i = 1; i <= 3; i++) {
+        float fi = float(i);
+        vec2 p = uv * uScale * fi + time * uSpeed;
+        c += sin(p.x + sin(p.y * 1.2 + time)) * 0.5 + 0.5;
+        c += sin(p.y + sin(p.x * 0.9 + time * 1.1)) * 0.5 + 0.5;
+      }
+      return c / 6.0;
+    }
+
+    void main() {
+      float c1 = caustic(vUv, uTime);
+      float c2 = caustic(vUv + 0.3, uTime * 1.15);
+      float c = (c1 + c2) * 0.5;
+      c = pow(c, 1.6) * uIntensity;
+      gl_FragColor = vec4(uColor * c, c * 0.8);
+    }
+  `;
+
+  useFrame((state) => {
+    if (materialRef.current) {
+      materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} position={[0, -2.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[80, 80, 1, 1]} />
+      <shaderMaterial
+        ref={materialRef}
+        vertexShader={vertexShader}
+        fragmentShader={fragmentShader}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </mesh>
+  );
+}
 
 function OceanFloor() {
   const sandTexture = useTexture('/textures/sand.svg');
@@ -72,24 +317,51 @@ function UnderseaLightShafts() {
 
   return (
     <>
-      <mesh ref={sunRef} position={[-4, 6, -8]}>
-        <sphereGeometry args={[0.6, 16, 16]} />
-        <meshBasicMaterial color="#7dd3fc" />
+      <mesh ref={sunRef} position={[-4, 8, -12]}>
+        <sphereGeometry args={[0.8, 16, 16]} />
+        <meshBasicMaterial color="#a5d8ff" />
       </mesh>
 
-      <EffectComposer>
+      <EffectComposer multisampling={0}>
+        {/* God rays from surface light */}
         <GodRays
           sun={sunRef}
           blendFunction={THREE.AdditiveBlending}
-          density={0.6}
-          decay={0.95}
-          weight={0.6}
-          exposure={0.2}
-          samples={40}
+          density={0.5}
+          decay={0.93}
+          weight={0.5}
+          exposure={0.18}
+          samples={32}
         />
-        <Bloom intensity={0.45} luminanceThreshold={0.1} luminanceSmoothing={0.9} />
-        <Vignette eskil={false} offset={0.2} darkness={0.8} />
-        <Noise opacity={0.02} />
+
+        {/* Subtle bloom for glowing effects */}
+        <Bloom
+          intensity={0.35}
+          luminanceThreshold={0.2}
+          luminanceSmoothing={0.85}
+          mipmapBlur
+          radius={0.7}
+        />
+
+        {/* Depth of field for subtle focus */}
+        <DepthOfField
+          focusDistance={0.02}
+          focalLength={0.04}
+          bokehScale={1.5}
+        />
+
+        {/* Underwater color grading - blue-cyan tint */}
+        <HueSaturation hue={0.05} saturation={0.12} />
+        <BrightnessContrast brightness={-0.02} contrast={0.08} />
+
+        {/* Tone mapping for cinematic look */}
+        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+
+        {/* Vignette for focus */}
+        <Vignette eskil={false} offset={0.15} darkness={0.7} />
+
+        {/* Film grain */}
+        <Noise opacity={0.025} />
       </EffectComposer>
     </>
   );
@@ -329,12 +601,22 @@ export default function InteractiveCanvas() {
           color="#60a5fa"
         />
 
+        {/* Caustic lighting from above */}
         <Float speed={0.8} rotationIntensity={0.1} floatIntensity={0.6}>
           <CausticLight />
         </Float>
 
+        {/* Procedural caustics on ocean floor */}
+        <CausticProjection />
+
+        {/* Floating dust particles */}
+        <FloatingDust />
+
+        {/* Volumetric fog layer */}
+        <VolumetricFogLayer />
+
         <Suspense fallback={null}>
-          <Stars radius={80} depth={40} count={2000} factor={3} fade speed={0.6} />
+          <Stars radius={80} depth={40} count={1200} factor={2.5} fade speed={0.4} />
           <OceanFloor />
           <MarineScatter assets={marineAssets} />
           <PoiMarkers pois={poiList} highlightedIds={highlightedSet} activePoiId={activePoiId} />
