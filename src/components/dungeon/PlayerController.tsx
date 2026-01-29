@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type MutableRefObject, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { PositionalAudio } from '@react-three/drei';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
@@ -27,15 +27,16 @@ const FOOTSTEP_INTERVAL = {
 };
 
 const FOOTSTEP_URLS = [
-  '/sounds/footsteps/footstep_1.wav',
-  '/sounds/footsteps/footstep_2.wav',
-  '/sounds/footsteps/footstep_3.wav',
+  '/sounds/footsteps/grassy_step.wav',
+  '/sounds/footsteps/gravel_step.wav',
 ];
 
 export default function PlayerController({
   playerRef,
+  cameraYawRef,
 }: {
   playerRef?: RefObject<Group>;
+  cameraYawRef?: MutableRefObject<number>;
 }) {
   const internalRef = useRef<Group>(null);
   const groupRef = playerRef ?? internalRef;
@@ -221,7 +222,7 @@ export default function PlayerController({
         />
         <PositionalAudio
           ref={landRef}
-          url="/sounds/player/land.wav"
+          url="/sounds/player/jump.wav"
           distance={8}
           loop={false}
           autoplay={false}

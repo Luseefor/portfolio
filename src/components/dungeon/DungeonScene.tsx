@@ -16,6 +16,7 @@ const FOG_COLOR = new Color(sceneLighting.fogColor);
 export default function DungeonScene() {
   const { scene } = useGLTF('/models/dungeon/structure/Modular Ruins Pack.glb');
   const playerRef = useRef<Group>(null);
+  const cameraYawRef = useRef(0);
 
   return (
     <group>
@@ -65,10 +66,10 @@ export default function DungeonScene() {
           </mesh>
         </RigidBody>
 
-        <PlayerController playerRef={playerRef} />
+        <PlayerController playerRef={playerRef} cameraYawRef={cameraYawRef} />
       </Physics>
 
-      <CameraRig target={playerRef} />
+      <CameraRig target={playerRef} yawRef={cameraYawRef} />
 
       {/* Agent B: Postprocessing (bloom, vignette, tone mapping) */}
       <DungeonPostProcessing />
