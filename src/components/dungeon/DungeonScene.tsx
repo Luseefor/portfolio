@@ -7,8 +7,11 @@ import { Color, type Group } from 'three';
 import PlayerController from '@/components/dungeon/PlayerController';
 import CameraRig from '@/components/dungeon/CameraRig';
 import DungeonAmbience from '@/components/dungeon/DungeonAmbience';
+import { TorchSystem } from '@/components/dungeon/Torch';
+import DungeonPostProcessing from '@/components/dungeon/DungeonPostProcessing';
+import { sceneLighting } from '@/constants/scene';
 
-const FOG_COLOR = new Color('#1b1410');
+const FOG_COLOR = new Color(sceneLighting.fogColor);
 
 export default function DungeonScene() {
   const { scene } = useGLTF('/models/dungeon/structure/Modular Ruins Pack.glb');
@@ -17,14 +20,35 @@ export default function DungeonScene() {
   return (
     <group>
       <color attach="background" args={['#0b0908']} />
-      <fogExp2 attach="fog" args={[FOG_COLOR, 0.045]} />
+      <fogExp2 attach="fog" args={[FOG_COLOR, sceneLighting.fogDensity]} />
 
-      <ambientLight intensity={0.25} color="#f2d5a6" />
-      <directionalLight position={[8, 12, 6]} intensity={0.5} color="#ffe4b5" />
+      {/* Base ambient lighting */}
+      <ambientLight intensity={sceneLighting.ambientIntensity} color={sceneLighting.ambientColor} />
+      <hemisphereLight
+        intensity={sceneLighting.hemisphereIntensity}
+        color={sceneLighting.hemisphereSky}
+        groundColor={sceneLighting.hemisphereGround}
+      />
+      <directionalLight
+        position={sceneLighting.fillDirectionalPosition}
+        intensity={sceneLighting.fillDirectionalIntensity}
+        color={sceneLighting.fillDirectionalColor}
+      />
 
-      <pointLight position={[4, 3, -2]} intensity={2.2} color="#ffb35c" distance={18} />
-      <pointLight position={[-5, 3, 4]} intensity={1.8} color="#ff9f5a" distance={16} />
-      <pointLight position={[0, 3, 8]} intensity={1.6} color="#ffbf75" distance={16} />
+      {/* Static point lights for base illumination */}
+      {sceneLighting.torchLights.map((torch, index) => (
+        <pointLight
+          key={`torch-${index}`}
+          position={torch.position}
+          intensity={torch.intensity}
+          color={torch.color}
+          distance={torch.distance}
+        />
+      ))}
+
+      {/* Agent B: Torch system with flickering lights */}
+      <TorchSystem />
+
       <DungeonAmbience />
 
       <Physics gravity={[0, -25, 0]}>
@@ -45,6 +69,9 @@ export default function DungeonScene() {
       </Physics>
 
       <CameraRig target={playerRef} />
+
+      {/* Agent B: Postprocessing (bloom, vignette, tone mapping) */}
+      <DungeonPostProcessing />
     </group>
   );
 }
