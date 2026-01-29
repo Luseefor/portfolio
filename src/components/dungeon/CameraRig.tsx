@@ -2,7 +2,7 @@
 
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, type MutableRefObject, type RefObject } from 'react';
-import { useRapier } from '@react-three/rapier';
+import { useRapier, type RapierRigidBody } from '@react-three/rapier';
 import { MathUtils, Vector3, type Group } from 'three';
 import { useSettings } from '@/lib/settings';
 import { useDungeonInput } from '@/lib/dungeonInput';
@@ -25,10 +25,12 @@ export default function CameraRig({
   target,
   yawRef,
   pitchRef,
+  targetBody,
 }: {
   target: RefObject<Group>;
   yawRef?: MutableRefObject<number>;
   pitchRef?: MutableRefObject<number>;
+  targetBody?: MutableRefObject<RapierRigidBody | null>;
 }) {
   const { camera } = useThree();
   const { rapier, world } = useRapier();
@@ -65,9 +67,15 @@ export default function CameraRig({
   }, [isPointerLocked, mouseSensitivity, pitchValue, yawValue]);
 
   useFrame((_, delta) => {
-    const targetGroup = target.current;
-    if (!targetGroup) return;
-    targetGroup.getWorldPosition(targetPosition);
+    const targetBodyRef = targetBody?.current ?? null;
+    if (targetBodyRef) {
+      const position = targetBodyRef.translation();
+      targetPosition.set(position.x, position.y, position.z);
+    } else {
+      const targetGroup = target.current;
+      if (!targetGroup) return;
+      targetGroup.getWorldPosition(targetPosition);
+    }
 
     const yaw = yawValue.current;
     const pitch = pitchValue.current;

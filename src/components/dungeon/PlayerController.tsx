@@ -40,13 +40,16 @@ const FOOTSTEP_URLS = [
 export default function PlayerController({
   playerRef,
   cameraYawRef,
+  bodyRef,
 }: {
   playerRef?: RefObject<Group>;
   cameraYawRef?: MutableRefObject<number>;
+  bodyRef?: MutableRefObject<RapierRigidBody | null>;
 }) {
   const internalRef = useRef<Group>(null);
   const groupRef = playerRef ?? internalRef;
-  const bodyRef = useRef<RapierRigidBody | null>(null);
+  const internalBodyRef = useRef<RapierRigidBody | null>(null);
+  const rigidBodyRef = bodyRef ?? internalBodyRef;
   const [animation, setAnimation] = useState<PlayerAnimation>('idle');
   const groundedRef = useRef(false);
   const { rapier, world } = useRapier();
@@ -128,7 +131,7 @@ export default function PlayerController({
   }, []);
 
   useFrame((_, delta) => {
-    const body = bodyRef.current;
+    const body = rigidBodyRef.current;
     if (!body) return;
 
     const position = body.translation();
@@ -234,7 +237,7 @@ export default function PlayerController({
 
   return (
     <RigidBody
-      ref={bodyRef}
+      ref={rigidBodyRef}
       position={START_POSITION}
       colliders={false}
       type="dynamic"

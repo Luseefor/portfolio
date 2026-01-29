@@ -1,6 +1,6 @@
 'use client';
 
-import { Physics } from '@react-three/rapier';
+import { Physics, type RapierRigidBody } from '@react-three/rapier';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { AxesHelper, Color, type Group } from 'three';
 import PlayerController from '@/components/dungeon/PlayerController';
@@ -18,6 +18,7 @@ const DEBUG_TOGGLE_KEY = 'F1';
 
 export default function DungeonScene() {
   const playerRef = useRef<Group>(null);
+  const playerBodyRef = useRef<RapierRigidBody | null>(null);
   const cameraYawRef = useRef(0);
   const [debugEnabled, setDebugEnabled] = useState(false);
   const axesHelper = useMemo(() => new AxesHelper(6), []);
@@ -93,9 +94,13 @@ export default function DungeonScene() {
 
       <Physics gravity={[0, -25, 0]}>
         <DungeonColliders />
-        <CameraRig target={playerRef} yawRef={cameraYawRef} />
+        <CameraRig target={playerRef} yawRef={cameraYawRef} targetBody={playerBodyRef} />
         <Suspense fallback={null}>
-          <PlayerController playerRef={playerRef} cameraYawRef={cameraYawRef} />
+          <PlayerController
+            playerRef={playerRef}
+            cameraYawRef={cameraYawRef}
+            bodyRef={playerBodyRef}
+          />
         </Suspense>
       </Physics>
 
