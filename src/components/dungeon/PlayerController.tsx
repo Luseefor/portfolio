@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type MutableRefObject, type RefObject } fr
 import { useFrame } from '@react-three/fiber';
 import { PositionalAudio } from '@react-three/drei';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
-import { Quaternion, Vector3, type Group, type PositionalAudio as PositionalAudioImpl } from 'three';
+import { MathUtils, Quaternion, Vector3, type Group, type PositionalAudio as PositionalAudioImpl } from 'three';
 import PlayerCharacter, { type PlayerAnimation } from '@/components/dungeon/PlayerCharacter';
 import { usePlayerState } from '@/lib/playerState';
 
@@ -18,6 +18,8 @@ const START_POSITION: [number, number, number] = [0, -1.5, 0];
 
 const direction = new Vector3();
 const targetVelocity = new Vector3();
+const moveForward = new Vector3();
+const moveRight = new Vector3();
 const rotation = new Quaternion();
 const forwardVector = new Vector3();
 
@@ -44,7 +46,7 @@ export default function PlayerController({
   const [animation, setAnimation] = useState<PlayerAnimation>('idle');
   const groundedRef = useRef(false);
   const { rapier, world } = useRapier();
-  const yawRef = useRef(0);
+  const facingRef = useRef(0);
 
   const footstepRefs = useRef<PositionalAudioImpl[]>([]);
   const jumpRef = useRef<PositionalAudioImpl | null>(null);
@@ -117,13 +119,17 @@ export default function PlayerController({
     }
     wasGroundedRef.current = groundedRef.current;
 
-    direction.set(0, 0, 0);
-    if (inputRef.current.forward) direction.z -= 1;
-    if (inputRef.current.backward) direction.z += 1;
-    if (inputRef.current.left) direction.x -= 1;
-    if (inputRef.current.right) direction.x += 1;
+    const yaw = cameraYawRef?.current ?? 0;
+    moveForward.set(Math.sin(yaw), 0, Math.cos(yaw)).normalize();
+    moveRight.set(moveForward.z, 0, -moveForward.x).normalize();
 
-    const isMoving = direction.lengthSq() > 0;
+    direction.set(0, 0, 0);
+    if (inputRef.current.forward) direction.add(moveForward);
+    if (inputRef.current.backward) direction.sub(moveForward);
+    if (inputRef.current.left) direction.sub(moveRight);
+    if (inputRef.current.right) direction.add(moveRight);
+
+    const isMoving = direction.lengthSq() > 0.001;
     const targetSpeed = inputRef.current.run ? RUN_SPEED : WALK_SPEED;
 
     if (isMoving) {
@@ -134,8 +140,9 @@ export default function PlayerController({
     }
 
     const currentVelocity = body.linvel();
-    const nextVelocityX = moveToward(currentVelocity.x, targetVelocity.x, ACCELERATION * delta);
-    const nextVelocityZ = moveToward(currentVelocity.z, targetVelocity.z, ACCELERATION * delta);
+    const accel = isMoving ? ACCELERATION : FRICTION;
+    const nextVelocityX = moveToward(currentVelocity.x, targetVelocity.x, accel * delta);
+    const nextVelocityZ = moveToward(currentVelocity.z, targetVelocity.z, accel * delta);
 
     let nextVelocityY = currentVelocity.y;
     if (groundedRef.current) {
@@ -153,14 +160,15 @@ export default function PlayerController({
     body.setAngvel({ x: 0, y: 0, z: 0 }, true);
 
     if (isMoving) {
-      yawRef.current = Math.atan2(nextVelocityX, nextVelocityZ);
+      const desiredYaw = Math.atan2(direction.x, direction.z);
+      facingRef.current = lerpAngle(facingRef.current, desiredYaw, 1 - Math.pow(0.001, delta));
       const targetAnimation = inputRef.current.run ? 'run' : 'walk';
       setAnimation(targetAnimation);
     } else if (groundedRef.current) {
       setAnimation('idle');
     }
 
-    rotation.setFromAxisAngle(new Vector3(0, 1, 0), yawRef.current);
+    rotation.setFromAxisAngle(new Vector3(0, 1, 0), facingRef.current);
     body.setRotation(rotation, true);
 
     if (groundedRef.current && isMoving) {
@@ -236,4 +244,9 @@ export default function PlayerController({
 function moveToward(current: number, target: number, maxDelta: number) {
   if (Math.abs(target - current) <= maxDelta) return target;
   return current + Math.sign(target - current) * maxDelta;
+}
+
+function lerpAngle(a: number, b: number, t: number) {
+  const delta = MathUtils.euclideanModulo(b - a + Math.PI, Math.PI * 2) - Math.PI;
+  return a + delta * t;
 }
