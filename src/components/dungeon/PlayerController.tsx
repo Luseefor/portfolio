@@ -176,7 +176,7 @@ export default function PlayerController({
 
     const speed = Math.hypot(nextVelocityX, nextVelocityZ);
     forwardVector.set(0, 0, 1).applyQuaternion(rotation);
-    usePlayerState.getState().setPlayerState({
+    usePlayerState.getState()._setPlayerState({
       position: { x: position.x, y: position.y, z: position.z },
       forward: { x: forwardVector.x, y: forwardVector.y, z: forwardVector.z },
       speed,

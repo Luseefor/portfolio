@@ -11,7 +11,7 @@ export type PlayerState = {
 };
 
 type PlayerStore = PlayerState & {
-  setPlayerState: (next: Partial<PlayerState>) => void;
+  _setPlayerState: (next: Partial<PlayerState>) => void;
 };
 
 export const usePlayerState = create<PlayerStore>((set) => ({
@@ -20,7 +20,7 @@ export const usePlayerState = create<PlayerStore>((set) => ({
   speed: 0,
   grounded: false,
   isMoving: false,
-  setPlayerState: (next) => set(next),
+  _setPlayerState: (next) => set(next),
 }));
 
 export const playerStateSelectors = {
