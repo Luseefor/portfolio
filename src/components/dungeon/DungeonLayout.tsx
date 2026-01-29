@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { Instance, Instances, useGLTF } from '@react-three/drei';
-import type { Mesh, Object3D } from 'three';
+import { useGLTF } from '@react-three/drei';
+import type { Object3D } from 'three';
 import { DUNGEON_LAYOUT, type DungeonPlacement } from '@/constants/DungeonLayout';
 
 function getNode(nodes: Record<string, Object3D>, name: string) {
@@ -16,127 +16,86 @@ export default function DungeonLayout() {
 
   const placements = useMemo(() => DUNGEON_LAYOUT, []);
   const nodeKeys = useMemo(() => Object.keys(nodes), [nodes]);
+
+  // Optional debug: enable with ?debug=1 or ?debugDungeon=1
+  const debugDungeon =
+    typeof window !== 'undefined' &&
+    (new URLSearchParams(window.location.search).get('debug') === '1' ||
+      new URLSearchParams(window.location.search).get('debugDungeon') === '1');
+
   const missingKeys = useMemo(() => {
     const missing = new Set<string>();
-    placements.forEach((placement) => {
-      if (!nodes[placement.key]) {
-        missing.add(placement.key);
-      }
-    });
+    for (const p of placements) {
+      if (!nodes[p.key]) missing.add(p.key);
+    }
     return Array.from(missing);
   }, [nodes, placements]);
 
-  const fallbackMesh = useMemo(() => {
-    const preferred = ['Floor_Standard', 'Wall', 'Floor_Squares'];
-    for (const name of preferred) {
-      const node = nodes[name];
-      if (node && (node as Mesh).isMesh) return node as Mesh;
+  // Group placements by key to reduce repeated lookups
+  const grouped = useMemo(() => {
+    const map = new Map<string, DungeonPlacement[]>();
+    for (const p of placements) {
+      const list = map.get(p.key) ?? [];
+      list.push(p);
+      map.set(p.key, list);
     }
-    const firstMesh = Object.values(nodes).find((node) => (node as Mesh).isMesh);
-    return (firstMesh as Mesh) ?? null;
-  }, [nodes]);
+    return map;
+  }, [placements]);
 
   useEffect(() => {
     if (placements.length === 0) {
       console.warn('[DungeonLayout] DUNGEON_LAYOUT is empty.');
     }
-    if (missingKeys.length > 0) {
-      missingKeys.forEach((key) => {
-        console.warn('[DungeonLayout] Missing node:', key, nodeKeys);
-      });
-    }
-  }, [missingKeys, nodeKeys, placements.length]);
-  const grouped = useMemo(() => {
-    const map = new Map<string, DungeonPlacement[]>();
-    placements.forEach((placement) => {
-      const list = map.get(placement.key) ?? [];
-      list.push(placement);
-      map.set(placement.key, list);
-    });
-    return map;
-  }, [placements]);
-  const hasRenderable = useMemo(() => placements.some((placement) => Boolean(nodes[placement.key])), [nodes, placements]);
 
-  const instancedKeys = useMemo(
-    () =>
-      new Set([
-        'Floor_Standard',
-        'Floor_Squares',
-        'Floor_SquareLarge',
-        'Floor_Standard_Half',
-        'Floor_Diamond',
-        'Wall',
-        'Wall_Broken',
-        'Wall_Overgrown',
-        'Wall_Hole',
-        'Column_Round',
-        'Column_Square',
-      ]),
-    []
-  );
+    if (missingKeys.length > 0) {
+      console.warn('[DungeonLayout] Missing placement keys:', missingKeys);
+      // Helpful: print available keys once
+      console.warn('[DungeonLayout] Available node keys:', nodeKeys);
+    }
+
+    // Warn if nodes rely on non-unit scale (common reason mesh/instancing breaks)
+    // This is informational now since we are using <primitive>.
+    for (const [key] of grouped.entries()) {
+      const node = nodes[key];
+      if (!node) continue;
+      const s = node.scale;
+      if (s.x !== 1 || s.y !== 1 || s.z !== 1) {
+        console.warn('[DungeonLayout] Non-unit scale node (OK with primitive):', key, {
+          x: s.x,
+          y: s.y,
+          z: s.z,
+        });
+      }
+    }
+  }, [grouped, missingKeys, nodeKeys, nodes, placements.length]);
+
+  // Debug: force draw a known node at origin to confirm GLB visibility
+  const debugNode = useMemo(() => getNode(nodes, 'Floor_Standard'), [nodes]);
 
   return (
     <group>
-      {placements.length > 0 && !hasRenderable && fallbackMesh && (
-        <mesh
-          geometry={fallbackMesh.geometry}
-          material={fallbackMesh.material}
+      {/* DEBUG: render a known piece at origin */}
+      {debugDungeon && debugNode && (
+        <primitive
+          object={debugNode.clone(true)}
           position={[0, 0, 0]}
-          castShadow
-          receiveShadow
+          frustumCulled={false as any}
         />
       )}
-      {Array.from(grouped.entries()).map(([key, items]) => {
-        const node = getNode(nodes, key);
-        if (!node) return null;
 
-        const isMesh = (node as Mesh).isMesh;
-        if (!isMesh) {
-          return items.map((placement, index) => (
-            <primitive
-              key={`${key}-${index}`}
-              object={node.clone(true)}
-              position={placement.pos}
-              rotation={[0, placement.rotY ?? 0, 0]}
-              scale={placement.scale ?? 1}
-            />
-          ));
-        }
+      {/* Render dungeon pieces as full Object3D clones to preserve hierarchy transforms */}
+      {Array.from(grouped.entries()).flatMap(([key, items]) => {
+        const base = getNode(nodes, key);
+        if (!base) return [];
 
-        const mesh = node as Mesh;
-        const useInstances = instancedKeys.has(key) && items.length > 1;
-
-        if (useInstances) {
-          return (
-            <Instances
-              key={`inst-${key}`}
-              geometry={mesh.geometry}
-              material={mesh.material}
-              castShadow
-              receiveShadow
-            >
-              {items.map((placement, index) => (
-                <Instance
-                  key={`${key}-${index}`}
-                  position={placement.pos}
-                  rotation={[0, placement.rotY ?? 0, 0]}
-                  scale={placement.scale ?? 1}
-                />
-              ))}
-            </Instances>
-          );
-        }
-
-        return items.map((placement, index) => (
-          <mesh
+        return items.map((p, index) => (
+          <primitive
             key={`${key}-${index}`}
-            geometry={mesh.geometry}
-            material={mesh.material}
-            position={placement.pos}
-            rotation={[0, placement.rotY ?? 0, 0]}
-            scale={placement.scale ?? 1}
-            castShadow
-            receiveShadow
+            object={base.clone(true)}
+            position={p.pos}
+            rotation={[0, p.rotY ?? 0, 0]}
+            scale={p.scale ?? 1}
+            frustumCulled={false as any} // avoids accidental culling while debugging
           />
         ));
       })}
