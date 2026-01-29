@@ -42,13 +42,13 @@ export default function AIAgent() {
         if (lowerInput === 'help') {
             setMessages(prev => [...prev, userMessage, {
                 role: 'assistant',
-                content: 'Available Commands:\n\n- clear: Reset console\n- home: Navigate to Dashboard\n- identity: View Documentation\n- interactive: Launch World View\n- whoami: System User Info'
+                content: 'Available Commands:\n\n- clear: Reset console\n- home: Navigate to Dashboard\n- identity: View Documentation\n- whoami: System User Info'
             }]);
             setInput('');
             return;
         }
 
-        if (['home', 'identity', 'interactive'].includes(lowerInput)) {
+        if (['home', 'identity'].includes(lowerInput)) {
             setMessages(prev => [...prev, userMessage, { role: 'assistant', content: `Executing navigation protocol: ${lowerInput.toUpperCase()}...` }]);
             setTimeout(() => {
                 if (lowerInput === 'home') router.push('/');
