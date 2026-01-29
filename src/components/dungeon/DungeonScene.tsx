@@ -1,6 +1,6 @@
 'use client';
 
-import { MeshCollider, Physics, RigidBody } from '@react-three/rapier';
+import { Physics } from '@react-three/rapier';
 import { useRef } from 'react';
 import { Color, type Group } from 'three';
 import PlayerController from '@/components/dungeon/PlayerController';
@@ -11,6 +11,7 @@ import DungeonPostProcessing from '@/components/dungeon/DungeonPostProcessing';
 import DungeonParticles from '@/components/dungeon/DungeonParticles';
 import { sceneLighting } from '@/constants/scene';
 import DungeonLayout from '@/components/dungeon/DungeonLayout';
+import DungeonColliders from '@/components/dungeon/DungeonColliders';
 
 const FOG_COLOR = new Color(sceneLighting.fogColor);
 
@@ -56,11 +57,8 @@ export default function DungeonScene() {
       <DungeonAmbience />
 
       <Physics gravity={[0, -25, 0]}>
-        <RigidBody type="fixed" colliders={false}>
-          <MeshCollider type="trimesh">
-            <DungeonLayout />
-          </MeshCollider>
-        </RigidBody>
+        <DungeonLayout />
+        <DungeonColliders />
 
         <PlayerController playerRef={playerRef} cameraYawRef={cameraYawRef} />
         <CameraRig target={playerRef} yawRef={cameraYawRef} />
