@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState, type MutableRefObject, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type MutableRefObject, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { PositionalAudio } from '@react-three/drei';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
 import { MathUtils, Quaternion, Vector3, type Group, type PositionalAudio as PositionalAudioImpl } from 'three';
 import PlayerCharacter, { type PlayerAnimation } from '@/components/dungeon/PlayerCharacter';
 import { usePlayerState } from '@/lib/playerState';
+import { useDungeonInput } from '@/lib/dungeonInput';
 
 const WALK_SPEED = 2.4;
 const RUN_SPEED = 4.2;
@@ -54,6 +55,7 @@ export default function PlayerController({
   const groundedRef = useRef(false);
   const { rapier, world } = useRapier();
   const facingRef = useRef(0);
+  const hasFocus = useDungeonInput((state) => state.hasFocus);
 
   const footstepRefs = useRef<PositionalAudioImpl[]>([]);
   const jumpRef = useRef<PositionalAudioImpl | null>(null);
@@ -70,8 +72,18 @@ export default function PlayerController({
     jump: false,
   });
 
+  const resetInputs = useCallback(() => {
+    inputRef.current.forward = false;
+    inputRef.current.backward = false;
+    inputRef.current.left = false;
+    inputRef.current.right = false;
+    inputRef.current.run = false;
+    inputRef.current.jump = false;
+  }, []);
+
   useEffect(() => {
     const handleKey = (event: KeyboardEvent, pressed: boolean) => {
+      if (!hasFocus) return;
       const target = event.target as HTMLElement | null;
       if (target && ['INPUT', 'TEXTAREA'].includes(target.tagName)) return;
 
@@ -100,15 +112,6 @@ export default function PlayerController({
       }
     };
 
-    const resetInputs = () => {
-      inputRef.current.forward = false;
-      inputRef.current.backward = false;
-      inputRef.current.left = false;
-      inputRef.current.right = false;
-      inputRef.current.run = false;
-      inputRef.current.jump = false;
-    };
-
     const handleKeyDown = (event: KeyboardEvent) => handleKey(event, true);
     const handleKeyUp = (event: KeyboardEvent) => handleKey(event, false);
     const handleBlur = () => resetInputs();
@@ -128,7 +131,13 @@ export default function PlayerController({
       window.removeEventListener('blur', handleBlur);
       document.removeEventListener('pointerlockchange', handlePointerLockChange);
     };
-  }, []);
+  }, [hasFocus, resetInputs]);
+
+  useEffect(() => {
+    if (!hasFocus) {
+      resetInputs();
+    }
+  }, [hasFocus, resetInputs]);
 
   useFrame((_, delta) => {
     const body = rigidBodyRef.current;
