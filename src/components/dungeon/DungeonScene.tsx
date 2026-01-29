@@ -9,6 +9,7 @@ import CameraRig from '@/components/dungeon/CameraRig';
 import DungeonAmbience from '@/components/dungeon/DungeonAmbience';
 import { TorchSystem } from '@/components/dungeon/Torch';
 import DungeonPostProcessing from '@/components/dungeon/DungeonPostProcessing';
+import DungeonParticles from '@/components/dungeon/DungeonParticles';
 import { sceneLighting } from '@/constants/scene';
 
 const FOG_COLOR = new Color(sceneLighting.fogColor);
@@ -50,6 +51,9 @@ export default function DungeonScene() {
       {/* Agent B: Torch system with flickering lights */}
       <TorchSystem />
 
+      {/* Agent B: Atmospheric particles (dust motes + torch embers) */}
+      <DungeonParticles />
+
       <DungeonAmbience />
 
       <Physics gravity={[0, -25, 0]}>
@@ -67,9 +71,8 @@ export default function DungeonScene() {
         </RigidBody>
 
         <PlayerController playerRef={playerRef} cameraYawRef={cameraYawRef} />
+        <CameraRig target={playerRef} yawRef={cameraYawRef} />
       </Physics>
-
-      <CameraRig target={playerRef} yawRef={cameraYawRef} />
 
       {/* Agent B: Postprocessing (bloom, vignette, tone mapping) */}
       <DungeonPostProcessing />

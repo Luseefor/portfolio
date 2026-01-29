@@ -2,12 +2,14 @@
 
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, type MutableRefObject, type RefObject } from 'react';
+import { useRapier } from '@react-three/rapier';
 import { MathUtils, Vector3, type Group } from 'three';
 
 const targetPosition = new Vector3();
 const desiredPosition = new Vector3();
 const forward = new Vector3();
 const right = new Vector3();
+const rayDirection = new Vector3();
 
 const DEFAULT_DISTANCE = 6.6;
 const MIN_DISTANCE = 4.2;
@@ -27,6 +29,7 @@ export default function CameraRig({
   pitchRef?: MutableRefObject<number>;
 }) {
   const { camera, gl } = useThree();
+  const { rapier, world } = useRapier();
   const up = useMemo(() => new Vector3(0, 1, 0), []);
   const internalYaw = useRef(0);
   const internalPitch = useRef(MathUtils.degToRad(-10));
@@ -89,7 +92,22 @@ export default function CameraRig({
       .add(right.clone().multiplyScalar(SIDE_OFFSET))
       .add(up.clone().multiplyScalar(HEIGHT_OFFSET + verticalOffset));
 
-    camera.position.lerp(desiredPosition, 1 - Math.pow(0.001, delta));
+    rayDirection.copy(desiredPosition).sub(targetPosition);
+    const rayDistance = rayDirection.length();
+    rayDirection.normalize();
+
+    const ray = new rapier.Ray(
+      { x: targetPosition.x, y: targetPosition.y, z: targetPosition.z },
+      { x: rayDirection.x, y: rayDirection.y, z: rayDirection.z }
+    );
+    const hit = world.castRay(ray, rayDistance, true);
+    let cameraTarget = desiredPosition;
+    if (hit) {
+      const safeDistance = Math.max(0.5, hit.toi - 0.3);
+      cameraTarget = targetPosition.clone().add(rayDirection.multiplyScalar(safeDistance));
+    }
+
+    camera.position.lerp(cameraTarget, 1 - Math.pow(0.001, delta));
     camera.lookAt(targetPosition.x, targetPosition.y + 1.3, targetPosition.z);
   });
 
