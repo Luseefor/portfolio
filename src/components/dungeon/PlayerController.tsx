@@ -93,14 +93,33 @@ export default function PlayerController({
       }
     };
 
+    const resetInputs = () => {
+      inputRef.current.forward = false;
+      inputRef.current.backward = false;
+      inputRef.current.left = false;
+      inputRef.current.right = false;
+      inputRef.current.run = false;
+      inputRef.current.jump = false;
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => handleKey(event, true);
     const handleKeyUp = (event: KeyboardEvent) => handleKey(event, false);
+    const handleBlur = () => resetInputs();
+    const handlePointerLockChange = () => {
+      if (document.pointerLockElement === null) {
+        resetInputs();
+      }
+    };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
+    document.addEventListener('pointerlockchange', handlePointerLockChange);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
+      document.removeEventListener('pointerlockchange', handlePointerLockChange);
     };
   }, []);
 
@@ -129,10 +148,10 @@ export default function PlayerController({
     if (inputRef.current.left) direction.sub(moveRight);
     if (inputRef.current.right) direction.add(moveRight);
 
-    const isMoving = direction.lengthSq() > 0.001;
+    const inputActive = direction.lengthSq() > 0.001;
     const targetSpeed = inputRef.current.run ? RUN_SPEED : WALK_SPEED;
 
-    if (isMoving) {
+    if (inputActive) {
       direction.normalize();
       targetVelocity.copy(direction).multiplyScalar(targetSpeed);
     } else {
@@ -140,7 +159,7 @@ export default function PlayerController({
     }
 
     const currentVelocity = body.linvel();
-    const accel = isMoving ? ACCELERATION : FRICTION;
+    const accel = inputActive ? ACCELERATION : FRICTION;
     const nextVelocityX = moveToward(currentVelocity.x, targetVelocity.x, accel * delta);
     const nextVelocityZ = moveToward(currentVelocity.z, targetVelocity.z, accel * delta);
 
@@ -159,19 +178,21 @@ export default function PlayerController({
     body.setLinvel({ x: nextVelocityX, y: nextVelocityY, z: nextVelocityZ }, true);
     body.setAngvel({ x: 0, y: 0, z: 0 }, true);
 
-    if (isMoving) {
+    if (inputActive) {
       const desiredYaw = Math.atan2(direction.x, direction.z);
       facingRef.current = lerpAngle(facingRef.current, desiredYaw, 1 - Math.pow(0.001, delta));
-      const targetAnimation = inputRef.current.run ? 'run' : 'walk';
-      setAnimation(targetAnimation);
-    } else if (groundedRef.current) {
-      setAnimation('idle');
+      setAnimation(inputRef.current.run ? 'run' : 'walk');
+    } else {
+      const speedOnGround = Math.hypot(nextVelocityX, nextVelocityZ);
+      if (groundedRef.current && speedOnGround < 0.15) {
+        setAnimation('idle');
+      }
     }
 
     rotation.setFromAxisAngle(new Vector3(0, 1, 0), facingRef.current);
     body.setRotation(rotation, true);
 
-    if (groundedRef.current && isMoving) {
+    if (groundedRef.current && inputActive) {
       footstepTimer.current += delta;
       const interval = inputRef.current.run ? FOOTSTEP_INTERVAL.run : FOOTSTEP_INTERVAL.walk;
       if (footstepTimer.current >= interval) {
@@ -190,7 +211,7 @@ export default function PlayerController({
       forward: { x: forwardVector.x, y: forwardVector.y, z: forwardVector.z },
       speed,
       grounded: groundedRef.current,
-      isMoving: isMoving && speed > 0.1,
+      isMoving: inputActive && speed > 0.1,
     });
   });
 
