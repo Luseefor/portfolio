@@ -2,6 +2,7 @@
 
 import { useGLTF } from '@react-three/drei';
 import { Color } from 'three';
+import PlayerCharacter from '@/components/dungeon/PlayerCharacter';
 
 const FOG_COLOR = new Color('#1b1410');
 
@@ -21,6 +22,7 @@ export default function DungeonScene() {
       <pointLight position={[0, 3, 8]} intensity={1.6} color="#ffbf75" distance={16} />
 
       <primitive object={scene} position={[0, -1.5, 0]} />
+      <PlayerCharacter animation="idle" />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.55, 0]} receiveShadow>
         <planeGeometry args={[200, 200]} />
