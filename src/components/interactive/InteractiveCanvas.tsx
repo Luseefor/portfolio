@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ACESFilmicToneMapping } from 'three';
 import LoadingScreen from '@/components/interactive/LoadingScreen';
@@ -12,14 +12,25 @@ export default function InteractiveCanvas() {
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
   const setHasFocus = useDungeonInput((state) => state.setHasFocus);
   const setPointerLocked = useDungeonInput((state) => state.setPointerLocked);
+  const forcePointerLock = useMemo(
+    () =>
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('forcePointerLock') === '1',
+    []
+  );
 
   const handlePointerDown = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = event.currentTarget;
     canvas.focus();
+    if (forcePointerLock) {
+      setPointerLocked(true);
+      setHasFocus(true);
+      return;
+    }
     if (document.pointerLockElement !== canvas) {
       canvas.requestPointerLock();
     }
-  }, []);
+  }, [forcePointerLock, setHasFocus, setPointerLocked]);
 
   const handleFocus = useCallback(() => {
     setHasFocus(true);
@@ -27,10 +38,14 @@ export default function InteractiveCanvas() {
 
   const handleBlur = useCallback(() => {
     setHasFocus(false);
-  }, [setHasFocus]);
+    if (forcePointerLock) {
+      setPointerLocked(false);
+    }
+  }, [forcePointerLock, setHasFocus, setPointerLocked]);
 
   useEffect(() => {
     if (!canvasEl) return;
+    if (forcePointerLock) return;
     const handlePointerLockChange = () => {
       const isLocked = document.pointerLockElement === canvasEl;
       setPointerLocked(isLocked);
@@ -43,7 +58,7 @@ export default function InteractiveCanvas() {
 
     document.addEventListener('pointerlockchange', handlePointerLockChange);
     return () => document.removeEventListener('pointerlockchange', handlePointerLockChange);
-  }, [canvasEl, setHasFocus, setPointerLocked]);
+  }, [canvasEl, forcePointerLock, setHasFocus, setPointerLocked]);
 
   return (
     <div className="absolute inset-0">
