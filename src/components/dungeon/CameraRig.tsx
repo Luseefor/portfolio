@@ -3,7 +3,7 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, type MutableRefObject, type RefObject } from 'react';
 import { useRapier, type RapierRigidBody } from '@react-three/rapier';
-import { MathUtils, Vector3, type Group } from 'three';
+import { Vector3, type Group } from 'three';
 import { useSettings } from '@/lib/settings';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import {
@@ -14,6 +14,13 @@ import {
   CAMERA_PITCH,
   CAMERA_COLLISION,
 } from '@/constants/camera';
+import {
+  applyMouseDelta,
+  clampCameraDistance,
+  computeCameraDesired,
+  computeSmoothingFactor,
+  getCameraParentWarnings,
+} from '@/components/dungeon/math/cameraMath';
 
 const targetPosition = new Vector3();
 const desiredPosition = new Vector3();
@@ -33,6 +40,7 @@ export default function CameraRig({
   targetBody?: MutableRefObject<RapierRigidBody | null>;
 }) {
   const { camera } = useThree();
+  const { scene } = useThree();
   const { rapier, world } = useRapier();
   const mouseSensitivity = useSettings((state) => state.mouseSensitivity);
   const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
@@ -40,6 +48,9 @@ export default function CameraRig({
   const internalYaw = useRef(0);
   const internalPitch = useRef(CAMERA_PITCH.initial);
   const distanceRef = useRef(CAMERA_DISTANCE.default);
+  const devWarningTimer = useRef(0);
+  const devErrorTimer = useRef(0);
+  const isDev = process.env.NODE_ENV !== 'production';
 
   const yawValue = yawRef ?? internalYaw;
   const pitchValue = pitchRef ?? internalPitch;
@@ -47,14 +58,24 @@ export default function CameraRig({
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       if (!isPointerLocked) return;
-      yawValue.current -= event.movementX * CAMERA_SENSITIVITY.yaw * mouseSensitivity;
-      pitchValue.current -= event.movementY * CAMERA_SENSITIVITY.pitch * mouseSensitivity;
-      pitchValue.current = MathUtils.clamp(pitchValue.current, CAMERA_PITCH.min, CAMERA_PITCH.max);
+      const next = applyMouseDelta(
+        yawValue.current,
+        pitchValue.current,
+        event.movementX,
+        event.movementY,
+        {
+          yaw: CAMERA_SENSITIVITY.yaw * mouseSensitivity,
+          pitch: CAMERA_SENSITIVITY.pitch * mouseSensitivity,
+        },
+        CAMERA_PITCH
+      );
+      yawValue.current = next.yaw;
+      pitchValue.current = next.pitch;
     };
 
     const handleWheel = (event: WheelEvent) => {
       const next = distanceRef.current + Math.sign(event.deltaY) * CAMERA_DISTANCE.scrollStep;
-      distanceRef.current = MathUtils.clamp(next, CAMERA_DISTANCE.min, CAMERA_DISTANCE.max);
+      distanceRef.current = clampCameraDistance(next);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -67,9 +88,21 @@ export default function CameraRig({
   }, [isPointerLocked, mouseSensitivity, pitchValue, yawValue]);
 
   useFrame((_, delta) => {
+    if (isDev) {
+      devWarningTimer.current += delta;
+      devErrorTimer.current += delta;
+    }
+
     const targetBodyRef = targetBody?.current ?? null;
     if (targetBodyRef) {
       const position = targetBodyRef.translation();
+      if (isDev && (!Number.isFinite(position.x) || !Number.isFinite(position.y) || !Number.isFinite(position.z))) {
+        if (devErrorTimer.current > 0.5) {
+          console.error('[CameraRig] Non-finite player position detected.', position);
+          devErrorTimer.current = 0;
+        }
+        return;
+      }
       targetPosition.set(position.x, position.y, position.z);
     } else {
       const targetGroup = target.current;
@@ -81,17 +114,25 @@ export default function CameraRig({
     const pitch = pitchValue.current;
     const distance = distanceRef.current;
 
+    if (isDev && (!Number.isFinite(yaw) || !Number.isFinite(pitch))) {
+      if (devErrorTimer.current > 0.5) {
+        console.error('[CameraRig] Non-finite yaw/pitch detected.', { yaw, pitch });
+        devErrorTimer.current = 0;
+      }
+      return;
+    }
+
     forward.set(Math.sin(yaw), 0, Math.cos(yaw)).normalize();
     right.set(forward.z, 0, -forward.x).normalize();
 
-    const horizontalDistance = Math.cos(pitch) * distance;
-    const verticalOffset = Math.sin(pitch) * distance;
-
-    desiredPosition
-      .copy(targetPosition)
-      .add(forward.clone().multiplyScalar(-horizontalDistance))
-      .add(right.clone().multiplyScalar(CAMERA_OFFSET.side))
-      .add(up.clone().multiplyScalar(CAMERA_OFFSET.height + verticalOffset));
+    const desired = computeCameraDesired(
+      { x: targetPosition.x, y: targetPosition.y, z: targetPosition.z },
+      yaw,
+      pitch,
+      distance,
+      CAMERA_OFFSET
+    );
+    desiredPosition.set(desired.x, desired.y, desired.z);
 
     rayDirection.copy(desiredPosition).sub(targetPosition);
     const rayDistance = rayDirection.length();
@@ -114,8 +155,35 @@ export default function CameraRig({
     if (!Number.isFinite(cameraTarget.x) || !Number.isFinite(cameraTarget.y) || !Number.isFinite(cameraTarget.z)) {
       return;
     }
-    camera.position.lerp(cameraTarget, 1 - Math.pow(CAMERA_FOLLOW.smoothing, delta));
+    const lerpFactor = computeSmoothingFactor(delta, CAMERA_FOLLOW.smoothing);
+    camera.position.lerp(cameraTarget, lerpFactor);
+    if (
+      isDev &&
+      (!Number.isFinite(camera.position.x) ||
+        !Number.isFinite(camera.position.y) ||
+        !Number.isFinite(camera.position.z))
+    ) {
+      if (devErrorTimer.current > 0.5) {
+        console.error('[CameraRig] Non-finite camera position detected.', camera.position);
+        devErrorTimer.current = 0;
+      }
+      return;
+    }
     camera.lookAt(targetPosition.x, targetPosition.y + CAMERA_OFFSET.lookAtHeight, targetPosition.z);
+
+    if (isDev && devWarningTimer.current > 0.75) {
+      devWarningTimer.current = 0;
+      if (isPointerLocked && document.pointerLockElement === null) {
+        console.warn('[CameraRig] Pointer lock state mismatch: expected locked but element is null.');
+      }
+      const warnings = getCameraParentWarnings(camera.parent, scene);
+      if (warnings.invalidParent) {
+        console.warn('[CameraRig] Camera parent is not the scene root.');
+      }
+      if (warnings.nonUnitScale) {
+        console.warn('[CameraRig] Camera parent has non-unit scale.');
+      }
+    }
   });
 
   return null;

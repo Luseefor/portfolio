@@ -8,6 +8,8 @@ import { MathUtils, Quaternion, Vector3, type Group, type PositionalAudio as Pos
 import PlayerCharacter, { type PlayerAnimation } from '@/components/dungeon/PlayerCharacter';
 import { usePlayerState } from '@/lib/playerState';
 import { useDungeonInput } from '@/lib/dungeonInput';
+import { getNextAnimationState } from '@/components/dungeon/math/animationMath';
+import { computeMoveVector } from '@/components/dungeon/math/movementMath';
 
 const WALK_SPEED = 2.4;
 const RUN_SPEED = 4.2;
@@ -23,8 +25,6 @@ const DEBUG_MOVEMENT = false;
 
 const direction = new Vector3();
 const targetVelocity = new Vector3();
-const moveForward = new Vector3();
-const moveRight = new Vector3();
 const rotation = new Quaternion();
 const forwardVector = new Vector3();
 
@@ -56,6 +56,8 @@ export default function PlayerController({
   const { rapier, world } = useRapier();
   const facingRef = useRef(0);
   const hasFocus = useDungeonInput((state) => state.hasFocus);
+  const devErrorTimer = useRef(0);
+  const isDev = process.env.NODE_ENV !== 'production';
 
   const footstepRefs = useRef<PositionalAudioImpl[]>([]);
   const jumpRef = useRef<PositionalAudioImpl | null>(null);
@@ -140,10 +142,20 @@ export default function PlayerController({
   }, [hasFocus, resetInputs]);
 
   useFrame((_, delta) => {
+    if (isDev) {
+      devErrorTimer.current += delta;
+    }
     const body = rigidBodyRef.current;
     if (!body) return;
 
     const position = body.translation();
+    if (isDev && (!Number.isFinite(position.x) || !Number.isFinite(position.y) || !Number.isFinite(position.z))) {
+      if (devErrorTimer.current > 0.5) {
+        console.error('[PlayerController] Non-finite player position detected.', position);
+        devErrorTimer.current = 0;
+      }
+      return;
+    }
     const rayOrigin = { x: position.x, y: position.y - 0.2, z: position.z };
     const ray = new rapier.Ray(rayOrigin, { x: 0, y: -1, z: 0 });
     const hit = world.castRay(ray, 0.7, true);
@@ -155,14 +167,23 @@ export default function PlayerController({
     wasGroundedRef.current = groundedRef.current;
 
     const yaw = cameraYawRef?.current ?? 0;
-    moveForward.set(Math.sin(yaw), 0, Math.cos(yaw)).normalize();
-    moveRight.set(moveForward.z, 0, -moveForward.x).normalize();
-
-    direction.set(0, 0, 0);
-    if (inputRef.current.forward) direction.add(moveForward);
-    if (inputRef.current.backward) direction.sub(moveForward);
-    if (inputRef.current.left) direction.sub(moveRight);
-    if (inputRef.current.right) direction.add(moveRight);
+    if (isDev && !Number.isFinite(yaw)) {
+      if (devErrorTimer.current > 0.5) {
+        console.error('[PlayerController] Non-finite camera yaw detected.', yaw);
+        devErrorTimer.current = 0;
+      }
+      return;
+    }
+    const moveVector = computeMoveVector(
+      {
+        forward: inputRef.current.forward,
+        backward: inputRef.current.backward,
+        left: inputRef.current.left,
+        right: inputRef.current.right,
+      },
+      yaw
+    );
+    direction.set(moveVector.x, moveVector.y, moveVector.z);
 
     const inputActive = direction.lengthSq() > 0.001;
     const targetSpeed = inputRef.current.run ? RUN_SPEED : WALK_SPEED;
@@ -191,6 +212,21 @@ export default function PlayerController({
     inputRef.current.jump = false;
     nextVelocityY -= GRAVITY * delta;
 
+    if (
+      isDev &&
+      (!Number.isFinite(nextVelocityX) || !Number.isFinite(nextVelocityY) || !Number.isFinite(nextVelocityZ))
+    ) {
+      if (devErrorTimer.current > 0.5) {
+        console.error('[PlayerController] Non-finite velocity detected.', {
+          x: nextVelocityX,
+          y: nextVelocityY,
+          z: nextVelocityZ,
+        });
+        devErrorTimer.current = 0;
+      }
+      return;
+    }
+
     // Wake the body and apply velocity
     body.wakeUp();
     body.setLinvel({ x: nextVelocityX, y: nextVelocityY, z: nextVelocityZ }, true);
@@ -207,15 +243,19 @@ export default function PlayerController({
       });
     }
 
+    const speedOnGround = Math.hypot(nextVelocityX, nextVelocityZ);
     if (inputActive) {
       const desiredYaw = Math.atan2(direction.x, direction.z);
       facingRef.current = lerpAngle(facingRef.current, desiredYaw, 1 - Math.pow(0.001, delta));
-      setAnimation(inputRef.current.run ? 'run' : 'walk');
-    } else {
-      const speedOnGround = Math.hypot(nextVelocityX, nextVelocityZ);
-      if (groundedRef.current && speedOnGround < 0.15) {
-        setAnimation('idle');
-      }
+    }
+    const nextAnimation = getNextAnimationState(animation, {
+      inputActive,
+      isRunning: inputRef.current.run,
+      grounded: groundedRef.current,
+      speedOnGround,
+    });
+    if (nextAnimation !== animation) {
+      setAnimation(nextAnimation);
     }
 
     rotation.setFromAxisAngle(new Vector3(0, 1, 0), facingRef.current);
