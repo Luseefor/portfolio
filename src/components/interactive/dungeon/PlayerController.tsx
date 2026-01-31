@@ -61,7 +61,6 @@ export default function PlayerController({
   // Audio refs
   const footstepRefs = useRef<PositionalAudioImpl[]>([]);
   const jumpAudioRef = useRef<PositionalAudioImpl | null>(null);
-  const landAudioRef = useRef<PositionalAudioImpl | null>(null);
   const footstepTimer = useRef(0);
   const wasGroundedRef = useRef(false);
 
@@ -170,7 +169,7 @@ export default function PlayerController({
     // Landing Sound
     if (!wasGroundedRef.current && isGrounded) {
       // Only play if we fell a bit (velocity check optional)
-      landAudioRef.current?.play();
+      // landAudioRef.current?.play(); // Removed due to missing file
     }
     wasGroundedRef.current = isGrounded;
 
@@ -296,16 +295,10 @@ export default function PlayerController({
           />
         ))}
 
-        {/* Jump / Land */}
+        {/* Jump */}
         <PositionalAudio
           ref={jumpAudioRef}
           url="/sounds/player/jump.wav"
-          distance={5}
-          loop={false}
-        />
-        <PositionalAudio
-          ref={landAudioRef}
-          url="/sounds/player/land.wav" // Assuming this exists, or use jump as fallback
           distance={5}
           loop={false}
         />
