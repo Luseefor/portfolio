@@ -1,0 +1,40 @@
+'use client';
+
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Atom, Database, FileCode, Globe, Cpu, Code2, Terminal, Layers } from 'lucide-react';
+
+const ICONS = [
+  { icon: Atom, label: 'React' },
+  { icon: Globe, label: 'Next.js' },
+  { icon: Database, label: 'PostgreSQL' },
+  { icon: Cpu, label: 'System Design' },
+  { icon: FileCode, label: 'TypeScript' },
+  { icon: Code2, label: 'Algorithm' },
+  { icon: Terminal, label: 'Bash' },
+  { icon: Layers, label: 'Full Stack' },
+];
+
+export default function TechMarquee() {
+  return (
+    <div className="relative w-full overflow-hidden py-4 bg-[#020410] border-y border-white/5">
+      <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#020410] to-transparent z-10" />
+      <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#020410] to-transparent z-10" />
+
+      <motion.div
+        className="flex gap-16 min-w-max"
+        animate={{ x: ['0%', '-50%'] }}
+        transition={{ duration: 20, ease: 'linear', repeat: Infinity }}
+      >
+        {[...ICONS, ...ICONS, ...ICONS].map((item, i) => (
+          <div key={i} className="flex items-center gap-3 group cursor-pointer">
+            <item.icon className="w-6 h-6 text-slate-500 group-hover:text-cyan-400 transition-colors duration-300" />
+            <span className="text-lg font-bold text-slate-600 group-hover:text-white transition-colors duration-300">
+              {item.label}
+            </span>
+          </div>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
