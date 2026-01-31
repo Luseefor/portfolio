@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ACESFilmicToneMapping } from 'three';
-import LoadingScreen from '@/components/interactive/LoadingScreen';
-import DungeonScene from '@/components/dungeon/DungeonScene';
+import LoadingScreen from './LoadingScreen';
+import DungeonScene from './dungeon/DungeonScene';
 import { rendererToneMapping } from '@/constants/scene';
 import { useDungeonInput } from '@/lib/dungeonInput';
 
@@ -16,21 +16,24 @@ export default function InteractiveCanvas() {
     () =>
       typeof window !== 'undefined' &&
       new URLSearchParams(window.location.search).get('forcePointerLock') === '1',
-    []
+    [],
   );
 
-  const handlePointerDown = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas = event.currentTarget;
-    canvas.focus();
-    if (forcePointerLock) {
-      setPointerLocked(true);
-      setHasFocus(true);
-      return;
-    }
-    if (document.pointerLockElement !== canvas) {
-      canvas.requestPointerLock();
-    }
-  }, [forcePointerLock, setHasFocus, setPointerLocked]);
+  const handlePointerDown = useCallback(
+    (event: React.PointerEvent<any>) => {
+      const canvas = event.currentTarget;
+      canvas.focus();
+      if (forcePointerLock) {
+        setPointerLocked(true);
+        setHasFocus(true);
+        return;
+      }
+      if (document.pointerLockElement !== canvas) {
+        canvas.requestPointerLock();
+      }
+    },
+    [forcePointerLock, setHasFocus, setPointerLocked],
+  );
 
   const handleFocus = useCallback(() => {
     setHasFocus(true);

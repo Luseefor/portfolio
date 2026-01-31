@@ -1,0 +1,118 @@
+'use client';
+
+import { motion, AnimatePresence } from 'framer-motion';
+import type { ChestPOI } from '@/constants/DungeonLayout';
+
+interface ChestPanelProps {
+  chest: ChestPOI | null;
+  onClose: () => void;
+}
+
+export default function ChestPanel({ chest, onClose }: ChestPanelProps) {
+  const handleLootAction = () => {
+    if (chest?.loot?.url) {
+      window.open(chest.loot.url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {chest && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
+            onClick={onClose}
+          />
+
+          {/* Panel */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            className="fixed left-1/2 top-1/2 z-50 w-[400px] -translate-x-1/2 -translate-y-1/2"
+          >
+            <div className="overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-stone-900/98 to-stone-800/98 shadow-[0_0_60px_rgba(251,191,36,0.1),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl">
+              {/* Header glow */}
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
+
+              {/* Chest icon */}
+              <div className="flex justify-center pt-6">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/20 to-amber-600/10 shadow-[0_0_24px_rgba(251,191,36,0.2)]">
+                  <svg className="h-8 w-8 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 13c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zM10 4h4v2h-4V4z" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 pt-4 text-center">
+                {/* Loot type tag */}
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1">
+                  <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-amber-300">
+                    {chest.loot?.type ?? 'Treasure'}
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-amber-50">
+                  {chest.title}
+                </h2>
+
+                {/* Description */}
+                <p className="mt-4 text-sm leading-relaxed text-stone-400">{chest.description}</p>
+
+                {/* Divider */}
+                <div className="my-5 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+
+                {/* Actions */}
+                <div className="flex justify-center gap-3">
+                  {chest.loot && (
+                    <button
+                      onClick={handleLootAction}
+                      className="group relative flex items-center gap-2 overflow-hidden rounded-xl border border-amber-500/40 bg-gradient-to-b from-amber-500/20 to-amber-600/10 px-5 py-3 text-sm font-bold uppercase tracking-wider text-amber-200 transition-all hover:border-amber-400/60 hover:bg-amber-500/25 hover:text-amber-100"
+                    >
+                      <span className="relative">{chest.loot.label}</span>
+                      <svg
+                        className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M14 5l7 7m0 0l-7 7m7-7H3"
+                        />
+                      </svg>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={onClose}
+                    className="flex items-center gap-2 rounded-xl border border-stone-600/40 bg-stone-700/30 px-5 py-3 text-sm font-semibold uppercase tracking-wider text-stone-400 transition-all hover:border-stone-500/50 hover:bg-stone-600/40 hover:text-stone-300"
+                  >
+                    <span>Close</span>
+                    <kbd className="rounded border border-stone-600/50 bg-stone-700/50 px-1.5 py-0.5 text-[10px]">
+                      ESC
+                    </kbd>
+                  </button>
+                </div>
+              </div>
+
+              {/* Bottom decoration */}
+              <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}

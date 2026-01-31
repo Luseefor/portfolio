@@ -57,8 +57,8 @@ export const useSettings = create<SettingsStore>()(
         };
         return sanitizeSettings(merged as SettingsStore);
       },
-    }
-  )
+    },
+  ),
 );
 
 // Direct actions for non-component usage

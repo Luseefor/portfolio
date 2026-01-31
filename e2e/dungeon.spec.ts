@@ -53,7 +53,7 @@ test('dungeon smoke: pointer lock, camera look, movement', async ({ page }) => {
     const delta = Math.hypot(
       settledEnd.x - settledStart.x,
       settledEnd.y - settledStart.y,
-      settledEnd.z - settledStart.z
+      settledEnd.z - settledStart.z,
     );
     expect(delta).toBeLessThan(0.2);
   }

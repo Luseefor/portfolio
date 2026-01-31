@@ -1,6 +1,6 @@
 /**
  * Camera Tuning Constants - Agent B (B3)
- * 
+ *
  * Recommended values for third-person camera rig in dungeon exploration.
  * These values are tuned for readability while maintaining atmosphere.
  */
@@ -37,13 +37,13 @@ export const CAMERA_OFFSET = {
 // SMOOTHING / FOLLOW SETTINGS
 // ========================================
 export const CAMERA_FOLLOW = {
-  /** 
+  /**
    * Smoothing factor for camera position lerp.
    * Lower = smoother/slower, Higher = snappier
    * Formula: lerp(current, target, 1 - pow(smoothing, delta))
    */
   smoothing: 0.001,
-  
+
   /**
    * Alternative: Direct lerp factor per frame (0.08-0.15 range)
    * Use this if not using exponential smoothing

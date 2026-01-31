@@ -27,44 +27,43 @@ Example: "Confirming. Initiating transfer to the documentation archives. [[NAVIG
 `;
 
 export async function POST(req: Request) {
-    try {
-        const { messages } = await req.json();
+  try {
+    const { messages } = await req.json();
 
-        // Use the latest flash model
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Use the latest flash model
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-        // Construct chat history for context
-        const chat = model.startChat({
-            history: [
-                {
-                    role: 'user',
-                    parts: [{ text: "System Reboot. Initialize Persona." }],
-                },
-                {
-                    role: 'model',
-                    parts: [{ text: "Luseefor.SYS Online. Ready for input." }],
-                }
-            ],
-            systemInstruction: SYSTEM_PROMPT,
-        });
+    // Construct chat history for context
+    const chat = model.startChat({
+      history: [
+        {
+          role: 'user',
+          parts: [{ text: 'System Reboot. Initialize Persona.' }],
+        },
+        {
+          role: 'model',
+          parts: [{ text: 'Luseefor.SYS Online. Ready for input.' }],
+        },
+      ],
+      systemInstruction: SYSTEM_PROMPT,
+    });
 
-        // Get the last user message
-        const lastMessage = messages[messages.length - 1];
+    // Get the last user message
+    const lastMessage = messages[messages.length - 1];
 
-        const result = await chat.sendMessage(lastMessage.content);
-        const response = await result.response;
-        const text = response.text();
+    const result = await chat.sendMessage(lastMessage.content);
+    const response = await result.response;
+    const text = response.text();
 
-        return NextResponse.json({
-            role: 'assistant',
-            content: text
-        });
-
-    } catch (error) {
-        console.error('AI Agent Error:', error);
-        return NextResponse.json(
-            { error: 'System Malfunction. Unable to process request.' },
-            { status: 500 }
-        );
-    }
+    return NextResponse.json({
+      role: 'assistant',
+      content: text,
+    });
+  } catch (error) {
+    console.error('AI Agent Error:', error);
+    return NextResponse.json(
+      { error: 'System Malfunction. Unable to process request.' },
+      { status: 500 },
+    );
+  }
 }
