@@ -13,6 +13,7 @@ export default function InteractiveCanvas() {
   const setHasFocus = useDungeonInput((state) => state.setHasFocus);
   const setPointerLocked = useDungeonInput((state) => state.setPointerLocked);
   const addEvent = useDungeonInput((state) => state.addEvent);
+  const setMouseDown = useDungeonInput((state) => state.setMouseDown);
   const forcePointerLock = useMemo(
     () =>
       typeof window !== 'undefined' &&
@@ -24,6 +25,7 @@ export default function InteractiveCanvas() {
     if (!canvasEl) return;
 
     const handleNativeMouseDown = () => {
+      setMouseDown(true);
       if (forcePointerLock) {
         setPointerLocked(true);
         setHasFocus(true);
@@ -36,10 +38,24 @@ export default function InteractiveCanvas() {
         addEvent('pointerlock requested');
       }
     };
+    const handleMouseUp = () => {
+      setMouseDown(false);
+      addEvent('mouse up');
+    };
+    const handleMouseLeave = () => {
+      setMouseDown(false);
+      addEvent('mouse leave');
+    };
 
     canvasEl.addEventListener('mousedown', handleNativeMouseDown);
-    return () => canvasEl.removeEventListener('mousedown', handleNativeMouseDown);
-  }, [canvasEl, forcePointerLock, setHasFocus, setPointerLocked]);
+    canvasEl.addEventListener('mouseup', handleMouseUp);
+    canvasEl.addEventListener('mouseleave', handleMouseLeave);
+    return () => {
+      canvasEl.removeEventListener('mousedown', handleNativeMouseDown);
+      canvasEl.removeEventListener('mouseup', handleMouseUp);
+      canvasEl.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [addEvent, canvasEl, forcePointerLock, setHasFocus, setMouseDown, setPointerLocked]);
 
   const handleFocus = useCallback(() => {
     setHasFocus(true);

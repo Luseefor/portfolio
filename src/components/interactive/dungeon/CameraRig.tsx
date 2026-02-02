@@ -47,6 +47,7 @@ export default function CameraRig({
   const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
   const freeCam = useDungeonInput((state) => state.freeCam);
   const keys = useDungeonInput((state) => state.keys);
+  const mouseDown = useDungeonInput((state) => state.mouseDown);
   const up = useMemo(() => new Vector3(0, 1, 0), []);
   const internalYaw = useRef(0);
   const internalPitch = useRef(CAMERA_PITCH.initial);
@@ -60,7 +61,7 @@ export default function CameraRig({
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
-      if (!isPointerLocked) return;
+      if (!isPointerLocked && !mouseDown) return;
       const next = applyMouseDelta(
         yawValue.current,
         pitchValue.current,
@@ -88,7 +89,7 @@ export default function CameraRig({
       document.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('wheel', handleWheel);
     };
-  }, [isPointerLocked, mouseSensitivity, pitchValue, yawValue]);
+  }, [isPointerLocked, mouseDown, mouseSensitivity, pitchValue, yawValue]);
 
   useFrame((_, delta) => {
     if (isDev) {
