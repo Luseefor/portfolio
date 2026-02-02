@@ -3,15 +3,50 @@ import { create } from 'zustand';
 type DungeonInputState = {
   hasFocus: boolean;
   isPointerLocked: boolean;
+  keys: {
+    forward: boolean;
+    backward: boolean;
+    left: boolean;
+    right: boolean;
+    run: boolean;
+    jump: boolean;
+  };
+  lastEvent: string;
   setHasFocus: (hasFocus: boolean) => void;
   setPointerLocked: (isPointerLocked: boolean) => void;
+  setKeys: (next: Partial<DungeonInputState['keys']>) => void;
+  addEvent: (event: string) => void;
   reset: () => void;
 };
 
 export const useDungeonInput = create<DungeonInputState>((set) => ({
   hasFocus: false,
   isPointerLocked: false,
+  keys: {
+    forward: false,
+    backward: false,
+    left: false,
+    right: false,
+    run: false,
+    jump: false,
+  },
+  lastEvent: 'n/a',
   setHasFocus: (hasFocus) => set({ hasFocus }),
   setPointerLocked: (isPointerLocked) => set({ isPointerLocked }),
-  reset: () => set({ hasFocus: false, isPointerLocked: false }),
+  setKeys: (next) => set((state) => ({ keys: { ...state.keys, ...next } })),
+  addEvent: (event) => set({ lastEvent: event }),
+  reset: () =>
+    set({
+      hasFocus: false,
+      isPointerLocked: false,
+      keys: {
+        forward: false,
+        backward: false,
+        left: false,
+        right: false,
+        run: false,
+        jump: false,
+      },
+      lastEvent: 'reset',
+    }),
 }));

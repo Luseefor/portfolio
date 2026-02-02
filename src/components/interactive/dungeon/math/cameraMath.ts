@@ -21,6 +21,7 @@ type PitchClamp = {
 type CameraOffset = {
   height: number;
   side: number;
+  back?: number;
 };
 
 export function clampPitch(pitch: number, min = CAMERA_PITCH.min, max = CAMERA_PITCH.max) {
@@ -54,11 +55,13 @@ export function computeCameraDesired(
   const rightZ = -forwardX;
   const horizontalDistance = Math.cos(pitch) * distance;
   const verticalOffset = Math.sin(pitch) * distance;
+  const backBias = offset.back ?? 0;
+  const biasedDistance = horizontalDistance + backBias;
 
   return {
-    x: playerPos.x + -forwardX * horizontalDistance + rightX * offset.side,
+    x: playerPos.x + -forwardX * biasedDistance + rightX * offset.side,
     y: playerPos.y + offset.height + verticalOffset,
-    z: playerPos.z + -forwardZ * horizontalDistance + rightZ * offset.side,
+    z: playerPos.z + -forwardZ * biasedDistance + rightZ * offset.side,
   };
 }
 
