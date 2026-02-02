@@ -88,6 +88,19 @@ export default function DungeonColliders() {
         />
       ))}
 
+      {/* Ceilings */}
+      {floors.map((floor, index) => (
+        <CuboidCollider
+          key={`ceiling-${index}`}
+          args={[FLOOR_HALF, FLOOR_HEIGHT, FLOOR_HALF]}
+          position={[
+            floor.pos[0] * DUNGEON_SCALE,
+            (floor.pos[1] * DUNGEON_SCALE) + DUNGEON_WALL_HEIGHT + FLOOR_HEIGHT,
+            floor.pos[2] * DUNGEON_SCALE
+          ]}
+        />
+      ))}
+
       {/* Walls */}
       {walls.map((wall, index) => {
         const rotY = wall.rotY ?? 0;
