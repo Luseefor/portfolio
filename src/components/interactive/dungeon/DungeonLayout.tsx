@@ -1,87 +1,116 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import { useGLTF } from '@react-three/drei';
-import { Object3D, Mesh, MeshStandardMaterial, BoxGeometry } from 'three';
-import { DUNGEON_LAYOUT, DUNGEON_SCALE, type DungeonPlacement } from '@/constants/DungeonLayout';
+import { useMemo } from 'react';
+import { BoxGeometry, CylinderGeometry, MeshStandardMaterial } from 'three';
+import {
+  DUNGEON_LAYOUT,
+  DUNGEON_SCALE,
+  DUNGEON_TILE_SIZE,
+  DUNGEON_FLOOR_THICKNESS,
+  DUNGEON_WALL_HEIGHT,
+  DUNGEON_WALL_THICKNESS,
+  DUNGEON_COLUMN_HEIGHT,
+  DUNGEON_COLUMN_RADIUS,
+  type DungeonPlacement,
+} from '@/constants/DungeonLayout';
 
-const FALLBACK_GEOMETRY = new BoxGeometry(1, 1, 1);
-const FALLBACK_MATERIAL = new MeshStandardMaterial({ color: '#ff00ff' });
+const floorGeometry = new BoxGeometry(DUNGEON_TILE_SIZE, DUNGEON_FLOOR_THICKNESS, DUNGEON_TILE_SIZE);
+const wallGeometry = new BoxGeometry(DUNGEON_TILE_SIZE, DUNGEON_WALL_HEIGHT, DUNGEON_WALL_THICKNESS);
+const columnGeometry = new CylinderGeometry(
+  DUNGEON_COLUMN_RADIUS,
+  DUNGEON_COLUMN_RADIUS,
+  DUNGEON_COLUMN_HEIGHT,
+  12,
+);
+const propGeometry = new BoxGeometry(
+  DUNGEON_TILE_SIZE * 0.4,
+  DUNGEON_TILE_SIZE * 0.5,
+  DUNGEON_TILE_SIZE * 0.4,
+);
 
-export default function DungeonLayout() {
-  const { nodes } = useGLTF('/models/dungeon/structure/Modular Ruins Pack.glb') as unknown as {
-    nodes: Record<string, Object3D>;
-  };
+const floorMaterial = new MeshStandardMaterial({ color: '#2a2b28', roughness: 0.95, metalness: 0.0 });
+const wallMaterial = new MeshStandardMaterial({ color: '#3a332e', roughness: 0.9, metalness: 0.05 });
+const columnMaterial = new MeshStandardMaterial({ color: '#4a433a', roughness: 0.85, metalness: 0.05 });
+const propMaterial = new MeshStandardMaterial({ color: '#5a4a3a', roughness: 0.8, metalness: 0.05 });
 
-  const placements = useMemo(() => DUNGEON_LAYOUT, []);
+function isFloorKey(key: string) {
+  return key.startsWith('Floor');
+}
 
-  // Debug flags
-  const debugDungeon =
-    typeof window !== 'undefined' &&
-    (new URLSearchParams(window.location.search).get('debug') === '1' ||
-      new URLSearchParams(window.location.search).get('debugDungeon') === '1');
-
-  // Validate nodes on mount
-  useEffect(() => {
-    const missing = new Set<string>();
-    for (const p of placements) {
-      if (!nodes[p.key]) missing.add(p.key);
-    }
-
-    if (missing.size > 0) {
-      console.warn('[DungeonLayout] Missing nodes from GLB:', Array.from(missing));
-      console.log('[DungeonLayout] Available nodes:', Object.keys(nodes));
-    }
-  }, [nodes, placements]);
-
-  // Create layout instances
-  const dungeonPieces = useMemo(() => {
-    return placements.map((p, i) => {
-      const base = nodes[p.key];
-
-      // Scale positions relative to origin
-      const finalPos: [number, number, number] = [
-        p.pos[0] * DUNGEON_SCALE,
-        p.pos[1] * DUNGEON_SCALE,
-        p.pos[2] * DUNGEON_SCALE
-      ];
-
-      // Apply global scale factor
-      const finalScale = (p.scale ?? 1) * DUNGEON_SCALE;
-
-      if (!base) {
-        // Return fallback mesh if node missing
-        if (debugDungeon) {
-          return (
-            <mesh
-              key={`fallback-${i}`}
-              position={finalPos}
-              scale={[finalScale, finalScale, finalScale]}
-              geometry={FALLBACK_GEOMETRY}
-              material={FALLBACK_MATERIAL}
-            />
-          );
-        }
-        return null;
-      }
-
-      return (
-        <primitive
-          key={`${p.key}-${i}`}
-          object={base.clone(true)}
-          position={finalPos}
-          rotation={[0, p.rotY ?? 0, 0]}
-          scale={finalScale}
-        />
-      );
-    });
-  }, [placements, nodes, debugDungeon]);
-
+function isWallKey(key: string) {
   return (
-    <group>
-      {dungeonPieces}
-    </group>
+    key.startsWith('Wall') ||
+    key.startsWith('Arch') ||
+    key.startsWith('Doors') ||
+    key.startsWith('Window')
   );
 }
 
-useGLTF.preload('/models/dungeon/structure/Modular Ruins Pack.glb');
+function isColumnKey(key: string) {
+  return key.startsWith('Column') || key.startsWith('Pillar');
+}
+
+function getPrimitiveSpec(key: string) {
+  if (isFloorKey(key)) {
+    return {
+      geometry: floorGeometry,
+      material: floorMaterial,
+      yOffset: -DUNGEON_FLOOR_THICKNESS / 2,
+    };
+  }
+
+  if (isWallKey(key)) {
+    return {
+      geometry: wallGeometry,
+      material: wallMaterial,
+      yOffset: DUNGEON_WALL_HEIGHT / 2,
+    };
+  }
+
+  if (isColumnKey(key)) {
+    return {
+      geometry: columnGeometry,
+      material: columnMaterial,
+      yOffset: DUNGEON_COLUMN_HEIGHT / 2,
+    };
+  }
+
+  return {
+    geometry: propGeometry,
+    material: propMaterial,
+    yOffset: (DUNGEON_TILE_SIZE * 0.5) / 2,
+  };
+}
+
+export default function DungeonLayout() {
+  const placements = useMemo(() => DUNGEON_LAYOUT, []);
+
+  const dungeonPieces = useMemo(
+    () =>
+      placements.map((p: DungeonPlacement, i: number) => {
+        const { geometry, material, yOffset } = getPrimitiveSpec(p.key);
+        const scale = p.scale ?? 1;
+        const position: [number, number, number] = [
+          p.pos[0] * DUNGEON_SCALE,
+          p.pos[1] * DUNGEON_SCALE + yOffset,
+          p.pos[2] * DUNGEON_SCALE,
+        ];
+
+        return (
+          <mesh
+            key={`${p.key}-${i}`}
+            geometry={geometry}
+            material={material}
+            position={position}
+            rotation={[0, p.rotY ?? 0, 0]}
+            scale={[scale, scale, scale]}
+            castShadow
+            receiveShadow
+          />
+        );
+      }),
+    [placements],
+  );
+
+  return <group>{dungeonPieces}</group>;
+}

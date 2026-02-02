@@ -2,18 +2,27 @@
 
 import { useMemo } from 'react';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
-import { DUNGEON_LAYOUT, DUNGEON_SCALE, type DungeonPlacement } from '@/constants/DungeonLayout';
+import {
+  DUNGEON_LAYOUT,
+  DUNGEON_SCALE,
+  DUNGEON_TILE_SIZE,
+  DUNGEON_FLOOR_THICKNESS,
+  DUNGEON_WALL_HEIGHT,
+  DUNGEON_WALL_THICKNESS,
+  DUNGEON_COLUMN_RADIUS,
+  DUNGEON_COLUMN_HEIGHT,
+  type DungeonPlacement,
+} from '@/constants/DungeonLayout';
 
 // Collider Dimensions (Half-extents)
 // Must match the visual mesh dimensions roughly.
-// IMPORTANT: These are pre-scaled relative to model units. We multiply by DUNGEON_SCALE.
-const FLOOR_HALF = 2 * DUNGEON_SCALE;
-const FLOOR_HEIGHT = 0.5 * DUNGEON_SCALE;
-const WALL_HALF_LENGTH = 2 * DUNGEON_SCALE;
-const WALL_HALF_THICKNESS = 0.5 * DUNGEON_SCALE;
-const WALL_HALF_HEIGHT = 3 * DUNGEON_SCALE;
-const COLUMN_HALF = 0.6 * DUNGEON_SCALE;
-const COLUMN_HALF_HEIGHT = 3 * DUNGEON_SCALE;
+const FLOOR_HALF = DUNGEON_TILE_SIZE / 2;
+const FLOOR_HEIGHT = DUNGEON_FLOOR_THICKNESS / 2;
+const WALL_HALF_LENGTH = DUNGEON_TILE_SIZE / 2;
+const WALL_HALF_THICKNESS = DUNGEON_WALL_THICKNESS / 2;
+const WALL_HALF_HEIGHT = DUNGEON_WALL_HEIGHT / 2;
+const COLUMN_HALF = DUNGEON_COLUMN_RADIUS;
+const COLUMN_HALF_HEIGHT = DUNGEON_COLUMN_HEIGHT / 2;
 
 function isFloorKey(key: string) {
   return key.startsWith('Floor');

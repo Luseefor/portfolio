@@ -21,7 +21,17 @@ export interface DungeonPlacement {
   scale?: number;
 }
 
-export const DUNGEON_SCALE = 4;
+// Global scale for dungeon layout positions.
+// Set to 1 for primitive/blockout mode to keep grid units consistent.
+export const DUNGEON_SCALE = 1;
+
+// Primitive sizing helpers (in world units after scaling)
+export const DUNGEON_TILE_SIZE = 4 * DUNGEON_SCALE;
+export const DUNGEON_FLOOR_THICKNESS = 1 * DUNGEON_SCALE;
+export const DUNGEON_WALL_HEIGHT = 6 * DUNGEON_SCALE;
+export const DUNGEON_WALL_THICKNESS = 1 * DUNGEON_SCALE;
+export const DUNGEON_COLUMN_RADIUS = 0.6 * DUNGEON_SCALE;
+export const DUNGEON_COLUMN_HEIGHT = 6 * DUNGEON_SCALE;
 
 export interface ChestPOI {
   id: string;
