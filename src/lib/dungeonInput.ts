@@ -3,6 +3,7 @@ import { create } from 'zustand';
 type DungeonInputState = {
   hasFocus: boolean;
   isPointerLocked: boolean;
+  freeCam: boolean;
   keys: {
     forward: boolean;
     backward: boolean;
@@ -14,6 +15,7 @@ type DungeonInputState = {
   lastEvent: string;
   setHasFocus: (hasFocus: boolean) => void;
   setPointerLocked: (isPointerLocked: boolean) => void;
+  setFreeCam: (freeCam: boolean) => void;
   setKeys: (next: Partial<DungeonInputState['keys']>) => void;
   addEvent: (event: string) => void;
   reset: () => void;
@@ -22,6 +24,7 @@ type DungeonInputState = {
 export const useDungeonInput = create<DungeonInputState>((set) => ({
   hasFocus: false,
   isPointerLocked: false,
+  freeCam: false,
   keys: {
     forward: false,
     backward: false,
@@ -33,12 +36,14 @@ export const useDungeonInput = create<DungeonInputState>((set) => ({
   lastEvent: 'n/a',
   setHasFocus: (hasFocus) => set({ hasFocus }),
   setPointerLocked: (isPointerLocked) => set({ isPointerLocked }),
+  setFreeCam: (freeCam) => set({ freeCam }),
   setKeys: (next) => set((state) => ({ keys: { ...state.keys, ...next } })),
   addEvent: (event) => set({ lastEvent: event }),
   reset: () =>
     set({
       hasFocus: false,
       isPointerLocked: false,
+      freeCam: false,
       keys: {
         forward: false,
         backward: false,

@@ -32,6 +32,7 @@ const LAYOUT_TOGGLE_KEY = 'F2';
 const PARTICLE_TOGGLE_KEY = 'F3';
 const PARTICLE_STRESS_KEY = 'F4';
 const TELEPORT_KEY = 'F5';
+const FREECAM_KEY = 'F6';
 
 export default function DungeonScene() {
   const playerRef = useRef<Group>(null);
@@ -57,6 +58,8 @@ export default function DungeonScene() {
   const keys = useDungeonInput((state) => state.keys);
   const lastEvent = useDungeonInput((state) => state.lastEvent);
   const addEvent = useDungeonInput((state) => state.addEvent);
+  const freeCam = useDungeonInput((state) => state.freeCam);
+  const setFreeCam = useDungeonInput((state) => state.setFreeCam);
 
   const teleportTargets = useMemo<[number, number, number][]>(
     () => [
@@ -114,11 +117,17 @@ export default function DungeonScene() {
           return next;
         });
       }
+
+      if (event.code === FREECAM_KEY || event.key === FREECAM_KEY) {
+        event.preventDefault();
+        setFreeCam(!freeCam);
+        addEvent(`F6 freecam ${!freeCam ? 'on' : 'off'}`);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [addEvent, teleportTargets]);
+  }, [addEvent, freeCam, setFreeCam, teleportTargets]);
 
   return (
     <group>
@@ -156,6 +165,7 @@ export default function DungeonScene() {
             particlesEnabled={particlesEnabled}
             particleMultiplier={particleMultiplier}
             teleportIndex={teleportIndex}
+            freeCam={freeCam}
             playerPosition={playerPosition}
             playerSpeed={playerSpeed}
             playerGrounded={playerGrounded}
@@ -295,6 +305,7 @@ function TestHarnessOverlay({
   particlesEnabled,
   particleMultiplier,
   teleportIndex,
+  freeCam,
   playerPosition,
   playerSpeed,
   playerGrounded,
@@ -306,6 +317,7 @@ function TestHarnessOverlay({
   particlesEnabled: boolean;
   particleMultiplier: number;
   teleportIndex: number;
+  freeCam: boolean;
   playerPosition: { x: number; y: number; z: number };
   playerSpeed: number;
   playerGrounded: boolean;
@@ -336,10 +348,11 @@ function TestHarnessOverlay({
           minWidth: 260,
         }}
       >
-        <div>debug controls: F1 overlay, F2 layout, F3 particles, F4 particle stress, F5 teleport</div>
+        <div>debug controls: F1 overlay, F2 layout, F3 particles, F4 particle stress, F5 teleport, F6 freecam</div>
         <div>layout: {layoutEnabled ? 'on' : 'off'}</div>
         <div>particles: {particlesEnabled ? 'on' : 'off'} (x{particleMultiplier})</div>
         <div>teleport index: {teleportIndex}</div>
+        <div>freecam: {freeCam ? 'on' : 'off'}</div>
         <div>keys: W={keys.forward ? '1' : '0'} A={keys.left ? '1' : '0'} S={keys.backward ? '1' : '0'} D={keys.right ? '1' : '0'} Shift={keys.run ? '1' : '0'} Space={keys.jump ? '1' : '0'}</div>
         <div>player: {playerPosition.x.toFixed(2)}, {playerPosition.y.toFixed(2)}, {playerPosition.z.toFixed(2)}</div>
         <div>speed: {playerSpeed.toFixed(2)} moving: {playerMoving ? 'yes' : 'no'} grounded: {playerGrounded ? 'yes' : 'no'}</div>

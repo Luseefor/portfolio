@@ -27,6 +27,7 @@ const desiredPosition = new Vector3();
 const forward = new Vector3();
 const right = new Vector3();
 const rayDirection = new Vector3();
+const moveVector = new Vector3();
 
 export default function CameraRig({
   target,
@@ -44,6 +45,8 @@ export default function CameraRig({
   const { rapier, world } = useRapier();
   const mouseSensitivity = useSettings((state) => state.mouseSensitivity);
   const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
+  const freeCam = useDungeonInput((state) => state.freeCam);
+  const keys = useDungeonInput((state) => state.keys);
   const up = useMemo(() => new Vector3(0, 1, 0), []);
   const internalYaw = useRef(0);
   const internalPitch = useRef(CAMERA_PITCH.initial);
@@ -93,6 +96,39 @@ export default function CameraRig({
       devErrorTimer.current += delta;
     }
 
+    const yaw = yawValue.current;
+    const pitch = pitchValue.current;
+
+    if (isDev && (!Number.isFinite(yaw) || !Number.isFinite(pitch))) {
+      if (devErrorTimer.current > 0.5) {
+        console.error('[CameraRig] Non-finite yaw/pitch detected.', { yaw, pitch });
+        devErrorTimer.current = 0;
+      }
+      return;
+    }
+
+    forward.set(Math.sin(yaw), Math.sin(pitch), Math.cos(yaw)).normalize();
+    right.set(forward.z, 0, -forward.x).normalize();
+
+    if (freeCam) {
+      const speed = (keys.run ? 9 : 4) * (delta > 0 ? delta : 0);
+      moveVector.set(0, 0, 0);
+      if (keys.forward) moveVector.add(forward);
+      if (keys.backward) moveVector.sub(forward);
+      if (keys.left) moveVector.sub(right);
+      if (keys.right) moveVector.add(right);
+      if (moveVector.lengthSq() > 0) {
+        moveVector.normalize().multiplyScalar(speed);
+        camera.position.add(moveVector);
+      }
+      camera.lookAt(
+        camera.position.x + forward.x,
+        camera.position.y + forward.y,
+        camera.position.z + forward.z,
+      );
+      return;
+    }
+
     const targetBodyRef = targetBody?.current ?? null;
     if (targetBodyRef) {
       const position = targetBodyRef.translation();
@@ -115,20 +151,7 @@ export default function CameraRig({
       targetGroup.getWorldPosition(targetPosition);
     }
 
-    const yaw = yawValue.current;
-    const pitch = pitchValue.current;
     const distance = distanceRef.current;
-
-    if (isDev && (!Number.isFinite(yaw) || !Number.isFinite(pitch))) {
-      if (devErrorTimer.current > 0.5) {
-        console.error('[CameraRig] Non-finite yaw/pitch detected.', { yaw, pitch });
-        devErrorTimer.current = 0;
-      }
-      return;
-    }
-
-    forward.set(Math.sin(yaw), 0, Math.cos(yaw)).normalize();
-    right.set(forward.z, 0, -forward.x).normalize();
 
     const desired = computeCameraDesired(
       { x: targetPosition.x, y: targetPosition.y, z: targetPosition.z },

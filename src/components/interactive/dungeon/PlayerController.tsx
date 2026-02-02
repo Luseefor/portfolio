@@ -53,6 +53,7 @@ export default function PlayerController({
   const hasFocus = useDungeonInput((state) => state.hasFocus);
   const setKeys = useDungeonInput((state) => state.setKeys);
   const addEvent = useDungeonInput((state) => state.addEvent);
+  const freeCam = useDungeonInput((state) => state.freeCam);
 
   // State
   const [animation, setAnimation] = useState<PlayerAnimation>('idle');
@@ -165,6 +166,11 @@ export default function PlayerController({
   useFrame((_, delta) => {
     const body = rigidBodyRef.current;
     if (!body) return;
+
+    if (freeCam) {
+      body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      return;
+    }
 
     // Wake up body if input detected
     const anyInput = inputRef.current.forward ||
