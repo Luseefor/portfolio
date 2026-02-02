@@ -51,6 +51,8 @@ export default function PlayerController({
 
   const { rapier, world } = useRapier();
   const hasFocus = useDungeonInput((state) => state.hasFocus);
+  const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
+  const mouseDown = useDungeonInput((state) => state.mouseDown);
   const setKeys = useDungeonInput((state) => state.setKeys);
   const addEvent = useDungeonInput((state) => state.addEvent);
   const freeCam = useDungeonInput((state) => state.freeCam);
@@ -87,9 +89,8 @@ export default function PlayerController({
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent, pressed: boolean) => {
-      // Allow input even without strict focus if body capture is active
-      // but respecting the hasFocus flag is good for UI overlays
-      if (!hasFocus && pressed) return;
+      // Allow input when focused OR pointer-locked OR mouse is down (drag look mode).
+      if (!hasFocus && !isPointerLocked && !mouseDown && pressed) return;
 
       const code = event.code;
       switch (code) {
@@ -160,7 +161,7 @@ export default function PlayerController({
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
     };
-  }, [hasFocus, resetInputs]);
+  }, [addEvent, hasFocus, isPointerLocked, mouseDown, resetInputs, setKeys]);
 
   // Main Physics Loop
   useFrame((_, delta) => {
