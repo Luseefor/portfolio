@@ -3,7 +3,7 @@
 import React, { useRef } from 'react';
 import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowUpRight, Github, Linkedin, Mail, Twitter } from 'lucide-react';
+import { ArrowUpRight, Github, Linkedin, Mail, Twitter, Terminal } from 'lucide-react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useStore } from '@/utils/store';
@@ -56,7 +56,7 @@ const BentoCard = ({
 
 const GlassyButton = dynamic(() => import('@/components/shared/ui/GlassyButton'), { ssr: false });
 
-const LuseeforBadge = dynamic(() => import('@/components/identity/LuseeforBadge'), { ssr: false });
+// LuseeforBadge intentionally unused; landing-style header replaces it.
 
 export default function IdentityPage() {
   const { currentTheme, isDark } = useStore();
@@ -72,10 +72,35 @@ export default function IdentityPage() {
       <ThemeBackground themeColor={themeColor} isDark={isDark} />
 
       <div className="relative z-10">
-        {/* Luseefor Badge (Scrolls away) */}
-        <div className="absolute top-6 left-4 md:left-10 z-40">
-          <LuseeforBadge />
-        </div>
+        {/* Top Brand Row (Landing-style, not floating) */}
+        <header className="relative z-40 flex items-center justify-between px-6 pt-6 md:px-10">
+          <button
+            onClick={() => useStore.getState().setChatOpen(true)}
+            className="flex items-center gap-3 md:gap-4 cursor-pointer"
+          >
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all md:h-10 md:w-10 md:rounded-xl ${isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-black/5'}`}
+            >
+              <Terminal size={16} className="md:w-5 md:h-5" style={{ color: themeColor }} />
+            </div>
+            <div className="flex flex-col items-start gap-0.5">
+              <div className="min-h-[14px] min-w-[100px] md:min-h-[20px] md:min-w-[140px] flex items-center">
+                <span
+                  className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] font-terminal ${isDark ? 'text-white' : 'text-slate-900'}`}
+                >
+                  Luseefor
+                </span>
+              </div>
+              <span
+                className="text-[8px] font-bold uppercase tracking-widest md:text-[10px] font-terminal"
+                style={{ color: `${themeColor}80` }}
+              >
+                Public_Interface
+              </span>
+            </div>
+          </button>
+          <div className="hidden md:block" />
+        </header>
 
         <FuturisticNavbar />
 
