@@ -29,11 +29,11 @@ export default function IdentityHero() {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-[120vh] flex flex-col items-center justify-center text-center px-6 pt-16 pb-16 z-10"
+      className="relative min-h-[120vh] flex flex-col items-center justify-center text-center px-6 pt-6 pb-16 z-10"
     >
       <motion.div
         style={{ opacity: contentOpacity, y: contentY }}
-        className="sticky top-16 flex w-full max-w-5xl flex-col items-center gap-6 md:gap-8"
+        className="sticky top-6 flex w-full max-w-5xl flex-col items-center gap-6 md:gap-8"
       >
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
