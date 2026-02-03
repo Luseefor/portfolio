@@ -5,6 +5,9 @@ import { motion } from 'framer-motion';
 import { PORTFOLIO_CONTENT } from './portfolio-template';
 import { useStore } from '@/utils/store';
 import { getThemeColor } from '@/utils/themes';
+import dynamic from 'next/dynamic';
+
+const HeroAvatar3D = dynamic(() => import('./HeroAvatar3D'), { ssr: false });
 
 export default function IdentityHero() {
   const { currentTheme, isDark } = useStore();
