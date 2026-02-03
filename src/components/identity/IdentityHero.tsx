@@ -20,8 +20,8 @@ export default function IdentityHero() {
   );
 
   return (
-    <section className="relative min-h-[calc(100vh-6rem)] flex flex-col items-center justify-center text-center px-6 z-10">
-      <div className="flex flex-col items-center gap-6 md:gap-8 -mt-12">
+    <section className="relative h-screen flex flex-col items-center justify-center text-center px-6 z-10">
+      <div className="flex flex-col items-center gap-6 md:gap-8 -mt-6">
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -72,7 +72,7 @@ export default function IdentityHero() {
 
       {/* Scroll Indicator */}
       <motion.div
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1, duration: 1 }}
