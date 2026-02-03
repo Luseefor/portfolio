@@ -16,7 +16,7 @@ export default function IdentityHero() {
   return (
     <section className="relative min-h-[120vh]">
       <div className="sticky top-0 h-screen w-full px-6 pt-16 pb-16">
-        <div className="relative mx-auto flex h-full w-full max-w-5xl flex-col items-center justify-center text-center -translate-y-8 md:-translate-y-10">
+        <div className="relative mx-auto flex h-full w-full max-w-5xl flex-col items-center justify-center text-center -translate-y-[13px] md:-translate-y-[15px]">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -26,6 +26,12 @@ export default function IdentityHero() {
             <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.6)]" />
             SIGNAL ONLINE
           </motion.div>
+
+          <div className="relative mt-8 mb-2 w-full max-w-3xl">
+            <div className="relative mx-auto h-[min(38vh,280px)] w-[min(38vh,280px)] md:h-[min(42vh,320px)] md:w-[min(42vh,320px)]">
+              <HeroAvatar3D />
+            </div>
+          </div>
 
           <motion.h2
             className="mt-6 text-xl md:text-2xl font-semibold text-slate-200"
