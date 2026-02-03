@@ -85,7 +85,10 @@ export default function ContactSection() {
               Transmission // OPEN
             </span>
           </div>
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-6 uppercase tracking-tight">
+          <h2
+            className="font-black text-white mb-6 md:mb-8 uppercase tracking-tighter leading-none"
+            style={{ fontSize: 'clamp(2rem, 8vw, 5rem)' }}
+          >
             Get in{' '}
             <span
               className="text-transparent bg-clip-text"
@@ -94,7 +97,7 @@ export default function ContactSection() {
               Touch
             </span>
           </h2>
-          <p className="text-slate-400 max-w-lg mx-auto leading-relaxed">
+          <p className="text-slate-200 text-base sm:text-lg md:text-xl max-w-2xl mx-auto leading-relaxed font-light">
             Ready to upgrade your digital infrastructure? establishing direct uplink...
           </p>
         </div>

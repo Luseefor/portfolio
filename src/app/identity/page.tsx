@@ -39,18 +39,63 @@ const TimeLocationCard = dynamic(() => import('@/components/identity/TimeLocatio
 const BentoCard = ({
   children,
   className = '',
+  themeColor = '#10b981',
+  id = '01',
 }: {
   children: React.ReactNode;
   className?: string;
+  themeColor?: string;
+  id?: string;
 }) => (
   <div
-    className={`relative overflow-hidden rounded-[2rem] bg-white/5 backdrop-blur-2xl border border-white/10 group hover:border-white/20 transition-all duration-500 shadow-2xl ${className}`}
+    className={`group relative overflow-hidden bg-white/[0.03] backdrop-blur-[32px] border border-white/10 transition-all duration-700 shadow-2xl ${className}`}
+    style={{
+      clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%)',
+    }}
   >
-    {/* Liquid Shine Effect */}
-    <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+    {/* Glass Noise Texture */}
+    <div className="absolute inset-0 opacity-[0.15] pointer-events-none mix-blend-overlay"
+      style={{ backgroundImage: `url("https://grainy-gradients.vercel.app/noise.svg")` }}
+    />
+
+    {/* Light Sweep Effect */}
+    <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000">
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.05] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1500ms] ease-in-out" />
     </div>
-    {children}
+
+    {/* HUD Corner Accents */}
+    <div className="absolute top-0 left-0 w-8 h-[1px]" style={{ backgroundColor: themeColor }} />
+    <div className="absolute top-0 left-0 w-[1px] h-8" style={{ backgroundColor: themeColor }} />
+
+    {/* ID Badge */}
+    <div
+      className="absolute top-0 right-0 px-3 py-1 font-terminal text-[8px] tracking-[0.2em] font-bold"
+      style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
+    >
+      MODULE_{id}
+    </div>
+
+    {/* Scanline Background */}
+    <div
+      className="absolute inset-0 pointer-events-none opacity-[0.03]"
+      style={{
+        backgroundImage: `linear-gradient(0deg, transparent 24%, ${themeColor} 25%, ${themeColor} 26%, transparent 27%, transparent 74%, ${themeColor} 75%, ${themeColor} 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, ${themeColor} 25%, ${themeColor} 26%, transparent 27%, transparent 74%, ${themeColor} 75%, ${themeColor} 76%, transparent 77%, transparent)`,
+        backgroundSize: '40px 40px',
+      }}
+    />
+
+    {/* Specular Highlight (Top Left) */}
+    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
+
+    {/* Ambient Glow */}
+    <div
+      className="absolute -bottom-20 -right-20 w-40 h-40 blur-[80px] rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-1000"
+      style={{ backgroundColor: themeColor }}
+    />
+
+    <div className="relative z-10 h-full">
+      {children}
+    </div>
   </div>
 );
 
@@ -72,105 +117,103 @@ export default function IdentityPage() {
       <ThemeBackground themeColor={themeColor} isDark={isDark} />
 
       <div className="relative z-10">
-        {/* Top Brand Row (Landing-style, not floating) */}
-        <header className="relative z-40 flex items-center justify-between px-6 pt-6 md:px-10">
-          <button
-            onClick={() => useStore.getState().setChatOpen(true)}
-            className="flex items-center gap-3 md:gap-4 cursor-pointer"
-          >
-            <div
-              className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all md:h-10 md:w-10 md:rounded-xl ${isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-black/5'}`}
-            >
-              <Terminal size={16} className="md:w-5 md:h-5" style={{ color: themeColor }} />
-            </div>
-            <div className="flex flex-col items-start gap-0.5">
-              <div className="min-h-[14px] min-w-[100px] md:min-h-[20px] md:min-w-[140px] flex items-center">
-                <span
-                  className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] font-terminal ${isDark ? 'text-white' : 'text-slate-900'}`}
-                >
-                  Luseefor
-                </span>
-              </div>
-              <span
-                className="text-[8px] font-bold uppercase tracking-widest md:text-[10px] font-terminal"
-                style={{ color: `${themeColor}80` }}
-              >
-                Public_Interface
-              </span>
-            </div>
-          </button>
-          <div className="hidden md:block" />
-        </header>
-
         <FuturisticNavbar />
-
-        {/* Spacer for Nav */}
-        <div className="h-24" />
 
         <IdentityHero />
 
-        {/* Header / Marquee Section */}
-        <div className="mb-24 space-y-12">
+        <div className="mb-24">
           <TechMarquee />
         </div>
 
         <main className="max-w-7xl mx-auto px-6 lg:px-12">
-          {/* BENTO GRID (Maintained as About) */}
+          {/* BENTO GRID */}
           <div
             id="about"
-            className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[minmax(180px,auto)] mb-32"
+            className="grid grid-cols-1 md:grid-cols-12 gap-8 auto-rows-[minmax(180px,auto)] mb-32"
           >
-            {/* 1. Main Profile Card (Large Left) */}
-            <BentoCard className="md:col-span-7 md:row-span-2 relative min-h-[500px] group overflow-hidden border border-white/10 bg-[#0a0a0a]">
+            {/* 1. Main Profile Card */}
+            <BentoCard id="ALPHA" themeColor={themeColor} className="col-span-1 md:col-span-8 md:row-span-2 h-[550px]">
               <div className="absolute inset-0 z-0">
                 <Image
-                  src="/cyberpunk-avatar.png"
-                  alt="Cyberpunk Avatar"
+                  src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=2070&auto=format&fit=crop"
+                  alt="Neural Network Interface"
                   fill
-                  className="object-cover object-center transition-transform duration-700 group-hover:scale-105 opacity-80"
-                  priority
+                  className="object-cover opacity-40 group-hover:scale-105 transition-transform duration-1000"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#020410] via-[#020410]/40 to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#020410] via-[#020410]/60 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#020410] to-transparent" />
               </div>
 
-              <div className="absolute bottom-0 left-0 p-8 md:p-10 z-10 max-w-xl">
-                <h2 className="text-4xl md:text-6xl font-black leading-[0.9] mb-6 tracking-tighter text-white">
-                  Building high-performance, <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 animate-gradient-x">
-                    scalable systems.
-                  </span>
-                </h2>
-                <p className="text-slate-300 text-lg md:text-xl font-light leading-relaxed border-l-2 border-cyan-500/50 pl-4">
-                  Delivering robust engineering solutions with a focus on reliability, efficiency,
-                  and user experience.
-                </p>
+              <div className="relative z-10 p-10 md:p-14 h-full flex flex-col justify-end">
+                <div className="max-w-2xl">
+                  <div className="flex items-center gap-3 mb-8 opacity-60">
+                    <span className="w-12 h-[1px] bg-sky-500" />
+                    <span className="font-terminal text-[10px] tracking-[0.4em] uppercase text-sky-400">System_Core // active</span>
+                  </div>
+                  <motion.h2
+                    className="font-black text-white mb-8 uppercase tracking-tighter leading-[0.9]"
+                    style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)' }}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                  >
+                    Building <br />
+                    high-performance, <br />
+                    <span
+                      className="text-transparent bg-clip-text"
+                      style={{ backgroundImage: `linear-gradient(to right, ${themeColor}, white)` }}
+                    >
+                      scalable systems.
+                    </span>
+                  </motion.h2>
+                  <p className="text-slate-300 text-lg md:text-xl font-light leading-relaxed max-w-xl">
+                    Architecting robust digital infrastructure with a focus on reliability, extreme efficiency, and fluid user interaction.
+                  </p>
+                </div>
+              </div>
+
+              {/* HUD Coordinates */}
+              <div className="absolute bottom-8 right-12 hidden md:block">
+                <div className="font-terminal text-[8px] text-white/20 tracking-[0.2em] space-y-1">
+                  <div>LAT_COORD: 31.3271° N</div>
+                  <div>LNG_COORD: 89.2903° W</div>
+                </div>
               </div>
             </BentoCard>
 
-            {/* 2. Expertise / Code Card (Right Top) */}
-            <BentoCard className="md:col-span-5 md:row-span-1 bg-[#050714] border border-white/10 relative group overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/10 via-transparent to-purple-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-              <div className="p-8 h-full flex flex-col justify-between relative z-10">
-                <div className="absolute top-0 right-0 p-6 opacity-30 scale-75 origin-top-right mix-blend-screen pointer-events-none">
-                  <CodeTyper />
-                </div>
-
-                <div className="mt-auto">
-                  <h3 className="text-slate-400 font-mono text-sm uppercase tracking-widest mb-2">
-                    Expertise
+            {/* 2. Expertise Card */}
+            <BentoCard id="OMEGA" themeColor={themeColor} className="md:col-span-4 md:row-span-1 h-[260px]">
+              <div className="p-10 h-full flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor }} />
+                    <span className="text-slate-500 font-mono text-[10px] tracking-[0.3em] uppercase">Tech_Stack</span>
+                  </div>
+                  <h3
+                    className="font-bold text-white tracking-tight leading-[1.1]"
+                    style={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)' }}
+                  >
+                    Software, <br />
+                    <span style={{ color: themeColor }}>AI Systems</span>,<br />
+                    Data & ML
                   </h3>
-                  <h4 className="text-3xl md:text-4xl font-bold text-white leading-tight">
-                    Software, <span className="text-cyan-400">AI</span>, <br />
-                    <span className="text-purple-400">ML</span> & Data
-                  </h4>
+                </div>
+                <div className="mt-4 flex gap-4 opacity-20 group-hover:opacity-100 transition-opacity duration-500">
+                  <div className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full"
+                      style={{ backgroundColor: themeColor }}
+                      initial={{ width: 0 }}
+                      whileInView={{ width: '85%' }}
+                      transition={{ duration: 1.5, delay: 0.5 }}
+                    />
+                  </div>
                 </div>
               </div>
             </BentoCard>
 
-            {/* 3. Location & Time (Right Bottom) */}
-            <BentoCard className="md:col-span-12 lg:col-span-5 lg:row-span-1 bg-[#080a12] border border-white/10 group relative overflow-hidden">
+            {/* 3. Location & Time Card */}
+            <BentoCard id="SIGMA" themeColor={themeColor} className="md:col-span-4 md:row-span-1 h-[260px]">
               <TimeLocationCard />
             </BentoCard>
           </div>

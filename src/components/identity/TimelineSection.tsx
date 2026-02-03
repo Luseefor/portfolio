@@ -31,7 +31,10 @@ export default function TimelineSection() {
             Chronology // EXP_LOG
           </span>
         </motion.div>
-        <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tight">
+        <h2
+          className="font-black text-white uppercase tracking-tighter leading-none"
+          style={{ fontSize: 'clamp(2rem, 8vw, 5rem)' }}
+        >
           Experience
         </h2>
       </div>
@@ -74,9 +77,9 @@ export default function TimelineSection() {
                   >
                     {item.period}
                   </span>
-                  <h3 className="text-2xl font-bold text-white mb-1">{item.company}</h3>
-                  <h4 className="text-lg text-slate-300 mb-4">{item.role}</h4>
-                  <p className="text-slate-400 text-sm leading-relaxed">{item.description}</p>
+                  <h3 className="text-3xl font-bold text-white mb-2">{item.company}</h3>
+                  <h4 className="text-xl text-slate-200 mb-6 font-medium tracking-tight">{item.role}</h4>
+                  <p className="text-slate-200 text-base leading-relaxed font-light">{item.description}</p>
                 </FuturisticCard>
               </div>
 

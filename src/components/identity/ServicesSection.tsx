@@ -51,7 +51,10 @@ export default function ServicesSection() {
             System Modules
           </span>
         </motion.div>
-        <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tight">
+        <h2
+          className="font-black text-white uppercase tracking-tighter leading-none"
+          style={{ fontSize: 'clamp(2rem, 8vw, 5rem)' }}
+        >
           Core{' '}
           <span
             className="text-transparent bg-clip-text"
@@ -71,8 +74,8 @@ export default function ServicesSection() {
             >
               <service.icon size={32} />
             </div>
-            <h3 className="text-xl font-bold text-white mb-3">{service.title}</h3>
-            <p className="text-slate-400 text-sm leading-relaxed">{service.desc}</p>
+            <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-cyan-400 transition-colors">{service.title}</h3>
+            <p className="text-slate-200 text-base leading-relaxed font-light">{service.desc}</p>
           </FuturisticCard>
         ))}
       </div>
