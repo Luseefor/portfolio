@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useRef } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { Github, Linkedin } from 'lucide-react';
 import { PORTFOLIO_CONTENT } from './portfolio-template';
 
@@ -18,10 +18,23 @@ export default function IdentityHero() {
     () => getThemeColor(currentTheme, isDark),
     [currentTheme, isDark],
   );
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start start', 'end start'],
+  });
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.45], [1, 0]);
+  const contentY = useTransform(scrollYProgress, [0, 0.45], [0, -40]);
 
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-24 pb-16 z-10">
-      <div className="flex flex-col items-center gap-6 md:gap-8">
+    <section
+      ref={sectionRef}
+      className="relative min-h-[120vh] flex flex-col items-center justify-center text-center px-6 pt-24 pb-16 z-10"
+    >
+      <motion.div
+        style={{ opacity: contentOpacity, y: contentY }}
+        className="sticky top-24 flex w-full max-w-5xl flex-col items-center gap-6 md:gap-8"
+      >
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -67,8 +80,8 @@ export default function IdentityHero() {
         </motion.p>
 
         {/* Background Glow for Text */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-gradient-to-r from-cyan-500/10 to-purple-500/10 blur-[100px] rounded-full pointer-events-none -z-10" />
-      </div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-gradient-to-r from-cyan-500/10 to-purple-500/10 blur-[100px] rounded-full pointer-events-none -z-10" />
+      </motion.div>
 
       {/* Scroll Indicator */}
       <motion.div
