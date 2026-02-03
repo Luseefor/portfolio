@@ -72,18 +72,20 @@ export default function IdentityHero() {
 
       {/* Scroll Indicator */}
       <motion.div
-        className="absolute bottom-6 left-1/2 -translate-x-1/2"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1, duration: 1 }}
       >
-        <div className="w-6 h-9 border border-white/15 rounded-full flex justify-center p-1.5 backdrop-blur-sm bg-white/5">
-          <motion.div
-            className="w-1.5 h-1.5 bg-white/70 rounded-full"
-            animate={{ y: [0, 7, 0], opacity: [0.6, 1, 0.6] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-          />
-        </div>
+        <div className="h-6 w-px bg-white/20" />
+        <motion.div
+          className="flex flex-col items-center gap-1"
+          animate={{ y: [0, 6, 0], opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <div className="h-2 w-2 rotate-45 border-b border-r border-white/60" />
+          <div className="h-2 w-2 rotate-45 border-b border-r border-white/40" />
+        </motion.div>
       </motion.div>
     </section>
   );
