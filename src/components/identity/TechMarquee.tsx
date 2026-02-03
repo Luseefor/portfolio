@@ -2,17 +2,36 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Atom, Database, FileCode, Globe, Cpu, Code2, Terminal, Layers } from 'lucide-react';
+import {
+  Atom,
+  Database,
+  FileCode,
+  Globe,
+  Cpu,
+  Code2,
+  Terminal,
+  Layers,
+  Cloud,
+  Boxes,
+  ShieldCheck,
+  Bot,
+  Sparkles,
+} from 'lucide-react';
 
 const ICONS = [
+  { icon: Terminal, label: 'CLI / Bash' },
+  { icon: Layers, label: 'Full Stack' },
   { icon: Atom, label: 'React' },
   { icon: Globe, label: 'Next.js' },
-  { icon: Database, label: 'PostgreSQL' },
-  { icon: Cpu, label: 'System Design' },
   { icon: FileCode, label: 'TypeScript' },
-  { icon: Code2, label: 'Algorithm' },
-  { icon: Terminal, label: 'Bash' },
-  { icon: Layers, label: 'Full Stack' },
+  { icon: Database, label: 'PostgreSQL' },
+  { icon: Cloud, label: 'Cloud' },
+  { icon: Boxes, label: 'DevOps' },
+  { icon: Cpu, label: 'System Design' },
+  { icon: ShieldCheck, label: 'Security' },
+  { icon: Bot, label: 'AI Systems' },
+  { icon: Sparkles, label: 'UX Motion' },
+  { icon: Code2, label: 'Algorithms' },
 ];
 
 export default function TechMarquee() {
@@ -22,14 +41,17 @@ export default function TechMarquee() {
       <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#020410] to-transparent z-10" />
 
       <motion.div
-        className="flex gap-16 min-w-max"
+        className="flex gap-14 min-w-max"
         animate={{ x: ['0%', '-50%'] }}
-        transition={{ duration: 20, ease: 'linear', repeat: Infinity }}
+        transition={{ duration: 26, ease: 'linear', repeat: Infinity }}
       >
-        {[...ICONS, ...ICONS, ...ICONS].map((item, i) => (
-          <div key={i} className="flex items-center gap-3 group cursor-pointer">
-            <item.icon className="w-6 h-6 text-slate-500 group-hover:text-cyan-400 transition-colors duration-300" />
-            <span className="text-lg font-bold text-slate-600 group-hover:text-white transition-colors duration-300">
+        {[...ICONS, ...ICONS].map((item, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-3 group cursor-default px-2 py-1 rounded-full border border-white/5 bg-white/[0.02] hover:bg-white/[0.06] transition-colors"
+          >
+            <item.icon className="w-5 h-5 text-slate-500 group-hover:text-emerald-400 transition-colors duration-300" />
+            <span className="text-sm font-semibold tracking-wide text-slate-400 group-hover:text-white transition-colors duration-300">
               {item.label}
             </span>
           </div>
