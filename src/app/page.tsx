@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Terminal, ShieldCheck, Activity } from 'lucide-react';
+import { Terminal, ShieldCheck, Activity, Gamepad2 } from 'lucide-react';
 import { useStore } from '@/utils/store';
 import dynamic from 'next/dynamic';
 
@@ -13,9 +12,6 @@ const GlassCard = dynamic(() => import('@/components/home/GlassCard').then((m) =
   ssr: false,
 });
 const HyperText = dynamic(() => import('@/components/shared/HyperText'), { ssr: false });
-const LiquidGlassButton = dynamic(() => import('@/components/shared/ui/LiquidGlassButton'), {
-  ssr: false,
-});
 
 import { getThemeColor } from '@/utils/themes';
 import { Grid3X3 } from 'lucide-react';
@@ -226,21 +222,9 @@ export default function Home() {
           >
             01001100 01010101 01010011 01001100
           </div>
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.9, duration: 0.6 }}
-            className="mt-6 flex justify-center"
-          >
-            <Link href="/identity">
-              <LiquidGlassButton className="!px-6 !py-2.5 !text-xs !font-bold">
-                OPEN IDENTITY
-              </LiquidGlassButton>
-            </Link>
-          </motion.div>
         </div>
 
-        <div className="grid w-full max-w-6xl grid-cols-1 gap-4 md:gap-6 lg:gap-8">
+        <div className="grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:gap-8">
           <div className="h-[200px] sm:h-[220px] md:h-auto lg:h-[320px]">
             <GlassCard
               href="/identity"
@@ -251,6 +235,20 @@ export default function Home() {
               delay={0.6}
               themeColor={activeThemeColor}
               isDark={isDark}
+              active
+            />
+          </div>
+          <div className="h-[200px] sm:h-[220px] md:h-auto lg:h-[320px]">
+            <GlassCard
+              href="/interactive"
+              badge="02 // Simulation"
+              title="Interactive"
+              description="A third-person shooter-style interactive environment showcasing realtime systems and input fidelity."
+              icon={Gamepad2}
+              delay={0.75}
+              themeColor={activeThemeColor}
+              isDark={isDark}
+              active
             />
           </div>
         </div>
