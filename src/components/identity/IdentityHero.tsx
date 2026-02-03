@@ -31,19 +31,27 @@ export default function IdentityHero() {
         style={{ opacity: contentOpacity, y: contentY }}
         className="sticky top-0 h-screen flex items-center justify-center px-4"
       >
-        <div className="relative w-full max-w-4xl flex flex-col items-center text-center gap-6 -translate-y-10 md:-translate-y-12">
+        <div className="relative w-full max-w-5xl flex flex-col items-center text-center gap-4 md:gap-6 -translate-y-6 md:-translate-y-8">
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.15 }}
-            className="-mt-2"
+            className="-mt-1"
           >
             <HeroAvatar3D />
           </motion.div>
 
-          <div className="relative w-full max-w-3xl rounded-3xl border border-white/10 bg-black/35 px-6 py-6 md:py-7 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.8)] backdrop-blur-xl">
+          <div className="relative w-full max-w-3xl rounded-3xl border border-white/10 bg-black/35 px-6 py-5 md:py-6 backdrop-blur-md">
+            <motion.div
+              className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-terminal uppercase tracking-[0.3em] text-emerald-300/80"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.15 }}
+            >
+              Signal Online
+            </motion.div>
             <motion.h2
-              className="text-2xl md:text-3xl font-bold text-slate-200 mb-2"
+              className="text-xl md:text-2xl font-semibold text-slate-200 mb-1"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
@@ -68,7 +76,7 @@ export default function IdentityHero() {
             </motion.h1>
 
             <motion.p
-              className="text-lg md:text-xl text-slate-300/80 font-medium max-w-2xl mx-auto leading-relaxed"
+              className="text-base md:text-lg text-slate-300/75 font-medium max-w-2xl mx-auto leading-relaxed"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.55 }}
@@ -76,21 +84,12 @@ export default function IdentityHero() {
               {PORTFOLIO_CONTENT.hero.tagline}
             </motion.p>
 
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <a
-                href="https://www.linkedin.com"
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/10"
-              >
-                <Linkedin size={14} />
-                LinkedIn
-              </a>
-              <a
-                href="https://github.com"
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/10"
-              >
-                <Github size={14} />
-                GitHub
-              </a>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-[11px] uppercase tracking-[0.28em] font-terminal text-emerald-300/70">
+              <span className="flex items-center gap-2">Identity</span>
+              <span className="h-1 w-1 rounded-full bg-emerald-400/40" />
+              <span className="flex items-center gap-2">Systems</span>
+              <span className="h-1 w-1 rounded-full bg-emerald-400/40" />
+              <span className="flex items-center gap-2">Interface</span>
             </div>
           </div>
 
@@ -98,19 +97,24 @@ export default function IdentityHero() {
         </div>
 
         <motion.div
-          className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1"
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.9, duration: 1 }}
         >
           <motion.div
-            className="h-6 w-6 rounded-full border border-white/20 flex items-center justify-center"
+            className="flex items-center gap-2 text-[10px] uppercase tracking-[0.35em] font-terminal text-emerald-300/70"
             animate={{ y: [0, 6, 0], opacity: [0.6, 1, 0.6] }}
             transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
           >
-            <div className="h-2 w-2 border-b border-r border-white/60 rotate-45" />
+            <span className="h-[1px] w-8 bg-emerald-400/40" />
+            Scroll
+            <span className="h-[1px] w-8 bg-emerald-400/40" />
           </motion.div>
-          <span className="text-[10px] uppercase tracking-[0.3em] text-white/40">Scroll</span>
+          <div className="flex flex-col items-center gap-1">
+            <div className="h-2 w-2 rotate-45 border-b border-r border-emerald-400/60" />
+            <div className="h-2 w-2 rotate-45 border-b border-r border-emerald-400/40" />
+          </div>
         </motion.div>
       </motion.div>
     </section>
