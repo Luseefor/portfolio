@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import React from 'react';
+import { motion } from 'framer-motion';
 import { Github, Linkedin } from 'lucide-react';
 import { PORTFOLIO_CONTENT } from './portfolio-template';
 
@@ -18,27 +18,14 @@ export default function IdentityHero() {
     () => getThemeColor(currentTheme, isDark),
     [currentTheme, isDark],
   );
-  const sectionRef = useRef<HTMLElement | null>(null);
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ['start start', 'end start'],
-  });
-  const contentOpacity = useTransform(scrollYProgress, [0, 0.45], [1, 0]);
-  const contentY = useTransform(scrollYProgress, [0, 0.45], [0, -40]);
-
   return (
-    <section
-      ref={sectionRef}
-      className="relative min-h-[120vh] flex flex-col items-center justify-center text-center px-6 pt-6 pb-16 z-10"
-    >
-      <motion.div
-        style={{ opacity: contentOpacity, y: contentY }}
-        className="sticky top-6 flex w-full max-w-5xl flex-col items-center gap-6 md:gap-8"
-      >
+    <section className="relative h-screen flex flex-col items-center justify-center text-center px-6 pt-0 pb-10 z-10">
+      <div className="flex w-full max-w-5xl flex-col items-center gap-5 md:gap-7">
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
+          className="-mt-10 md:-mt-14"
         >
           <HeroAvatar3D />
         </motion.div>
@@ -81,11 +68,11 @@ export default function IdentityHero() {
 
         {/* Background Glow for Text */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-gradient-to-r from-cyan-500/10 to-purple-500/10 blur-[100px] rounded-full pointer-events-none -z-10" />
-      </motion.div>
+      </div>
 
       {/* Scroll Indicator */}
       <motion.div
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1, duration: 1 }}
