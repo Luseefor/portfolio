@@ -26,12 +26,12 @@ export default function IdentityHero() {
   const contentY = useTransform(scrollYProgress, [0, 0.6], [0, -60]);
 
   return (
-    <section ref={sectionRef} className="relative min-h-[140vh] z-10">
+    <section ref={sectionRef} className="relative min-h-[120vh] z-10">
       <motion.div
         style={{ opacity: contentOpacity, y: contentY }}
         className="sticky top-0 h-screen flex items-center justify-center px-4"
       >
-        <div className="relative w-full max-w-5xl flex flex-col items-center text-center gap-4 md:gap-6 -translate-y-6 md:-translate-y-8">
+        <div className="relative w-full max-w-5xl flex flex-col items-center text-center gap-4 md:gap-6 -translate-y-4 md:-translate-y-6">
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -41,15 +41,7 @@ export default function IdentityHero() {
             <HeroAvatar3D />
           </motion.div>
 
-          <div className="relative w-full max-w-3xl rounded-3xl border border-white/10 bg-black/35 px-6 py-5 md:py-6 backdrop-blur-md">
-            <motion.div
-              className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-terminal uppercase tracking-[0.3em] text-emerald-300/80"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.15 }}
-            >
-              Signal Online
-            </motion.div>
+          <div className="relative w-full max-w-4xl">
             <motion.h2
               className="text-xl md:text-2xl font-semibold text-slate-200 mb-1"
               initial={{ opacity: 0 }}
@@ -76,28 +68,20 @@ export default function IdentityHero() {
             </motion.h1>
 
             <motion.p
-              className="text-base md:text-lg text-slate-300/75 font-medium max-w-2xl mx-auto leading-relaxed"
+              className="text-base md:text-lg text-slate-300/80 font-medium max-w-2xl mx-auto leading-relaxed"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.55 }}
             >
               {PORTFOLIO_CONTENT.hero.tagline}
             </motion.p>
-
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-[11px] uppercase tracking-[0.28em] font-terminal text-emerald-300/70">
-              <span className="flex items-center gap-2">Identity</span>
-              <span className="h-1 w-1 rounded-full bg-emerald-400/40" />
-              <span className="flex items-center gap-2">Systems</span>
-              <span className="h-1 w-1 rounded-full bg-emerald-400/40" />
-              <span className="flex items-center gap-2">Interface</span>
-            </div>
           </div>
 
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[320px] bg-gradient-to-r from-cyan-500/10 to-purple-500/10 blur-[110px] rounded-full pointer-events-none -z-10" />
         </div>
 
         <motion.div
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.9, duration: 1 }}
