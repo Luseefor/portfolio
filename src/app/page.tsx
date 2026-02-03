@@ -19,6 +19,7 @@ import { Grid3X3 } from 'lucide-react';
 export default function Home() {
   const [time, setTime] = useState('');
   const { currentTheme, setCurrentTheme, isDark, setIsDark } = useStore();
+  const [konamiActive, setKonamiActive] = useState(false);
 
   const activeThemeColor = useMemo(
     () => getThemeColor(currentTheme, isDark),
@@ -81,6 +82,43 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    const sequence = [
+      'ArrowUp',
+      'ArrowUp',
+      'ArrowDown',
+      'ArrowDown',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowLeft',
+      'ArrowRight',
+      'KeyB',
+      'KeyA',
+    ];
+    let index = 0;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code === sequence[index]) {
+        index += 1;
+        if (index === sequence.length) {
+          setKonamiActive(true);
+          index = 0;
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => setKonamiActive(false), 12000);
+        }
+      } else {
+        index = event.code === sequence[0] ? 1 : 0;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
   return (
     <main
       className={`relative flex h-screen w-full flex-col overflow-hidden font-mono selection:bg-none cursor-default select-none transition-colors duration-1000 ${isDark ? 'text-white' : 'text-slate-900'}`}
@@ -88,7 +126,7 @@ export default function Home() {
       <Background themeColor={activeThemeColor} isDark={isDark} />
 
       {/* --- HEADER --- */}
-      <header className="relative z-50 flex shrink-0 items-center justify-between px-6 py-3 backdrop-blur-sm md:px-10 md:py-6">
+      <header className="relative z-50 flex shrink-0 items-center justify-between pl-6 pr-10 py-3 backdrop-blur-sm md:pl-10 md:pr-12 md:py-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -224,6 +262,15 @@ export default function Home() {
               0xC0DE
             </div>
           </div>
+          {konamiActive && (
+            <div
+              className={`mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[9px] font-terminal uppercase tracking-[0.35em] ${
+                isDark ? 'border-white/10 bg-white/5 text-white/70' : 'border-black/10 bg-black/5 text-slate-900/70'
+              }`}
+            >
+              KONAMI_MODE // UNLOCKED
+            </div>
+          )}
           <div
             className={`mt-4 text-[8px] font-terminal uppercase tracking-[0.8em] transition-colors duration-1000 ${isDark ? 'text-white/10' : 'text-black/5'}`}
           >
@@ -243,7 +290,7 @@ export default function Home() {
               themeColor={activeThemeColor}
               isDark={isDark}
               active
-              easter="SIGMA-17"
+              easter={konamiActive ? 'PROTOCOL: ID-ROOT' : undefined}
             />
           </div>
           <div className="h-[200px] sm:h-[220px] md:h-auto lg:h-[320px]">
@@ -257,7 +304,7 @@ export default function Home() {
               themeColor={activeThemeColor}
               isDark={isDark}
               active
-              easter="XR-CORE"
+              easter={konamiActive ? 'PROTOCOL: SIM-CORE' : undefined}
             />
           </div>
         </div>
