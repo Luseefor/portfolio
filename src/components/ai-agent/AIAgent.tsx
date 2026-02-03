@@ -141,16 +141,11 @@ export default function AIAgent() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-0 z-[100] h-screen w-full border-r border-black/10 bg-gradient-to-b from-white/95 to-white/90 shadow-2xl backdrop-blur-xl dark:border-emerald-500/10 dark:from-[#030504]/95 dark:to-[#020403]/95 md:w-[450px] relative"
+              className="fixed left-0 top-0 z-[100] h-screen w-full border-r border-black/10 bg-gradient-to-b from-white/95 to-white/90 shadow-2xl backdrop-blur-xl dark:border-emerald-500/10 dark:from-[#050707]/95 dark:to-[#030404]/95 md:w-[450px] relative"
             >
               <div className="pointer-events-none absolute inset-0">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.12),transparent_45%)]" />
-                <div className="absolute inset-0 opacity-[0.08] dark:opacity-[0.12]" style={{
-                  backgroundImage:
-                    'linear-gradient(rgba(16,185,129,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,0.35) 1px, transparent 1px)',
-                  backgroundSize: '140px 140px',
-                }} />
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/20 to-transparent" />
+                <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-emerald-500/5 to-transparent" />
               </div>
               {/* Header */}
               <div className="absolute top-0 z-10 flex w-full items-center justify-between p-6">
