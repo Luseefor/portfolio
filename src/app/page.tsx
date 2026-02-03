@@ -104,11 +104,11 @@ export default function Home() {
             <div className="min-h-[14px] min-w-[100px] md:min-h-[20px] md:min-w-[140px] flex items-center">
               <HyperText
                 text="Luseefor"
-                className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}
+                className={`text-xs font-black tracking-[0.2em] uppercase transition-colors md:text-sm md:tracking-[0.4em] font-terminal ${isDark ? 'text-white' : 'text-slate-900'}`}
               />
             </div>
             <span
-              className="text-[8px] font-bold uppercase tracking-widest md:text-[10px]"
+              className="text-[8px] font-bold uppercase tracking-widest md:text-[10px] font-terminal"
               style={{ color: `${activeThemeColor}80` }}
             >
               Public_Interface
@@ -160,65 +160,72 @@ export default function Home() {
               style={{ color: activeThemeColor }}
             />
             <div
-              className={`text-[8px] font-black tracking-[0.2em] uppercase md:text-[10px] md:tracking-[0.3em] ${isDark ? 'text-white/40' : 'text-slate-900/40'}`}
+              className={`text-[8px] font-black tracking-[0.2em] uppercase md:text-[10px] md:tracking-[0.3em] font-terminal ${isDark ? 'text-white/40' : 'text-slate-900/40'}`}
             >
               <HyperText text="Access_Verified" />
             </div>
           </motion.div>
 
-          <h1
-            className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl xl:text-[11.5rem] leading-none uppercase transition-colors duration-1000`}
-            style={{
-              color: isDark ? 'white' : 'transparent',
-              backgroundImage: !isDark
-                ? `linear-gradient(to bottom right, ${activeThemeColor}, ${activeThemeColor}aa)`
-                : 'none',
-              WebkitBackgroundClip: !isDark ? 'text' : 'none',
-              backgroundClip: !isDark ? 'text' : 'none',
-            }}
-          >
-            {'Portfolio'.split('').map((char, i) => (
-              <motion.span
-                key={i}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{
-                  delay: 0.8 + i * 0.04,
-                  duration: 0.8,
-                  ease: [0.16, 1, 0.3, 1],
-                }}
-                className="inline-block px-1"
-              >
-                {char}
-              </motion.span>
-            ))}
-            <motion.span
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: isDark ? 0.3 : 0.6, scale: 1 }}
-              transition={{ delay: 1.5, duration: 1 }}
-              className="transition-colors duration-1000"
-              style={{ color: activeThemeColor }}
+          <div className="relative group">
+            <h1
+              className={`text-5xl font-black tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl xl:text-[11.5rem] leading-none uppercase transition-colors duration-1000 font-display`}
+              style={{
+                color: isDark ? 'white' : 'transparent',
+                backgroundImage: !isDark
+                  ? `linear-gradient(to bottom right, ${activeThemeColor}, ${activeThemeColor}aa)`
+                  : 'none',
+                WebkitBackgroundClip: !isDark ? 'text' : 'none',
+                backgroundClip: !isDark ? 'text' : 'none',
+              }}
             >
-              .
-            </motion.span>
-            {'os'.split('').map((char, i) => (
+              {'Portfolio'.split('').map((char, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{
+                    delay: 0.8 + i * 0.04,
+                    duration: 0.8,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
+                  className="inline-block px-1"
+                >
+                  {char}
+                </motion.span>
+              ))}
               <motion.span
-                key={i + 10}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{
-                  delay: 1.4 + i * 0.08,
-                  duration: 0.8,
-                  ease: [0.16, 1, 0.3, 1],
-                }}
-                className="inline-block px-1"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: isDark ? 0.3 : 0.6, scale: 1 }}
+                transition={{ delay: 1.5, duration: 1 }}
+                className="transition-colors duration-1000"
+                style={{ color: activeThemeColor }}
               >
-                {char}
+                .
               </motion.span>
-            ))}
-          </h1>
+              {'os'.split('').map((char, i) => (
+                <motion.span
+                  key={i + 10}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{
+                    delay: 1.4 + i * 0.08,
+                    duration: 0.8,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
+                  className="inline-block px-1"
+                >
+                  {char}
+                </motion.span>
+              ))}
+            </h1>
+            <div
+              className={`pointer-events-none absolute -right-8 top-0 opacity-0 transition-opacity duration-500 group-hover:opacity-70 font-terminal text-[10px] uppercase tracking-[0.6em] ${isDark ? 'text-white/60' : 'text-slate-900/60'}`}
+            >
+              0xC0DE
+            </div>
+          </div>
           <div
-            className={`mt-4 text-[8px] font-mono uppercase tracking-[0.8em] transition-colors duration-1000 ${isDark ? 'text-white/10' : 'text-black/5'}`}
+            className={`mt-4 text-[8px] font-terminal uppercase tracking-[0.8em] transition-colors duration-1000 ${isDark ? 'text-white/10' : 'text-black/5'}`}
           >
             01001100 01010101 01010011 01001100
           </div>
@@ -236,6 +243,7 @@ export default function Home() {
               themeColor={activeThemeColor}
               isDark={isDark}
               active
+              easter="SIGMA-17"
             />
           </div>
           <div className="h-[200px] sm:h-[220px] md:h-auto lg:h-[320px]">
@@ -249,6 +257,7 @@ export default function Home() {
               themeColor={activeThemeColor}
               isDark={isDark}
               active
+              easter="XR-CORE"
             />
           </div>
         </div>
@@ -259,7 +268,7 @@ export default function Home() {
         className={`relative z-50 w-full shrink-0 border-t px-6 py-3 backdrop-blur-md transition-colors duration-1000 md:px-12 md:py-4 ${isDark ? 'border-white/5 bg-black/40' : 'border-black/5 bg-white/40'}`}
       >
         <div
-          className={`flex flex-wrap items-center justify-between gap-4 text-[7px] font-black tracking-[0.2em] uppercase transition-colors duration-1000 md:text-[9px] md:tracking-[0.5em] ${isDark ? 'text-white/30' : 'text-slate-900/30'}`}
+          className={`flex flex-wrap items-center justify-between gap-4 text-[7px] font-black tracking-[0.2em] uppercase transition-colors duration-1000 md:text-[9px] md:tracking-[0.5em] font-terminal ${isDark ? 'text-white/30' : 'text-slate-900/30'}`}
         >
           <div className="flex gap-8 md:gap-12">
             <div className="flex flex-col gap-0.5 cursor-pointer min-w-[80px]">

@@ -44,6 +44,7 @@ interface GlassCardProps {
   badge: string;
   icon: LucideIcon;
   active?: boolean;
+  easter?: string;
   themeColor: string;
   isDark: boolean;
 }
@@ -56,6 +57,7 @@ export const GlassCard = ({
   badge,
   icon: Icon,
   active = false,
+  easter,
   themeColor,
   isDark,
 }: GlassCardProps) => {
@@ -117,7 +119,7 @@ export const GlassCard = ({
         <div className="relative z-10 flex h-full flex-col text-left">
           <div className="mb-4 flex justify-between items-start md:mb-6">
             <span
-              className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[8px] font-black tracking-[0.2em] uppercase transition-colors md:px-4 md:text-[10px]"
+              className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[8px] font-black tracking-[0.2em] uppercase transition-colors md:px-4 md:text-[10px] font-terminal"
               style={{
                 borderColor: isActiveState
                   ? `${themeColor}40`
@@ -153,12 +155,12 @@ export const GlassCard = ({
           </div>
 
           <h3
-            className={`mb-2 text-2xl font-black tracking-tight transition-colors duration-500 md:mb-4 md:text-3xl lg:text-4xl ${isActiveState ? (isDark ? 'text-white' : 'text-slate-900') : isDark ? 'text-white/20' : 'text-slate-900/20'}`}
+            className={`mb-2 text-2xl font-black tracking-tight transition-colors duration-500 md:mb-4 md:text-3xl lg:text-4xl font-display ${isActiveState ? (isDark ? 'text-white' : 'text-slate-900') : isDark ? 'text-white/20' : 'text-slate-900/20'}`}
           >
             {title}
           </h3>
           <p
-            className={`mb-6 text-xs leading-relaxed font-sans transition-colors duration-500 md:mb-8 md:text-sm ${isActiveState ? (isDark ? 'text-white/40' : 'text-slate-600') : isDark ? 'text-white/10' : 'text-slate-900/10'}`}
+            className={`mb-6 text-xs leading-relaxed font-display transition-colors duration-500 md:mb-8 md:text-sm ${isActiveState ? (isDark ? 'text-white/40' : 'text-slate-600') : isDark ? 'text-white/10' : 'text-slate-900/10'}`}
           >
             {description}
           </p>
@@ -166,7 +168,7 @@ export const GlassCard = ({
           <div className="mt-auto flex items-center justify-between">
             <Magnetic>
               <div
-                className="flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] transition-all duration-300 md:gap-3 md:text-xs md:tracking-[0.3em]"
+                className="flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] transition-all duration-300 md:gap-3 md:text-xs md:tracking-[0.3em] font-terminal"
                 style={{
                   color: isActiveState
                     ? themeColor
@@ -184,6 +186,16 @@ export const GlassCard = ({
                 )}
               </div>
             </Magnetic>
+            {easter && (
+              <span
+                className={`text-[9px] uppercase tracking-[0.35em] font-terminal transition-opacity duration-500 ${
+                  isActiveState ? 'opacity-60' : 'opacity-0'
+                }`}
+                style={{ color: isActiveState ? `${themeColor}aa` : 'transparent' }}
+              >
+                {easter}
+              </span>
+            )}
             {active && (
               <div
                 className={`h-0.5 w-8 overflow-hidden rounded-full md:h-1 md:w-12 ${isDark ? 'bg-white/5' : 'bg-black/5'}`}
