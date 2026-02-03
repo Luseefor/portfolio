@@ -62,17 +62,15 @@ export default function IdentityHero() {
               {PORTFOLIO_CONTENT.hero.tagline}
             </motion.p>
 
-            <div className="mt-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.35em] font-terminal text-emerald-300/70">
-              <span>Identity</span>
-              <span className="h-[1px] w-6 bg-emerald-400/40" />
-              <span>Systems</span>
-              <span className="h-[1px] w-6 bg-emerald-400/40" />
-              <span>Interface</span>
-            </div>
+          <div className="mt-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.35em] font-terminal text-emerald-300/70">
+            <span>Identity</span>
+            <span className="h-[1px] w-6 bg-emerald-400/40" />
+            <span>Systems</span>
+            <span className="h-[1px] w-6 bg-emerald-400/40" />
+            <span>Interface</span>
           </div>
-
           <motion.div
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+            className="mt-4 flex flex-col items-center gap-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.9, duration: 1 }}
@@ -91,6 +89,7 @@ export default function IdentityHero() {
               <div className="h-2 w-2 rotate-45 border-b border-r border-emerald-400/40" />
             </div>
           </motion.div>
+          </div>
         </div>
       </div>
     </section>
