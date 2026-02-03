@@ -16,16 +16,16 @@ export default function InputZone({ input, setInput, onSend, isLoading }: InputZ
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && onSend()}
-        placeholder="Execute command..."
+        placeholder="Ask a question or type a command..."
         disabled={isLoading}
-        className="w-full rounded-xl border border-black/5 bg-transparent px-4 py-3 pr-10 text-xs outline-none transition-colors placeholder:text-slate-400 focus:border-emerald-500/50 disabled:opacity-50 dark:border-white/5 dark:text-white dark:placeholder:text-slate-600 dark:focus:border-emerald-500/50"
+        className="w-full rounded-2xl border border-black/10 bg-white/80 px-4 py-3 pr-12 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-emerald-500/60 disabled:opacity-50 dark:border-white/10 dark:bg-black/40 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-emerald-500/60"
       />
       <button
         onClick={onSend}
         disabled={isLoading || !input.trim()}
-        className="absolute right-2 rounded-lg p-1.5 text-emerald-500 transition-all hover:bg-emerald-500/10 hover:scale-105 disabled:opacity-30 disabled:hover:scale-100"
+        className="absolute right-2 rounded-xl p-2 text-emerald-500 transition-all hover:bg-emerald-500/10 hover:scale-105 disabled:opacity-30 disabled:hover:scale-100"
       >
-        <Send size={14} />
+        <Send size={16} />
       </button>
     </div>
   );
