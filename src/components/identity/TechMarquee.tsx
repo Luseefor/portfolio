@@ -41,17 +41,14 @@ export default function TechMarquee() {
       <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#020410] to-transparent z-10" />
 
       <motion.div
-        className="flex gap-14 min-w-max"
+        className="flex gap-16 min-w-max"
         animate={{ x: ['0%', '-50%'] }}
-        transition={{ duration: 26, ease: 'linear', repeat: Infinity }}
+        transition={{ duration: 22, ease: 'linear', repeat: Infinity }}
       >
         {[...ICONS, ...ICONS].map((item, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-3 group cursor-default px-2 py-1 rounded-full border border-white/5 bg-white/[0.02] hover:bg-white/[0.06] transition-colors"
-          >
+          <div key={i} className="flex items-center gap-3 group cursor-default">
             <item.icon className="w-5 h-5 text-slate-500 group-hover:text-emerald-400 transition-colors duration-300" />
-            <span className="text-sm font-semibold tracking-wide text-slate-400 group-hover:text-white transition-colors duration-300">
+            <span className="text-base font-semibold text-slate-500 group-hover:text-white transition-colors duration-300">
               {item.label}
             </span>
           </div>
