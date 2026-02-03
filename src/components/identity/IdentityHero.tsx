@@ -77,11 +77,11 @@ export default function IdentityHero() {
         animate={{ opacity: 1 }}
         transition={{ delay: 1, duration: 1 }}
       >
-        <div className="w-5 h-8 border-2 border-white/20 rounded-full flex justify-center p-1.5">
+        <div className="w-6 h-9 border border-white/15 rounded-full flex justify-center p-1.5 backdrop-blur-sm bg-white/5">
           <motion.div
-            className="w-1 h-1 bg-white rounded-full"
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            className="w-1.5 h-1.5 bg-white/70 rounded-full"
+            animate={{ y: [0, 7, 0], opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
           />
         </div>
       </motion.div>
