@@ -124,6 +124,13 @@ export default function Home() {
     };
   }, []);
 
+  const resetKonami = () => {
+    setKonamiActive(false);
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('konamiUnlocked');
+    }
+  };
+
   return (
     <main
       className={`relative flex h-screen w-full flex-col overflow-hidden font-mono selection:bg-none cursor-default select-none transition-colors duration-1000 ${displayIsDark ? 'text-white' : 'text-slate-900'}`}
@@ -367,6 +374,14 @@ export default function Home() {
               <HyperText text="SYNC_ACTIVE" />
               <span className="tabular-nums">[{syncStatus}MS]</span>
             </span>
+            {konamiActive && (
+              <button
+                onClick={resetKonami}
+                className="rounded-full border border-red-500/40 px-3 py-1 text-[9px] uppercase tracking-[0.35em] font-terminal text-red-200 hover:border-red-400 transition"
+              >
+                RESET
+              </button>
+            )}
           </div>
         </div>
       </footer>
