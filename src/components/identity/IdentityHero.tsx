@@ -15,8 +15,8 @@ export default function IdentityHero() {
 
   return (
     <section className="relative min-h-[120vh]">
-      <div className="sticky top-0 h-screen w-full px-6 pt-24 pb-16">
-        <div className="relative mx-auto flex h-full w-full max-w-5xl flex-col items-center justify-center text-center">
+      <div className="sticky top-0 h-screen w-full px-6 pt-16 pb-16">
+        <div className="relative mx-auto flex h-full w-full max-w-5xl flex-col items-center justify-center text-center -translate-y-8 md:-translate-y-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
