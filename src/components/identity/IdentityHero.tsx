@@ -30,7 +30,7 @@ export default function IdentityHero() {
         style={{ opacity: contentOpacity, y: contentY }}
         className="sticky top-0 h-screen flex items-center justify-center px-4"
       >
-        <div className="relative w-full max-w-5xl flex flex-col items-center gap-5 md:gap-6 -translate-y-12 md:-translate-y-16">
+        <div className="relative w-full max-w-5xl flex flex-col items-center gap-5 md:gap-7 -translate-y-12 md:-translate-y-16">
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -40,7 +40,7 @@ export default function IdentityHero() {
             <HeroAvatar3D />
           </motion.div>
 
-          <div className="relative w-full max-w-3xl rounded-3xl border border-white/10 bg-black/45 px-6 py-6 md:py-7 text-center shadow-2xl backdrop-blur-xl">
+          <div className="text-center">
             <motion.h2
               className="text-2xl md:text-3xl font-bold text-slate-200 mb-2"
               initial={{ opacity: 0 }}
@@ -65,16 +65,16 @@ export default function IdentityHero() {
                 {PORTFOLIO_CONTENT.hero.title}.
               </span>
             </motion.h1>
-
-            <motion.p
-              className="text-lg md:text-xl text-slate-300/80 font-medium max-w-2xl mx-auto leading-relaxed relative z-10"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-            >
-              {PORTFOLIO_CONTENT.hero.tagline}
-            </motion.p>
           </div>
+
+          <motion.p
+            className="text-lg md:text-xl text-slate-300/80 font-medium max-w-2xl mx-auto leading-relaxed relative z-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+          >
+            {PORTFOLIO_CONTENT.hero.tagline}
+          </motion.p>
 
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[320px] bg-gradient-to-r from-cyan-500/10 to-purple-500/10 blur-[110px] rounded-full pointer-events-none -z-10" />
         </div>
