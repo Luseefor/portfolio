@@ -241,12 +241,12 @@ export default function CapabilityMatrix() {
             className="font-black tracking-tight leading-[0.95]"
             style={{ fontSize: 'clamp(2.2rem, 6vw, 4.5rem)' }}
           >
-            <span className="text-white">Core</span>{' '}
+            <span className="text-white">Signal</span>{' '}
             <span
               className="text-transparent bg-clip-text"
               style={{ backgroundImage: `linear-gradient(90deg, ${themeColor}, #e7fff2)` }}
             >
-              Services
+              Map
             </span>
           </h2>
         </div>
