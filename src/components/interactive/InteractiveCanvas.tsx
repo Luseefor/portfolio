@@ -12,6 +12,8 @@ export default function InteractiveCanvas() {
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
   const setHasFocus = useDungeonInput((state) => state.setHasFocus);
   const setPointerLocked = useDungeonInput((state) => state.setPointerLocked);
+  const addEvent = useDungeonInput((state) => state.addEvent);
+  const setMouseDown = useDungeonInput((state) => state.setMouseDown);
   const forcePointerLock = useMemo(
     () =>
       typeof window !== 'undefined' &&
@@ -19,24 +21,45 @@ export default function InteractiveCanvas() {
     [],
   );
 
-  const handlePointerDown = useCallback(
-    (event: React.PointerEvent<any>) => {
-      const canvas = event.currentTarget;
-      canvas.focus();
+  useEffect(() => {
+    if (!canvasEl) return;
+
+    const handleNativeMouseDown = () => {
+      setMouseDown(true);
       if (forcePointerLock) {
         setPointerLocked(true);
         setHasFocus(true);
+        addEvent('pointerlock forced via query');
         return;
       }
-      if (document.pointerLockElement !== canvas) {
-        canvas.requestPointerLock();
+
+      if (document.pointerLockElement !== canvasEl) {
+        canvasEl.requestPointerLock();
+        addEvent('pointerlock requested');
       }
-    },
-    [forcePointerLock, setHasFocus, setPointerLocked],
-  );
+    };
+    const handleMouseUp = () => {
+      setMouseDown(false);
+      addEvent('mouse up');
+    };
+    const handleMouseLeave = () => {
+      setMouseDown(false);
+      addEvent('mouse leave');
+    };
+
+    canvasEl.addEventListener('mousedown', handleNativeMouseDown);
+    canvasEl.addEventListener('mouseup', handleMouseUp);
+    canvasEl.addEventListener('mouseleave', handleMouseLeave);
+    return () => {
+      canvasEl.removeEventListener('mousedown', handleNativeMouseDown);
+      canvasEl.removeEventListener('mouseup', handleMouseUp);
+      canvasEl.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [addEvent, canvasEl, forcePointerLock, setHasFocus, setMouseDown, setPointerLocked]);
 
   const handleFocus = useCallback(() => {
     setHasFocus(true);
+    addEvent('canvas focus');
   }, [setHasFocus]);
 
   const handleBlur = useCallback(() => {
@@ -44,6 +67,7 @@ export default function InteractiveCanvas() {
     if (forcePointerLock) {
       setPointerLocked(false);
     }
+    addEvent('canvas blur');
   }, [forcePointerLock, setHasFocus, setPointerLocked]);
 
   useEffect(() => {
@@ -54,8 +78,10 @@ export default function InteractiveCanvas() {
       setPointerLocked(isLocked);
       if (isLocked) {
         setHasFocus(true);
+        addEvent('pointerlock acquired');
       } else if (document.activeElement !== canvasEl) {
         setHasFocus(false);
+        addEvent('pointerlock released');
       }
     };
 
@@ -70,14 +96,12 @@ export default function InteractiveCanvas() {
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         camera={{ fov: 50, near: 0.1, far: 200, position: [0, 4, 10] }}
         onCreated={({ gl }) => {
-          // Note: physicallyCorrectLights is deprecated in Three.js r155+
-          // Modern Three.js uses physically correct lighting by default
           gl.toneMapping = ACESFilmicToneMapping;
           gl.toneMappingExposure = rendererToneMapping.exposure;
           setCanvasEl(gl.domElement);
+          gl.domElement.focus();
         }}
         tabIndex={0}
-        onPointerDown={handlePointerDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
       >

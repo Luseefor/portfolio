@@ -3,7 +3,7 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { TORCH_PLACEMENTS } from '@/constants/DungeonLayout';
+import { TORCH_PLACEMENTS, DUNGEON_SCALE } from '@/constants/DungeonLayout';
 
 // ========================================
 // DUST MOTES - Global ambient particles
@@ -189,18 +189,18 @@ function EmberSparkEmitter({ position, count = 15, spread = 0.5 }: EmberSparksPr
 // EMBER SYSTEM - Emitters at all torch positions
 // ========================================
 
-export function EmberSystem() {
+export function EmberSystem({ countMultiplier = 1 }: { countMultiplier?: number }) {
   return (
     <group name="ember-system">
       {TORCH_PLACEMENTS.map((torch, index) => (
         <EmberSparkEmitter
           key={`ember-${index}`}
           position={[
-            torch.position[0],
-            torch.position[1] + 0.5, // Offset up to flame
-            torch.position[2],
+            torch.position[0] * DUNGEON_SCALE,
+            (torch.position[1] + 0.5) * DUNGEON_SCALE, // Offset up to flame
+            torch.position[2] * DUNGEON_SCALE,
           ]}
-          count={12}
+          count={Math.round(12 * countMultiplier)}
           spread={0.4}
         />
       ))}
@@ -212,11 +212,18 @@ export function EmberSystem() {
 // COMBINED PARTICLE SYSTEM
 // ========================================
 
-export default function DungeonParticles() {
+export default function DungeonParticles({
+  enabled = true,
+  countMultiplier = 1,
+}: {
+  enabled?: boolean;
+  countMultiplier?: number;
+}) {
+  if (!enabled) return null;
   return (
     <group name="dungeon-particles">
-      <DustMotes count={150} opacity={0.25} />
-      <EmberSystem />
+      <DustMotes count={Math.round(150 * countMultiplier)} opacity={0.25} />
+      <EmberSystem countMultiplier={countMultiplier} />
     </group>
   );
 }

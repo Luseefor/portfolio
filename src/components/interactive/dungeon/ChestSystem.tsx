@@ -1,6 +1,6 @@
 'use client';
 
-import { useGLTF, PositionalAudio } from '@react-three/drei';
+import { PositionalAudio } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { useRef, useState, useMemo, useEffect } from 'react';
@@ -19,15 +19,18 @@ interface ChestProps {
 }
 
 function Chest({ chest, isOpen, isNearby, masterVolume }: ChestProps) {
-  const closedGltf = useGLTF('/models/dungeon/props/closed_chest.glb');
-  const openGltf = useGLTF('/models/dungeon/props/open_chest.glb');
   const groupRef = useRef<THREE.Group>(null);
   const audioRef = useRef<THREE.PositionalAudio>(null);
   const [hasPlayedOpenSound, setHasPlayedOpenSound] = useState(false);
-
-  // Clone scenes to avoid sharing issues
-  const closedScene = useMemo(() => closedGltf.scene.clone(true), [closedGltf.scene]);
-  const openScene = useMemo(() => openGltf.scene.clone(true), [openGltf.scene]);
+  const baseSize = useMemo(() => {
+    const scale = 0.9 * DUNGEON_SCALE;
+    return {
+      width: 1.2 * scale,
+      height: 0.6 * scale,
+      depth: 0.9 * scale,
+      lidHeight: 0.25 * scale,
+    };
+  }, []);
 
   // Play open sound when chest opens
   useEffect(() => {
@@ -55,8 +58,18 @@ function Chest({ chest, isOpen, isNearby, masterVolume }: ChestProps) {
       position={chest.position}
       rotation={chest.rotation ? new THREE.Euler(...chest.rotation) : undefined}
     >
-      {/* Chest model */}
-      <primitive object={isOpen ? openScene : closedScene} scale={0.8} />
+      {/* Chest blockout */}
+      <mesh position={[0, baseSize.height / 2, 0]}>
+        <boxGeometry args={[baseSize.width, baseSize.height, baseSize.depth]} />
+        <meshStandardMaterial color={isOpen ? '#6b4f3a' : '#7a5a3e'} roughness={0.8} />
+      </mesh>
+      <mesh
+        position={[0, baseSize.height + baseSize.lidHeight / 2, -baseSize.depth * 0.25]}
+        rotation={[isOpen ? -0.9 : 0, 0, 0]}
+      >
+        <boxGeometry args={[baseSize.width, baseSize.lidHeight, baseSize.depth]} />
+        <meshStandardMaterial color="#8b6646" roughness={0.75} />
+      </mesh>
 
       {/* Positional audio for chest open sound */}
       <PositionalAudio
@@ -70,7 +83,10 @@ function Chest({ chest, isOpen, isNearby, masterVolume }: ChestProps) {
       {/* Collider only when closed */}
       {!isOpen && (
         <RigidBody type="fixed" colliders={false}>
-          <CuboidCollider args={[0.5, 0.4, 0.4]} position={[0, 0.4, 0]} />
+          <CuboidCollider
+            args={[baseSize.width / 2, baseSize.height / 2, baseSize.depth / 2]}
+            position={[0, baseSize.height / 2, 0]}
+          />
         </RigidBody>
       )}
 
@@ -153,7 +169,3 @@ export function ChestSystem({
     </group>
   );
 }
-
-// Preload chest models
-useGLTF.preload('/models/dungeon/props/closed_chest.glb');
-useGLTF.preload('/models/dungeon/props/open_chest.glb');

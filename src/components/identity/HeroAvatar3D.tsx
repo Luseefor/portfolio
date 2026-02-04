@@ -40,7 +40,7 @@ const HolographicAvatar = () => {
 
 export default function HeroAvatar3D() {
   return (
-    <div className="w-[280px] h-[280px] md:w-[350px] md:h-[350px] mx-auto relative">
+    <div className="w-full h-full mx-auto relative">
       <Canvas camera={{ position: [0, 0, 6], fov: 45 }}>
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} color="#ffffff" />

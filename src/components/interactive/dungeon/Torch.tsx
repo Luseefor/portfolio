@@ -1,6 +1,5 @@
 'use client';
 
-import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useRef, useMemo } from 'react';
 import * as THREE from 'three';
@@ -29,11 +28,8 @@ function Torch({
   flickerSpeed = 8,
   flickerIntensity = 0.15,
 }: TorchProps) {
-  const { scene } = useGLTF('/models/dungeon/props/wall_torch.glb');
   const lightRef = useRef<THREE.PointLight>(null);
-
-  // Clone the scene to allow multiple instances
-  const clonedScene = useMemo(() => scene.clone(true), [scene]);
+  const torchScale = 0.5 * DUNGEON_SCALE;
 
   // Store random offset for each torch to desync flickers
   const randomOffset = useMemo(() => Math.random() * Math.PI * 2, []);
@@ -57,13 +53,20 @@ function Torch({
 
   return (
     <group position={position} rotation={rotation}>
-      {/* Torch model - Scaled to match dungeon */}
-      <primitive object={clonedScene} scale={DUNGEON_SCALE} />
+      {/* Simple torch blockout */}
+      <mesh position={[0, 0.25 * torchScale, 0]}>
+        <cylinderGeometry args={[0.1 * torchScale, 0.12 * torchScale, 0.6 * torchScale, 10]} />
+        <meshStandardMaterial color="#3b2c24" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.55 * torchScale, 0.15 * torchScale]}>
+        <sphereGeometry args={[0.12 * torchScale, 10, 10]} />
+        <meshStandardMaterial color="#ffb35c" emissive="#ff7a1a" emissiveIntensity={1.2} />
+      </mesh>
 
       {/* Warm flickering point light */}
       <pointLight
         ref={lightRef}
-        position={[0, 0.5 * DUNGEON_SCALE, 0.1 * DUNGEON_SCALE]} // Offset to flame position
+        position={[0, 0.55 * torchScale, 0.15 * torchScale]} // Offset to flame position
         color={color}
         intensity={intensity}
         distance={12 * DUNGEON_SCALE}
@@ -73,7 +76,7 @@ function Torch({
 
       {/* Secondary fill light for softer glow */}
       <pointLight
-        position={[0, 0.3 * DUNGEON_SCALE, 0]}
+        position={[0, 0.35 * torchScale, 0]}
         color="#ffb366"
         intensity={intensity * 0.3}
         distance={6 * DUNGEON_SCALE}
@@ -120,6 +123,3 @@ export function TorchSystem() {
 }
 
 export default Torch;
-
-// Preload torch model
-useGLTF.preload('/models/dungeon/props/wall_torch.glb');

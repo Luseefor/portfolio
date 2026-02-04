@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Sparkles } from 'lucide-react';
+import { Bot, X, Sparkles, Cpu, Activity } from 'lucide-react';
 import ChatView from './chat-view/ChatView';
 import AuthView from './auth-view/AuthView';
 
@@ -141,28 +141,38 @@ export default function AIAgent() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-0 z-[100] h-screen w-full border-r border-black/10 bg-white/95 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-[#050505]/95 md:w-[450px]"
+              className="fixed left-0 top-0 z-[100] h-screen w-full border-r border-black/10 bg-gradient-to-b from-white/95 to-white/90 shadow-2xl backdrop-blur-xl dark:border-emerald-500/10 dark:from-[#050707]/95 dark:to-[#030404]/95 md:w-[450px] relative"
             >
+              <div className="pointer-events-none absolute inset-0">
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/20 to-transparent" />
+                <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-emerald-500/5 to-transparent" />
+              </div>
               {/* Header */}
               <div className="absolute top-0 z-10 flex w-full items-center justify-between p-6">
                 <div className="flex items-center gap-3">
-                  <Bot size={18} className="text-emerald-500" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10">
+                    <Bot size={16} className="text-emerald-400" />
+                  </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white font-terminal">
                       Luseefor.SYS
                     </span>
-                    <span className="text-[8px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                    <span className="text-[8px] font-bold uppercase tracking-widest text-emerald-400/70">
                       Dashboard
                     </span>
                   </div>
                 </div>
+                <div className="hidden items-center gap-3 text-[8px] font-terminal uppercase tracking-[0.35em] text-emerald-400/60 md:flex">
+                  <Activity size={12} className="animate-pulse" />
+                  Active
+                </div>
                 <button
                   onClick={() => setChatOpen(false)}
-                  className="group rounded-full border border-black/5 bg-black/5 p-2 transition-colors hover:border-black/10 hover:bg-black/10 dark:border-white/5 dark:bg-white/5 dark:hover:border-white/10 dark:hover:bg-white/10"
+                  className="group rounded-full border border-emerald-500/20 bg-emerald-500/5 p-2 transition-colors hover:border-emerald-400/40 hover:bg-emerald-400/10"
                 >
                   <X
                     size={16}
-                    className="text-slate-500 transition-transform group-hover:rotate-90 group-hover:text-slate-900 dark:group-hover:text-white"
+                    className="text-emerald-200/70 transition-transform group-hover:rotate-90 group-hover:text-emerald-200"
                   />
                 </button>
               </div>

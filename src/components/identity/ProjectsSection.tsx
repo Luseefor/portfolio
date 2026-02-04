@@ -40,7 +40,10 @@ export default function ProjectsSection() {
               Selected Works
             </span>
           </div>
-          <h2 className="text-5xl md:text-7xl font-black text-white tracking-tight">
+          <h2
+            className="font-black text-white tracking-tighter leading-tight"
+            style={{ fontSize: 'clamp(2.25rem, 8vw, 5.5rem)' }}
+          >
             Impact & <br />
             <span
               className="text-transparent bg-clip-text"
@@ -74,10 +77,10 @@ export default function ProjectsSection() {
 
               <div className="h-full flex flex-col justify-between">
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-3 transition-colors">
+                  <h3 className="text-3xl font-bold text-white mb-4 group-hover:text-cyan-400 transition-colors">
                     {project.title}
                   </h3>
-                  <p className="text-slate-400 text-sm leading-relaxed mb-6">{project.desc}</p>
+                  <p className="text-slate-200 text-base leading-relaxed mb-8 font-light">{project.desc}</p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">

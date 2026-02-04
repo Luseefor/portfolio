@@ -15,8 +15,8 @@ const WALK_SPEED = 2.4;
 const RUN_SPEED = 4.2;
 const ACCELERATION = 16;
 const FRICTION = 20;
-const JUMP_SPEED = 5.2; // Adjusted for snappy jumps
-const GRAVITY = 20; // Increased scale for tighter controls
+const JUMP_SPEED = 7.2; // Snappier jumps for TPS feel
+const GRAVITY = 24; // Stronger gravity for tighter arc
 const START_POSITION: [number, number, number] = [0, 2, 0]; // Start slightly higher to prevent clip
 
 const direction = new Vector3();
@@ -51,6 +51,11 @@ export default function PlayerController({
 
   const { rapier, world } = useRapier();
   const hasFocus = useDungeonInput((state) => state.hasFocus);
+  const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
+  const mouseDown = useDungeonInput((state) => state.mouseDown);
+  const setKeys = useDungeonInput((state) => state.setKeys);
+  const addEvent = useDungeonInput((state) => state.addEvent);
+  const freeCam = useDungeonInput((state) => state.freeCam);
 
   // State
   const [animation, setAnimation] = useState<PlayerAnimation>('idle');
@@ -84,37 +89,50 @@ export default function PlayerController({
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent, pressed: boolean) => {
-      // Allow input even without strict focus if body capture is active
-      // but respecting the hasFocus flag is good for UI overlays
-      if (!hasFocus && pressed) return;
+      // Allow input when focused OR pointer-locked OR mouse is down (drag look mode).
+      if (!hasFocus && !isPointerLocked && !mouseDown && pressed) return;
 
       const code = event.code;
       switch (code) {
         case 'KeyW':
         case 'ArrowUp':
           inputRef.current.forward = pressed;
+          setKeys({ forward: pressed });
+          addEvent(`KeyW ${pressed ? 'down' : 'up'}`);
           break;
         case 'KeyS':
         case 'ArrowDown':
           inputRef.current.backward = pressed;
+          setKeys({ backward: pressed });
+          addEvent(`KeyS ${pressed ? 'down' : 'up'}`);
           break;
         case 'KeyA':
         case 'ArrowLeft':
           inputRef.current.left = pressed;
+          setKeys({ left: pressed });
+          addEvent(`KeyA ${pressed ? 'down' : 'up'}`);
           break;
         case 'KeyD':
         case 'ArrowRight':
           inputRef.current.right = pressed;
+          setKeys({ right: pressed });
+          addEvent(`KeyD ${pressed ? 'down' : 'up'}`);
           break;
         case 'ShiftLeft':
         case 'ShiftRight':
           inputRef.current.run = pressed;
+          setKeys({ run: pressed });
+          addEvent(`Shift ${pressed ? 'down' : 'up'}`);
           break;
         case 'Space':
           if (pressed) {
             jumpRequestedRef.current = true;
+            setKeys({ jump: true });
+            addEvent('Space down');
           } else {
             jumpRequestedRef.current = false;
+            setKeys({ jump: false });
+            addEvent('Space up');
           }
           break;
       }
@@ -122,7 +140,18 @@ export default function PlayerController({
 
     const onKeyDown = (e: KeyboardEvent) => handleKey(e, true);
     const onKeyUp = (e: KeyboardEvent) => handleKey(e, false);
-    const onBlur = () => resetInputs();
+    const onBlur = () => {
+      resetInputs();
+      setKeys({
+        forward: false,
+        backward: false,
+        left: false,
+        right: false,
+        run: false,
+        jump: false,
+      });
+      addEvent('window blur - inputs reset');
+    };
 
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
@@ -132,12 +161,17 @@ export default function PlayerController({
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
     };
-  }, [hasFocus, resetInputs]);
+  }, [addEvent, hasFocus, isPointerLocked, mouseDown, resetInputs, setKeys]);
 
   // Main Physics Loop
   useFrame((_, delta) => {
     const body = rigidBodyRef.current;
     if (!body) return;
+
+    if (freeCam) {
+      body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      return;
+    }
 
     // Wake up body if input detected
     const anyInput = inputRef.current.forward ||
@@ -182,6 +216,14 @@ export default function PlayerController({
       groundedRef.current = false; // Detatch immediately
       jumpAudioRef.current?.play();
       jumpRequestedRef.current = false; // Consume jump request
+      setKeys({ jump: false });
+      addEvent('jump triggered');
+    }
+
+    // Prevent jump key from sticking if pressed in mid-air
+    if (!isGrounded && jumpRequestedRef.current) {
+      jumpRequestedRef.current = false;
+      setKeys({ jump: false });
     }
 
     // Movement Calculation

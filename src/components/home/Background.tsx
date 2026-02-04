@@ -12,9 +12,10 @@ const LetterGlitch = dynamic(() => import('@/components/shared/LetterGlitch'), {
 interface BackgroundProps {
   themeColor: string;
   isDark: boolean;
+  glitchMode?: boolean;
 }
 
-const Background = ({ themeColor, isDark }: BackgroundProps) => {
+const Background = ({ themeColor, isDark, glitchMode = false }: BackgroundProps) => {
   return (
     <div
       className={`absolute inset-0 z-0 overflow-hidden transition-colors duration-1000 ${isDark ? 'bg-[#020202]' : 'bg-[#fcfcfc]'}`}
@@ -37,7 +38,7 @@ const Background = ({ themeColor, isDark }: BackgroundProps) => {
 
       <LetterGlitch
         glitchColors={[themeColor, `${themeColor}aa`, `${themeColor}55`]}
-        opacity={isDark ? 0.05 : 0.08}
+        opacity={glitchMode ? 0.14 : isDark ? 0.05 : 0.08}
         outerVignette={false}
       />
 
@@ -49,6 +50,17 @@ const Background = ({ themeColor, isDark }: BackgroundProps) => {
           backgroundSize: '120px 120px',
         }}
       />
+
+      {glitchMode && (
+        <>
+          <div className="absolute inset-0 opacity-[0.08] mix-blend-screen">
+            <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(255,0,0,0.15)_2%,transparent_4%)] bg-[length:100%_6px]" />
+          </div>
+          <div className="absolute inset-0 opacity-[0.12] mix-blend-screen">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,0,0,0.35),transparent_45%)]" />
+          </div>
+        </>
+      )}
 
       <div
         className={`absolute inset-0 transition-opacity duration-1000 ${isDark ? 'opacity-100' : 'opacity-40'}`}

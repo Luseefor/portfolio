@@ -12,11 +12,11 @@ import { MathUtils } from 'three';
 // ========================================
 export const CAMERA_DISTANCE = {
   /** Default camera distance from player */
-  default: 5.5,
+  default: 2.2,
   /** Minimum zoom distance */
-  min: 3.5,
+  min: 1.6,
   /** Maximum zoom distance */
-  max: 9.0,
+  max: 3.4,
   /** Zoom step per scroll wheel tick */
   scrollStep: 0.4,
 } as const;
@@ -26,11 +26,13 @@ export const CAMERA_DISTANCE = {
 // ========================================
 export const CAMERA_OFFSET = {
   /** Height above player pivot (eye level offset) */
-  height: 1.5,
+  height: 1.8,
   /** Horizontal offset for over-shoulder view (0 = centered) */
-  side: 0.7,
+  side: 0.6,
+  /** Additional backward bias to keep the head in frame */
+  back: 0.2,
   /** Look-at height offset (where camera points at on player) */
-  lookAtHeight: 1.2,
+  lookAtHeight: 1.25,
 } as const;
 
 // ========================================
@@ -42,7 +44,7 @@ export const CAMERA_FOLLOW = {
    * Lower = smoother/slower, Higher = snappier
    * Formula: lerp(current, target, 1 - pow(smoothing, delta))
    */
-  smoothing: 0.001,
+  smoothing: 0.0004,
 
   /**
    * Alternative: Direct lerp factor per frame (0.08-0.15 range)

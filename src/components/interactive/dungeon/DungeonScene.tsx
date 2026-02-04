@@ -24,9 +24,15 @@ import DungeonLayout from './DungeonLayout';
 import DungeonColliders from './DungeonColliders';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import { CAMERA_PITCH } from '@/constants/camera';
+import { usePlayerState, playerStateSelectors } from '@/lib/playerState';
 
 const FOG_COLOR = new Color(sceneLighting.fogColor);
 const DEBUG_TOGGLE_KEY = 'F1';
+const LAYOUT_TOGGLE_KEY = 'F2';
+const PARTICLE_TOGGLE_KEY = 'F3';
+const PARTICLE_STRESS_KEY = 'F4';
+const TELEPORT_KEY = 'F5';
+const FREECAM_KEY = 'F6';
 
 export default function DungeonScene() {
   const playerRef = useRef<Group>(null);
@@ -40,18 +46,88 @@ export default function DungeonScene() {
     [],
   );
   const [debugEnabled, setDebugEnabled] = useState(debugFromQuery);
+  const [layoutEnabled, setLayoutEnabled] = useState(true);
+  const [particlesEnabled, setParticlesEnabled] = useState(true);
+  const [particleMultiplier, setParticleMultiplier] = useState(1);
+  const [teleportIndex, setTeleportIndex] = useState(0);
   const axesHelper = useMemo(() => new AxesHelper(6), []);
+  const playerPosition = usePlayerState(playerStateSelectors.position);
+  const playerSpeed = usePlayerState(playerStateSelectors.speed);
+  const playerGrounded = usePlayerState(playerStateSelectors.grounded);
+  const playerMoving = usePlayerState(playerStateSelectors.isMoving);
+  const keys = useDungeonInput((state) => state.keys);
+  const lastEvent = useDungeonInput((state) => state.lastEvent);
+  const addEvent = useDungeonInput((state) => state.addEvent);
+  const freeCam = useDungeonInput((state) => state.freeCam);
+  const setFreeCam = useDungeonInput((state) => state.setFreeCam);
+
+  const teleportTargets = useMemo<[number, number, number][]>(
+    () => [
+      [0, 2, 0],
+      [0, 2, 12],
+      [0, 2, 20],
+      [14, 2, 10],
+      [14, 2, 24],
+      [-4, 2, 0],
+    ],
+    [],
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== DEBUG_TOGGLE_KEY && event.key !== DEBUG_TOGGLE_KEY) return;
-      event.preventDefault();
-      setDebugEnabled((prev) => !prev);
+      if (event.code === DEBUG_TOGGLE_KEY || event.key === DEBUG_TOGGLE_KEY) {
+        event.preventDefault();
+        setDebugEnabled((prev) => !prev);
+        addEvent('F1 debug overlay toggle');
+        return;
+      }
+
+      if (event.code === LAYOUT_TOGGLE_KEY || event.key === LAYOUT_TOGGLE_KEY) {
+        event.preventDefault();
+        setLayoutEnabled((prev) => !prev);
+        addEvent('F2 layout toggle');
+        return;
+      }
+
+      if (event.code === PARTICLE_TOGGLE_KEY || event.key === PARTICLE_TOGGLE_KEY) {
+        event.preventDefault();
+        setParticlesEnabled((prev) => !prev);
+        addEvent('F3 particles toggle');
+        return;
+      }
+
+      if (event.code === PARTICLE_STRESS_KEY || event.key === PARTICLE_STRESS_KEY) {
+        event.preventDefault();
+        setParticleMultiplier((prev) => (prev === 1 ? 3 : 1));
+        addEvent('F4 particle stress toggle');
+        return;
+      }
+
+      if (event.code === TELEPORT_KEY || event.key === TELEPORT_KEY) {
+        event.preventDefault();
+        const body = playerBodyRef.current;
+        if (!body) return;
+        setTeleportIndex((prev) => {
+          const next = (prev + 1) % teleportTargets.length;
+          const [x, y, z] = teleportTargets[next];
+          body.setTranslation({ x, y, z }, true);
+          body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+          body.wakeUp();
+          addEvent(`F5 teleport -> ${next}`);
+          return next;
+        });
+      }
+
+      if (event.code === FREECAM_KEY || event.key === FREECAM_KEY) {
+        event.preventDefault();
+        setFreeCam(!freeCam);
+        addEvent(`F6 freecam ${!freeCam ? 'on' : 'off'}`);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [addEvent, freeCam, setFreeCam, teleportTargets]);
 
   return (
     <group>
@@ -84,6 +160,19 @@ export default function DungeonScene() {
           </mesh>
           <primitive object={axesHelper} />
           <DebugOverlay playerRef={playerRef} yawRef={cameraYawRef} pitchRef={cameraPitchRef} />
+          <TestHarnessOverlay
+            layoutEnabled={layoutEnabled}
+            particlesEnabled={particlesEnabled}
+            particleMultiplier={particleMultiplier}
+            teleportIndex={teleportIndex}
+            freeCam={freeCam}
+            playerPosition={playerPosition}
+            playerSpeed={playerSpeed}
+            playerGrounded={playerGrounded}
+            playerMoving={playerMoving}
+            keys={keys}
+            lastEvent={lastEvent}
+          />
         </group>
       )}
 
@@ -104,13 +193,15 @@ export default function DungeonScene() {
       </Suspense>
 
       {/* Agent B: Atmospheric particles (dust motes + torch embers) */}
-      <DungeonParticles />
+      <DungeonParticles enabled={particlesEnabled} countMultiplier={particleMultiplier} />
 
       <DungeonAmbience />
 
-      <Suspense fallback={null}>
-        <DungeonLayout />
-      </Suspense>
+      {layoutEnabled && (
+        <Suspense fallback={null}>
+          <DungeonLayout />
+        </Suspense>
+      )}
 
       <Physics gravity={[0, -25, 0]}>
         <DungeonColliders />
@@ -206,5 +297,68 @@ function DebugOverlay({
         </div>
       </Html>
     </>
+  );
+}
+
+function TestHarnessOverlay({
+  layoutEnabled,
+  particlesEnabled,
+  particleMultiplier,
+  teleportIndex,
+  freeCam,
+  playerPosition,
+  playerSpeed,
+  playerGrounded,
+  playerMoving,
+  keys,
+  lastEvent,
+}: {
+  layoutEnabled: boolean;
+  particlesEnabled: boolean;
+  particleMultiplier: number;
+  teleportIndex: number;
+  freeCam: boolean;
+  playerPosition: { x: number; y: number; z: number };
+  playerSpeed: number;
+  playerGrounded: boolean;
+  playerMoving: boolean;
+  keys: {
+    forward: boolean;
+    backward: boolean;
+    left: boolean;
+    right: boolean;
+    run: boolean;
+    jump: boolean;
+  };
+  lastEvent: string;
+}) {
+  const { camera } = useThree();
+
+  return (
+    <Html position={[0, 6.2, 0]} center style={{ pointerEvents: 'none' }}>
+      <div
+        style={{
+          background: 'rgba(6, 9, 12, 0.75)',
+          border: '1px solid rgba(255,255,255,0.25)',
+          borderRadius: 8,
+          padding: '10px 12px',
+          fontFamily: 'monospace',
+          fontSize: 11,
+          color: '#e2e8f0',
+          minWidth: 260,
+        }}
+      >
+        <div>debug controls: F1 overlay, F2 layout, F3 particles, F4 particle stress, F5 teleport, F6 freecam</div>
+        <div>layout: {layoutEnabled ? 'on' : 'off'}</div>
+        <div>particles: {particlesEnabled ? 'on' : 'off'} (x{particleMultiplier})</div>
+        <div>teleport index: {teleportIndex}</div>
+        <div>freecam: {freeCam ? 'on' : 'off'}</div>
+        <div>keys: W={keys.forward ? '1' : '0'} A={keys.left ? '1' : '0'} S={keys.backward ? '1' : '0'} D={keys.right ? '1' : '0'} Shift={keys.run ? '1' : '0'} Space={keys.jump ? '1' : '0'}</div>
+        <div>player: {playerPosition.x.toFixed(2)}, {playerPosition.y.toFixed(2)}, {playerPosition.z.toFixed(2)}</div>
+        <div>speed: {playerSpeed.toFixed(2)} moving: {playerMoving ? 'yes' : 'no'} grounded: {playerGrounded ? 'yes' : 'no'}</div>
+        <div>camera: {camera.position.x.toFixed(2)}, {camera.position.y.toFixed(2)}, {camera.position.z.toFixed(2)}</div>
+        <div>last event: {lastEvent}</div>
+      </div>
+    </Html>
   );
 }

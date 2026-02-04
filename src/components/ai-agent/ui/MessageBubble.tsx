@@ -16,7 +16,7 @@ export default function MessageBubble({ role, content, isLatest }: MessageBubble
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`flex w-full ${isUser ? 'justify-end' : 'justify-start gap-3'}`}
+      className={`flex w-full items-start ${isUser ? 'justify-end' : 'justify-start gap-4'}`}
     >
       {!isUser && (
         <div className="mt-1 shrink-0">
@@ -25,10 +25,10 @@ export default function MessageBubble({ role, content, isLatest }: MessageBubble
       )}
 
       <div
-        className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed shadow-sm ${
+        className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-md ${
           isUser
-            ? 'bg-emerald-500 text-white rounded-tr-sm'
-            : 'bg-white border border-black/5 text-slate-800 rounded-tl-sm dark:bg-white/5 dark:border-white/5 dark:text-slate-200'
+            ? 'bg-emerald-500/90 text-white rounded-tr-sm border border-emerald-300/40'
+            : 'bg-white/90 border border-black/5 text-slate-900 rounded-tl-sm dark:bg-white/10 dark:border-white/10 dark:text-slate-100'
         }`}
       >
         {!isUser && isLatest ? <TypewriterText text={content} /> : content}
