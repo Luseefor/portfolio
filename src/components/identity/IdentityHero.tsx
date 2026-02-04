@@ -18,7 +18,7 @@ export default function IdentityHero() {
 
   return (
     <section className="relative min-h-[120vh]">
-      <div className="sticky top-0 h-screen w-full px-6 pt-10 pb-12">
+      <div className="sticky top-0 h-screen w-full px-6 pt-24 pb-12">
         <div className="relative mx-auto flex h-full w-full max-w-5xl flex-col items-center text-center">
           <div className="w-full flex items-center justify-center">
             <div className="relative h-[25vh] min-h-[140px] max-h-[300px] aspect-square">
