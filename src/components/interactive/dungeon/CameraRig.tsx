@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { type RapierRigidBody } from '@react-three/rapier';
+import { useRapier, type RapierRigidBody } from '@react-three/rapier';
 import { Vector3 } from 'three';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import {
@@ -11,11 +11,13 @@ import {
   CAMERA_PITCH,
   CAMERA_SENSITIVITY,
   CAMERA_FOLLOW,
+  CAMERA_COLLISION,
 } from '@/constants/camera';
 import { applyMouseDelta, clampCameraDistance, computeCameraDesired, computeSmoothingFactor } from './math/cameraMath';
 
 const targetPosition = new Vector3();
 const desiredPosition = new Vector3();
+const rayDirection = new Vector3();
 
 export default function CameraRig({
   targetBody,
@@ -27,6 +29,7 @@ export default function CameraRig({
   pitchRef?: MutableRefObject<number>;
 }) {
   const { camera } = useThree();
+  const { rapier, world } = useRapier();
   const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
   const mouseDown = useDungeonInput((state) => state.mouseDown);
   const internalYaw = useRef(0);
@@ -80,7 +83,23 @@ export default function CameraRig({
     );
     desiredPosition.set(desired.x, desired.y, desired.z);
 
-    // Collision disabled for now (camera was snapping into the player).
+    rayDirection.copy(desiredPosition).sub(targetPosition);
+    const rayDistance = rayDirection.length();
+    if (rayDistance > 0.01) {
+      rayDirection.normalize();
+      const ray = new rapier.Ray(
+        { x: targetPosition.x, y: targetPosition.y, z: targetPosition.z },
+        { x: rayDirection.x, y: rayDirection.y, z: rayDirection.z },
+      );
+      const hit = world.castRay(ray, rayDistance, true);
+      if (hit && (hit as any).toi > 0.25) {
+        const safeDistance = Math.max(
+          CAMERA_COLLISION.minCameraDistance,
+          (hit as any).toi - CAMERA_COLLISION.minDistanceFromWall,
+        );
+        desiredPosition.copy(targetPosition).add(rayDirection.multiplyScalar(safeDistance));
+      }
+    }
 
     const lerpFactor = computeSmoothingFactor(delta, CAMERA_FOLLOW.smoothing);
     camera.position.lerp(desiredPosition, lerpFactor);

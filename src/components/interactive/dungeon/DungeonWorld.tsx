@@ -268,6 +268,11 @@ export default function DungeonWorld() {
           />
         ))}
         <CuboidCollider args={[80, 1, 80]} position={[0, -4, 0]} />
+        {/* Outer bounds to keep camera/player inside */}
+        <CuboidCollider args={[1, 6, 50]} position={[40, 2, 0]} />
+        <CuboidCollider args={[1, 6, 50]} position={[-40, 2, 0]} />
+        <CuboidCollider args={[50, 6, 1]} position={[0, 2, 40]} />
+        <CuboidCollider args={[50, 6, 1]} position={[0, 2, -40]} />
       </RigidBody>
     </group>
   );
