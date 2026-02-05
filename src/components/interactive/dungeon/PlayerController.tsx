@@ -10,9 +10,9 @@ import { useDungeonInput } from '@/lib/dungeonInput';
 
 const WALK_SPEED = 2.4;
 const RUN_SPEED = 6.2;
-const ACCEL = 10;
-const DECEL = 10;
-const SMOOTHING = 0.12;
+const ACCEL = 12;
+const DECEL = 14;
+const SMOOTHING = 10;
 const JUMP_SPEED = 7.2;
 const GRAVITY = 24;
 const START_POSITION: [number, number, number] = [0, 2, 0];
@@ -150,12 +150,11 @@ export default function PlayerController({
       body.setRotation(rotation, true);
     }
 
-    const accel = hasInput ? ACCEL : DECEL;
-    const nextX = moveToward(linvel.x, targetX, accel * delta);
-    const nextZ = moveToward(linvel.z, targetZ, accel * delta);
-    const smoothFactor = Math.min(1, SMOOTHING + delta * 0.2);
-    const smoothX = MathUtils.lerp(linvel.x, nextX, smoothFactor);
-    const smoothZ = MathUtils.lerp(linvel.z, nextZ, smoothFactor);
+    const desiredX = targetX;
+    const desiredZ = targetZ;
+    const smoothing = 1 - Math.exp(-SMOOTHING * delta);
+    const smoothX = MathUtils.lerp(linvel.x, desiredX, smoothing);
+    const smoothZ = MathUtils.lerp(linvel.z, desiredZ, smoothing);
 
     jumpBuffer.current = jumpPressed ? 0 : jumpBuffer.current + delta;
     const canJump = jumpBuffer.current < 0.2 && groundedTimer.current < 0.2;
@@ -180,7 +179,11 @@ export default function PlayerController({
       nextY = 0;
     }
 
-    body.setLinvel({ x: smoothX, y: nextY, z: smoothZ }, true);
+    if (!hasInput && Math.abs(smoothX) < 0.02 && Math.abs(smoothZ) < 0.02) {
+      body.setLinvel({ x: 0, y: nextY, z: 0 }, true);
+    } else {
+      body.setLinvel({ x: smoothX, y: nextY, z: smoothZ }, true);
+    }
 
     if (rollTimer.current > 0) {
       rollTimer.current = Math.max(0, rollTimer.current - delta);
