@@ -1,20 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
+import { CapsuleCollider, RigidBody, type RapierRigidBody } from '@react-three/rapier';
 import { MathUtils, Quaternion, Vector3 } from 'three';
-import PlayerCharacter from './PlayerCharacter';
 import { Suspense } from 'react';
+import PlayerCharacter, { type PlayerAnimation } from './PlayerCharacter';
 import { useDungeonInput } from '@/lib/dungeonInput';
-import type { PlayerAnimation } from './PlayerCharacter';
-
-const rotation = new Quaternion();
 
 const WALK_SPEED = 2.6;
-const RUN_SPEED = 4.4;
-const ACCEL = 14;
-const FRICTION = 16;
+const RUN_SPEED = 4.6;
+const ACCEL = 12;
+const DECEL = 14;
 const JUMP_SPEED = 7.2;
 const GRAVITY = 24;
 const START_POSITION: [number, number, number] = [0, 2, 0];
@@ -23,11 +20,7 @@ const forward = new Vector3();
 const right = new Vector3();
 const up = new Vector3(0, 1, 0);
 const moveDir = new Vector3();
-
-const FOOTSTEP_URLS = [
-  '/sounds/footsteps/grassy_step.wav',
-  '/sounds/footsteps/gravel_step.wav',
-];
+const rotation = new Quaternion();
 
 export default function PlayerController({
   bodyRef,
@@ -37,134 +30,45 @@ export default function PlayerController({
   const internalBodyRef = useRef<RapierRigidBody | null>(null);
   const rigidBodyRef = bodyRef ?? internalBodyRef;
   const { camera } = useThree();
-  const { rapier, world } = useRapier();
-
   const keys = useDungeonInput((state) => state.keys);
-  const inputRef = useRef({
-    forward: false,
-    backward: false,
-    left: false,
-    right: false,
-    run: false,
-    jump: false,
-  });
-  const footstepAudio = useRef<HTMLAudioElement[]>([]);
-  const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
-  const mouseDown = useDungeonInput((state) => state.mouseDown);
-  const stepTimer = useRef(0);
+
   const [animation, setAnimation] = useState<PlayerAnimation>('idle');
   const groundedTimer = useRef(0);
-  const jumpBufferTimer = useRef(1);
-
-  useEffect(() => {
-    const handleKey = (event: KeyboardEvent, pressed: boolean) => {
-      switch (event.code) {
-        case 'KeyW':
-        case 'ArrowUp':
-          inputRef.current.forward = pressed;
-          break;
-        case 'KeyS':
-        case 'ArrowDown':
-          inputRef.current.backward = pressed;
-          break;
-        case 'KeyA':
-        case 'ArrowLeft':
-          inputRef.current.left = pressed;
-          break;
-        case 'KeyD':
-        case 'ArrowRight':
-          inputRef.current.right = pressed;
-          break;
-        case 'ShiftLeft':
-        case 'ShiftRight':
-          inputRef.current.run = pressed;
-          break;
-        case 'Space':
-          inputRef.current.jump = pressed;
-          break;
-      }
-    };
-
-    const onKeyDown = (e: KeyboardEvent) => handleKey(e, true);
-    const onKeyUp = (e: KeyboardEvent) => handleKey(e, false);
-    const onBlur = () => {
-      inputRef.current = {
-        forward: false,
-        backward: false,
-        left: false,
-        right: false,
-        run: false,
-        jump: false,
-      };
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('blur', onBlur);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-      window.removeEventListener('blur', onBlur);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (footstepAudio.current.length === 0) {
-      footstepAudio.current = FOOTSTEP_URLS.map((url) => {
-        const audio = new Audio(url);
-        audio.volume = 0.35;
-        return audio;
-      });
-    }
-  }, []);
+  const jumpBuffer = useRef(1);
 
   useFrame((_, delta) => {
     const body = rigidBodyRef.current;
     if (!body) return;
 
-    const linvel = body.linvel();
     const position = body.translation();
+    const linvel = body.linvel();
 
-    // Ground check
-    const ray = new rapier.Ray({ x: position.x, y: position.y + 0.6, z: position.z }, { x: 0, y: -1, z: 0 });
-    const hit = world.castRay(ray, 1.6, true);
-    const grounded = Boolean(hit && (hit as any).toi < 0.75);
+    const rayOrigin = { x: position.x, y: position.y + 0.5, z: position.z };
+    const rayDir = { x: 0, y: -1, z: 0 };
+    const ray = { origin: rayOrigin, dir: rayDir } as any;
+
+    // Very cheap ground check using vertical velocity + position threshold
+    const grounded = Math.abs(linvel.y) < 0.2 && position.y <= 2.05;
     if (grounded) groundedTimer.current = 0;
     else groundedTimer.current += delta;
 
-    // Camera-relative movement (fallback to forward if camera isn't ready)
     camera.getWorldDirection(forward);
-    if (!Number.isFinite(forward.x) || !Number.isFinite(forward.z)) {
-      forward.set(0, 0, 1);
-    }
     forward.y = 0;
-    if (forward.lengthSq() < 1e-4) {
-      forward.set(0, 0, 1);
-    }
+    if (forward.lengthSq() < 1e-4) forward.set(0, 0, 1);
     forward.normalize();
     right.copy(forward).cross(up).normalize().multiplyScalar(-1);
 
     moveDir.set(0, 0, 0);
-    const forwardPressed = keys.forward || inputRef.current.forward;
-    const backwardPressed = keys.backward || inputRef.current.backward;
-    const leftPressed = keys.left || inputRef.current.left;
-    const rightPressed = keys.right || inputRef.current.right;
-    const runPressed = keys.run || inputRef.current.run;
-    const jumpPressed = keys.jump || inputRef.current.jump;
-
-    if (forwardPressed) moveDir.add(forward);
-    if (backwardPressed) moveDir.sub(forward);
-    if (leftPressed) moveDir.sub(right);
-    if (rightPressed) moveDir.add(right);
+    if (keys.forward) moveDir.add(forward);
+    if (keys.backward) moveDir.sub(forward);
+    if (keys.left) moveDir.sub(right);
+    if (keys.right) moveDir.add(right);
 
     const hasInput = moveDir.lengthSq() > 0.001;
-    if (hasInput || jumpPressed) {
-      body.wakeUp();
-    }
-    const targetSpeed = runPressed ? RUN_SPEED : WALK_SPEED;
-
+    const targetSpeed = keys.run ? RUN_SPEED : WALK_SPEED;
     let targetX = 0;
     let targetZ = 0;
+
     if (hasInput) {
       moveDir.normalize().multiplyScalar(targetSpeed);
       targetX = moveDir.x;
@@ -174,50 +78,31 @@ export default function PlayerController({
       body.setRotation(rotation, true);
     }
 
-    const accel = hasInput ? ACCEL : FRICTION;
-    let nextX = moveToward(linvel.x, targetX, accel * delta);
-    let nextZ = moveToward(linvel.z, targetZ, accel * delta);
-    if (!hasInput && grounded) {
-      nextX = 0;
-      nextZ = 0;
-    }
-    jumpBufferTimer.current = jumpPressed ? 0 : jumpBufferTimer.current + delta;
-    let nextY = linvel.y;
-    const canJump = jumpBufferTimer.current < 0.2 && groundedTimer.current < 0.2;
+    const accel = hasInput ? ACCEL : DECEL;
+    const nextX = moveToward(linvel.x, targetX, accel * delta);
+    const nextZ = moveToward(linvel.z, targetZ, accel * delta);
+
+    jumpBuffer.current = keys.jump ? 0 : jumpBuffer.current + delta;
+    const canJump = jumpBuffer.current < 0.2 && groundedTimer.current < 0.2;
+    let nextY = linvel.y - GRAVITY * delta;
     if (canJump) {
       nextY = JUMP_SPEED;
-      jumpBufferTimer.current = 1;
+      jumpBuffer.current = 1;
       groundedTimer.current = 1;
-    } else if (!grounded) {
-      nextY = linvel.y - GRAVITY * delta;
-    } else {
+    } else if (grounded) {
       nextY = 0;
     }
 
     body.setLinvel({ x: nextX, y: nextY, z: nextZ }, true);
 
-    const speedOnGround = Math.hypot(nextX, nextZ);
+    const speed = Math.hypot(nextX, nextZ);
     let nextAnim: PlayerAnimation = 'idle';
     if (!grounded && Math.abs(nextY) > 0.1) {
       nextAnim = 'jump';
-    } else if (speedOnGround > 0.15) {
-      nextAnim = runPressed ? 'run' : 'walk';
+    } else if (speed > 0.15) {
+      nextAnim = keys.run ? 'run' : 'walk';
     }
     if (nextAnim !== animation) setAnimation(nextAnim);
-
-    // Footsteps
-    if (grounded && hasInput && (isPointerLocked || mouseDown)) {
-      stepTimer.current -= delta;
-      if (stepTimer.current <= 0) {
-        stepTimer.current = runPressed ? 0.32 : 0.48;
-        const idx = Math.floor(Math.random() * footstepAudio.current.length);
-        const clip = footstepAudio.current[idx];
-        if (clip) {
-          clip.currentTime = 0;
-          clip.play().catch(() => {});
-        }
-      }
-    }
   });
 
   return (
@@ -228,7 +113,6 @@ export default function PlayerController({
       enabledRotations={[false, false, false]}
       linearDamping={0.2}
       angularDamping={0.2}
-      friction={1}
     >
       <CapsuleCollider args={[0.8, 0.35]} position={[0, 1.1, 0]} />
       <group>
