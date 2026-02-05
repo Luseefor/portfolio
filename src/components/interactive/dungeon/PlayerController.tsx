@@ -135,6 +135,9 @@ export default function PlayerController({
     if (inputRef.current.right) moveDir.add(right);
 
     const hasInput = moveDir.lengthSq() > 0.001;
+    if (hasInput || inputRef.current.jump) {
+      body.wakeUp();
+    }
     const targetSpeed = inputRef.current.run ? RUN_SPEED : WALK_SPEED;
 
     let targetX = 0;
