@@ -18,9 +18,18 @@ export default function InteractiveCanvas() {
   useEffect(() => {
     if (!canvasEl) return;
 
-    const handleNativeMouseDown = () => {
+    const handleNativeMouseDown = (event: MouseEvent) => {
       setMouseDown(true);
-      if (document.pointerLockElement !== canvasEl) {
+      if (event.button === 2) {
+        event.preventDefault();
+        if (document.pointerLockElement) {
+          document.exitPointerLock();
+        }
+        setPointerLocked(false);
+        setHasFocus(true);
+        return;
+      }
+      if (document.pointerLockElement !== canvasEl && event.target === canvasEl) {
         canvasEl.requestPointerLock();
       }
     };
@@ -39,29 +48,22 @@ export default function InteractiveCanvas() {
       setHasFocus(true);
     };
 
-    const handleMouseDown = (event: MouseEvent) => {
-      if (event.button === 2) {
-        event.preventDefault();
-        if (document.pointerLockElement) {
-          document.exitPointerLock();
-        }
-        setPointerLocked(false);
-        setHasFocus(true);
-      }
-    };
-
     canvasEl.addEventListener('mousedown', handleNativeMouseDown);
     canvasEl.addEventListener('mouseup', handleMouseUp);
     canvasEl.addEventListener('mouseleave', handleMouseLeave);
     canvasEl.addEventListener('contextmenu', handleContextMenu);
-    canvasEl.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousedown', handleNativeMouseDown, true);
+    document.addEventListener('mouseup', handleMouseUp, true);
+    document.addEventListener('contextmenu', handleContextMenu, true);
     window.addEventListener('contextmenu', handleContextMenu);
     return () => {
       canvasEl.removeEventListener('mousedown', handleNativeMouseDown);
       canvasEl.removeEventListener('mouseup', handleMouseUp);
       canvasEl.removeEventListener('mouseleave', handleMouseLeave);
       canvasEl.removeEventListener('contextmenu', handleContextMenu);
-      canvasEl.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousedown', handleNativeMouseDown, true);
+      document.removeEventListener('mouseup', handleMouseUp, true);
+      document.removeEventListener('contextmenu', handleContextMenu, true);
       window.removeEventListener('contextmenu', handleContextMenu);
     };
   }, [canvasEl, setHasFocus, setMouseDown, setPointerLocked]);
