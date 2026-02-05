@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useRef } from 'react';
-import { Color } from 'three';
+import { Suspense, useEffect, useRef } from 'react';
+import { AudioListener, Color } from 'three';
 import { Physics, type RapierRigidBody } from '@react-three/rapier';
-import { AudioListener } from '@react-three/drei';
+import { useThree } from '@react-three/fiber';
 import PlayerController from './PlayerController';
 import CameraRig from './CameraRig';
 import DungeonAmbience from './DungeonAmbience';
@@ -13,6 +13,19 @@ const FOG_COLOR = new Color('#0b0f14');
 
 export default function DungeonScene() {
   const playerBodyRef = useRef<RapierRigidBody | null>(null);
+  const { camera } = useThree();
+  const listenerRef = useRef<AudioListener | null>(null);
+
+  useEffect(() => {
+    if (!listenerRef.current) {
+      listenerRef.current = new AudioListener();
+    }
+    const listener = listenerRef.current;
+    camera.add(listener);
+    return () => {
+      camera.remove(listener);
+    };
+  }, [camera]);
 
   return (
     <group>
@@ -44,7 +57,6 @@ export default function DungeonScene() {
       <pointLight position={[-18, 3, 18]} intensity={1.4} color="#9bb6ff" distance={12} decay={2} />
 
       <Suspense fallback={null}>
-        <AudioListener />
         <DungeonAmbience />
       </Suspense>
 

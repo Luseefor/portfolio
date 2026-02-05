@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { usePathname } from 'next/navigation';
 import OverscrollPreventer from './OverscrollPreventer';
 
 const TechCursor = dynamic(() => import('./TechCursor'), { ssr: false });
@@ -10,6 +11,9 @@ const FloatingAIBlob = dynamic(() => import('./FloatingAIBlob'), { ssr: false })
 import { useEffect } from 'react';
 
 export default function GlobalEffects() {
+  const pathname = usePathname();
+  const showFloatingBlob = pathname !== '/';
+
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
@@ -23,7 +27,7 @@ export default function GlobalEffects() {
       <OverscrollPreventer />
       <TechCursor />
       <AIAgent />
-      <FloatingAIBlob />
+      {showFloatingBlob ? <FloatingAIBlob /> : null}
     </>
   );
 }

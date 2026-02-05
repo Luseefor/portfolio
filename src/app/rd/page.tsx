@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, Lock, Skull } from 'lucide-react';
+import { AlertTriangle, Lock, Skull, ArrowLeft } from 'lucide-react';
 
 export default function RDPage() {
   const [unlocked, setUnlocked] = useState(false);
@@ -16,6 +16,13 @@ export default function RDPage() {
   if (!unlocked) {
     return (
       <main className="min-h-screen bg-black text-red-200 flex items-center justify-center px-6">
+        <Link
+          href="/"
+          className="absolute left-6 top-6 inline-flex items-center gap-2 rounded-full border border-red-500/40 px-4 py-2 text-[11px] uppercase tracking-[0.3em] font-terminal text-red-200 hover:border-red-400 transition"
+        >
+          <ArrowLeft size={12} />
+          Back
+        </Link>
         <div className="max-w-xl w-full border border-red-700/50 bg-black/70 backdrop-blur-md rounded-2xl p-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-red-500/60">
             <Lock size={20} />
@@ -40,6 +47,13 @@ export default function RDPage() {
 
   return (
     <main className="min-h-screen bg-black text-red-100 px-6 py-16">
+      <Link
+        href="/"
+        className="absolute left-6 top-6 inline-flex items-center gap-2 rounded-full border border-red-500/40 px-4 py-2 text-[11px] uppercase tracking-[0.3em] font-terminal text-red-200 hover:border-red-400 transition"
+      >
+        <ArrowLeft size={12} />
+        Back
+      </Link>
       <div className="mx-auto max-w-5xl">
         <div className="mb-10 flex items-center gap-3">
           <div className="h-10 w-10 rounded-full border border-red-500/60 flex items-center justify-center">

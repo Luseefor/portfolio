@@ -4,6 +4,8 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { useStore } from '@/utils/store';
 import { getThemeColor } from '@/utils/themes';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 const TechMarquee = dynamic(() => import('@/components/identity/TechMarquee'), { ssr: false });
 const CapabilityMatrix = dynamic(() => import('@/components/identity/CapabilityMatrix'), {
@@ -45,6 +47,18 @@ export default function IdentityPage() {
       <ThemeBackground themeColor={themeColor} isDark={isDark} />
 
       <div className="relative z-10">
+        <Link
+          href="/"
+          className={`fixed left-6 top-6 z-[60] inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.3em] backdrop-blur-md transition ${
+            isDark
+              ? 'border-white/10 bg-white/5 text-white/70 hover:border-white/30 hover:text-white'
+              : 'border-black/10 bg-white/80 text-slate-700 hover:border-black/30 hover:text-slate-900'
+          }`}
+        >
+          <ArrowLeft size={12} />
+          Back
+        </Link>
+
         <FuturisticNavbar />
 
         <IdentityHero />
