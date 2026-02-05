@@ -8,13 +8,18 @@ export type PlayerAnimation = 'idle' | 'walk' | 'run';
 
 function pickClipName(names: string[], state: PlayerAnimation) {
   const lowered = names.map((name) => name.toLowerCase());
-  const idleIndex = lowered.findIndex((name) => name.includes('idle'));
+  const isAttackIdle = (name: string) => name.includes('attack') && name.includes('idle');
+  const idleIndex = lowered.findIndex(
+    (name) => name.includes('idle') && !isAttackIdle(name),
+  );
   const walkIndex = lowered.findIndex((name) => name.includes('walk'));
   const runIndex = lowered.findIndex((name) => name.includes('run'));
+  const attackIdleIndex = lowered.findIndex((name) => isAttackIdle(name));
 
   if (state === 'run' && runIndex >= 0) return names[runIndex];
   if (state === 'walk' && walkIndex >= 0) return names[walkIndex];
   if (idleIndex >= 0) return names[idleIndex];
+  if (attackIdleIndex >= 0) return names[attackIdleIndex];
   return names[0];
 }
 
