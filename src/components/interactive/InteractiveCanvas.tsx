@@ -30,14 +30,24 @@ export default function InteractiveCanvas() {
     const handleMouseLeave = () => {
       setMouseDown(false);
     };
+    const handleContextMenu = (event: MouseEvent) => {
+      event.preventDefault();
+      if (document.pointerLockElement === canvasEl) {
+        document.exitPointerLock();
+      }
+      setPointerLocked(false);
+      setHasFocus(true);
+    };
 
     canvasEl.addEventListener('mousedown', handleNativeMouseDown);
     canvasEl.addEventListener('mouseup', handleMouseUp);
     canvasEl.addEventListener('mouseleave', handleMouseLeave);
+    canvasEl.addEventListener('contextmenu', handleContextMenu);
     return () => {
       canvasEl.removeEventListener('mousedown', handleNativeMouseDown);
       canvasEl.removeEventListener('mouseup', handleMouseUp);
       canvasEl.removeEventListener('mouseleave', handleMouseLeave);
+      canvasEl.removeEventListener('contextmenu', handleContextMenu);
     };
   }, [canvasEl, setHasFocus, setMouseDown, setPointerLocked]);
 
