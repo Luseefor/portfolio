@@ -5,6 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
 import { Vector3 } from 'three';
 import PlayerCharacter from './PlayerCharacter';
+import { Suspense } from 'react';
 import { useDungeonInput } from '@/lib/dungeonInput';
 
 const WALK_SPEED = 2.6;
@@ -196,7 +197,16 @@ export default function PlayerController({
     >
       <CapsuleCollider args={[0.8, 0.35]} position={[0, 1.1, 0]} />
       <group>
-        <PlayerCharacter />
+        <Suspense
+          fallback={
+            <mesh position={[0, 1.1, 0]}>
+              <capsuleGeometry args={[0.35, 1.6, 6, 12]} />
+              <meshStandardMaterial color="#94a3b8" />
+            </mesh>
+          }
+        >
+          <PlayerCharacter />
+        </Suspense>
       </group>
     </RigidBody>
   );
