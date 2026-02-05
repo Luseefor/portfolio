@@ -66,11 +66,13 @@ export default function InteractiveCanvas() {
     <div className="absolute inset-0">
       <Canvas
         dpr={[1, 1.75]}
+        shadows
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         camera={{ fov: 50, near: 0.1, far: 200, position: [0, 4, 10] }}
         onCreated={({ gl }) => {
           gl.toneMapping = ACESFilmicToneMapping;
           gl.toneMappingExposure = rendererToneMapping.exposure;
+          gl.shadowMap.enabled = true;
           setCanvasEl(gl.domElement);
           gl.domElement.focus();
         }}

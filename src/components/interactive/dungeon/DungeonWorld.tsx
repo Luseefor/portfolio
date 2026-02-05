@@ -267,6 +267,7 @@ export default function DungeonWorld() {
             position={piece.position}
           />
         ))}
+        <CuboidCollider args={[80, 1, 80]} position={[0, -4, 0]} />
       </RigidBody>
     </group>
   );
