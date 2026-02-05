@@ -7,7 +7,7 @@ import { MathUtils, Quaternion, Vector3 } from 'three';
 import PlayerCharacter from './PlayerCharacter';
 import { Suspense } from 'react';
 import { useDungeonInput } from '@/lib/dungeonInput';
-import { getNextAnimationState } from './math/animationMath';
+import type { PlayerAnimation } from './PlayerCharacter';
 
 const rotation = new Quaternion();
 
@@ -52,7 +52,9 @@ export default function PlayerController({
   const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
   const mouseDown = useDungeonInput((state) => state.mouseDown);
   const stepTimer = useRef(0);
-  const [animation, setAnimation] = useState<'idle' | 'walk' | 'run'>('idle');
+  const [animation, setAnimation] = useState<PlayerAnimation>('idle');
+  const groundedTimer = useRef(0);
+  const jumpBufferTimer = useRef(1);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent, pressed: boolean) => {
@@ -124,9 +126,11 @@ export default function PlayerController({
     const position = body.translation();
 
     // Ground check
-    const ray = new rapier.Ray({ x: position.x, y: position.y + 0.5, z: position.z }, { x: 0, y: -1, z: 0 });
-    const hit = world.castRay(ray, 1.4, true);
-    const grounded = Boolean(hit && (hit as any).toi < 0.7);
+    const ray = new rapier.Ray({ x: position.x, y: position.y + 0.6, z: position.z }, { x: 0, y: -1, z: 0 });
+    const hit = world.castRay(ray, 1.6, true);
+    const grounded = Boolean(hit && (hit as any).toi < 0.75);
+    if (grounded) groundedTimer.current = 0;
+    else groundedTimer.current += delta;
 
     // Camera-relative movement (fallback to forward if camera isn't ready)
     camera.getWorldDirection(forward);
@@ -177,10 +181,13 @@ export default function PlayerController({
       nextX = 0;
       nextZ = 0;
     }
+    jumpBufferTimer.current = jumpPressed ? 0 : jumpBufferTimer.current + delta;
     let nextY = linvel.y;
-    const wantsJump = jumpPressed && grounded;
-    if (wantsJump) {
+    const canJump = jumpBufferTimer.current < 0.2 && groundedTimer.current < 0.2;
+    if (canJump) {
       nextY = JUMP_SPEED;
+      jumpBufferTimer.current = 1;
+      groundedTimer.current = 1;
     } else if (!grounded) {
       nextY = linvel.y - GRAVITY * delta;
     } else {
@@ -188,25 +195,15 @@ export default function PlayerController({
     }
 
     body.setLinvel({ x: nextX, y: nextY, z: nextZ }, true);
-    if (hasInput) {
-      body.setTranslation(
-        { x: position.x + moveDir.x * delta, y: position.y, z: position.z + moveDir.z * delta },
-        true,
-      );
-    }
 
     const speedOnGround = Math.hypot(nextX, nextZ);
-    const nextAnim = getNextAnimationState(animation, {
-      inputActive: hasInput,
-      isRunning: runPressed,
-      grounded,
-      speedOnGround,
-    });
-    if (!hasInput && grounded) {
-      if (animation !== 'idle') setAnimation('idle');
-    } else if (nextAnim !== animation) {
-      setAnimation(nextAnim);
+    let nextAnim: PlayerAnimation = 'idle';
+    if (!grounded && Math.abs(nextY) > 0.1) {
+      nextAnim = 'jump';
+    } else if (speedOnGround > 0.15) {
+      nextAnim = runPressed ? 'run' : 'walk';
     }
+    if (nextAnim !== animation) setAnimation(nextAnim);
 
     // Footsteps
     if (grounded && hasInput && (isPointerLocked || mouseDown)) {

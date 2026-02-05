@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useAnimations, useGLTF } from '@react-three/drei';
 import { Mesh, type Group } from 'three';
 
-export type PlayerAnimation = 'idle' | 'walk' | 'run';
+export type PlayerAnimation = 'idle' | 'walk' | 'run' | 'jump';
 
 function pickClipName(names: string[], state: PlayerAnimation) {
   const lowered = names.map((name) => name.toLowerCase());
@@ -14,8 +14,10 @@ function pickClipName(names: string[], state: PlayerAnimation) {
   );
   const walkIndex = lowered.findIndex((name) => name.includes('walk'));
   const runIndex = lowered.findIndex((name) => name.includes('run'));
+  const jumpIndex = lowered.findIndex((name) => name.includes('jump'));
   const attackIdleIndex = lowered.findIndex((name) => isAttackIdle(name));
 
+  if (state === 'jump' && jumpIndex >= 0) return names[jumpIndex];
   if (state === 'run' && runIndex >= 0) return names[runIndex];
   if (state === 'walk' && walkIndex >= 0) return names[walkIndex];
   if (idleIndex >= 0) return names[idleIndex];
