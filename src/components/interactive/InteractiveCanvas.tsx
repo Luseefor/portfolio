@@ -13,6 +13,7 @@ export default function InteractiveCanvas() {
   const setHasFocus = useDungeonInput((state) => state.setHasFocus);
   const setPointerLocked = useDungeonInput((state) => state.setPointerLocked);
   const setMouseDown = useDungeonInput((state) => state.setMouseDown);
+  const setKeys = useDungeonInput((state) => state.setKeys);
 
   useEffect(() => {
     if (!canvasEl) return;
@@ -49,6 +50,50 @@ export default function InteractiveCanvas() {
     window.addEventListener('keydown', focusCanvas);
     return () => window.removeEventListener('keydown', focusCanvas);
   }, [canvasEl, setHasFocus]);
+
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent, pressed: boolean) => {
+      switch (event.code) {
+        case 'KeyW':
+        case 'ArrowUp':
+          setKeys({ forward: pressed });
+          break;
+        case 'KeyS':
+        case 'ArrowDown':
+          setKeys({ backward: pressed });
+          break;
+        case 'KeyA':
+        case 'ArrowLeft':
+          setKeys({ left: pressed });
+          break;
+        case 'KeyD':
+        case 'ArrowRight':
+          setKeys({ right: pressed });
+          break;
+        case 'ShiftLeft':
+        case 'ShiftRight':
+          setKeys({ run: pressed });
+          break;
+        case 'Space':
+          setKeys({ jump: pressed });
+          break;
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => handleKey(e, true);
+    const onKeyUp = (e: KeyboardEvent) => handleKey(e, false);
+    const onBlur = () =>
+      setKeys({ forward: false, backward: false, left: false, right: false, run: false, jump: false });
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, [setKeys]);
 
   const handleFocus = useCallback(() => {
     setHasFocus(true);

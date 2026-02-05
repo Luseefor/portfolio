@@ -36,70 +36,11 @@ export default function PlayerController({
   const { camera } = useThree();
   const { rapier, world } = useRapier();
 
-  const inputRef = useRef({
-    forward: false,
-    backward: false,
-    left: false,
-    right: false,
-    run: false,
-    jump: false,
-  });
+  const keys = useDungeonInput((state) => state.keys);
   const footstepAudio = useRef<HTMLAudioElement[]>([]);
   const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
   const mouseDown = useDungeonInput((state) => state.mouseDown);
   const stepTimer = useRef(0);
-
-  useEffect(() => {
-    const handleKey = (event: KeyboardEvent, pressed: boolean) => {
-      switch (event.code) {
-        case 'KeyW':
-        case 'ArrowUp':
-          inputRef.current.forward = pressed;
-          break;
-        case 'KeyS':
-        case 'ArrowDown':
-          inputRef.current.backward = pressed;
-          break;
-        case 'KeyA':
-        case 'ArrowLeft':
-          inputRef.current.left = pressed;
-          break;
-        case 'KeyD':
-        case 'ArrowRight':
-          inputRef.current.right = pressed;
-          break;
-        case 'ShiftLeft':
-        case 'ShiftRight':
-          inputRef.current.run = pressed;
-          break;
-        case 'Space':
-          inputRef.current.jump = pressed;
-          break;
-      }
-    };
-
-    const onKeyDown = (e: KeyboardEvent) => handleKey(e, true);
-    const onKeyUp = (e: KeyboardEvent) => handleKey(e, false);
-    const onBlur = () => {
-      inputRef.current = {
-        forward: false,
-        backward: false,
-        left: false,
-        right: false,
-        run: false,
-        jump: false,
-      };
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('blur', onBlur);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-      window.removeEventListener('blur', onBlur);
-    };
-  }, []);
 
   useEffect(() => {
     if (footstepAudio.current.length === 0) {
@@ -136,16 +77,16 @@ export default function PlayerController({
     right.copy(forward).cross(up).normalize().multiplyScalar(-1);
 
     moveDir.set(0, 0, 0);
-    if (inputRef.current.forward) moveDir.add(forward);
-    if (inputRef.current.backward) moveDir.sub(forward);
-    if (inputRef.current.left) moveDir.sub(right);
-    if (inputRef.current.right) moveDir.add(right);
+    if (keys.forward) moveDir.add(forward);
+    if (keys.backward) moveDir.sub(forward);
+    if (keys.left) moveDir.sub(right);
+    if (keys.right) moveDir.add(right);
 
     const hasInput = moveDir.lengthSq() > 0.001;
-    if (hasInput || inputRef.current.jump) {
+    if (hasInput || keys.jump) {
       body.wakeUp();
     }
-    const targetSpeed = inputRef.current.run ? RUN_SPEED : WALK_SPEED;
+    const targetSpeed = keys.run ? RUN_SPEED : WALK_SPEED;
 
     let targetX = 0;
     let targetZ = 0;
@@ -159,7 +100,7 @@ export default function PlayerController({
     const nextX = moveToward(linvel.x, targetX, accel * delta);
     const nextZ = moveToward(linvel.z, targetZ, accel * delta);
     let nextY = linvel.y;
-    const wantsJump = inputRef.current.jump && grounded;
+    const wantsJump = keys.jump && grounded;
     if (wantsJump) {
       nextY = JUMP_SPEED;
     } else if (!grounded) {
@@ -174,7 +115,7 @@ export default function PlayerController({
     if (grounded && hasInput && (isPointerLocked || mouseDown)) {
       stepTimer.current -= delta;
       if (stepTimer.current <= 0) {
-        stepTimer.current = inputRef.current.run ? 0.32 : 0.48;
+        stepTimer.current = keys.run ? 0.32 : 0.48;
         const idx = Math.floor(Math.random() * footstepAudio.current.length);
         const clip = footstepAudio.current[idx];
         if (clip) {
