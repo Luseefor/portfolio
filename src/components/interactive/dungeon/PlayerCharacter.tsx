@@ -10,7 +10,7 @@ const CLIP_PATTERNS: Record<PlayerAnimation, RegExp[]> = {
   idle: [/idle/i, /breath/i, /stand/i],
   walk: [/walk/i, /walkforward/i, /walk_fwd/i],
   run: [/run/i, /sprint/i, /jog/i],
-  jump: [/jump/i, /leap/i],
+  jump: [/jump/i, /leap/i, /roll/i],
 };
 
 function pickClipName(names: string[], state: PlayerAnimation) {
@@ -18,10 +18,16 @@ function pickClipName(names: string[], state: PlayerAnimation) {
   const isAttackIdle = (name: string) => name.includes('attack') && name.includes('idle');
 
   const findByPatterns = (patterns: RegExp[], avoidAttackIdle = false) => {
-    const idx = lowered.findIndex((name) =>
+    const match = (name: string) =>
       patterns.some((pattern) => pattern.test(name)) &&
-      (!avoidAttackIdle || !isAttackIdle(name)),
+      (!avoidAttackIdle || !isAttackIdle(name));
+
+    const armatureIdx = lowered.findIndex(
+      (name) => name.includes('characterarmature|') && match(name),
     );
+    if (armatureIdx >= 0) return names[armatureIdx];
+
+    const idx = lowered.findIndex(match);
     return idx >= 0 ? names[idx] : null;
   };
 
@@ -55,22 +61,16 @@ export default function PlayerCharacter({ animation = 'idle' }: { animation?: Pl
   const clipName = useMemo(() => pickClipName(names, animation), [names, animation]);
 
   useEffect(() => {
-    if (names.length === 0) return;
-    // Print available clips and current mapping decisions
-    console.groupCollapsed('[PlayerCharacter] Animation clips');
-    console.table(names.map((name) => ({ name })));
-    (['idle', 'walk', 'run', 'jump'] as PlayerAnimation[]).forEach((state) => {
-      console.log(`${state} ->`, pickClipName(names, state));
-    });
-    console.groupEnd();
-  }, [names]);
-
-  useEffect(() => {
     const action = clipName ? actions[clipName] : undefined;
     if (!action) return;
-    action.reset().fadeIn(0.2).play();
+    Object.values(actions).forEach((other) => {
+      if (other && other !== action) {
+        other.fadeOut(0.15);
+      }
+    });
+    action.reset().fadeIn(0.15).play();
     return () => {
-      action.fadeOut(0.2);
+      action.fadeOut(0.15);
     };
   }, [actions, clipName]);
 
