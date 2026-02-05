@@ -8,8 +8,8 @@ import { Suspense } from 'react';
 import PlayerCharacter, { type PlayerAnimation } from './PlayerCharacter';
 import { useDungeonInput } from '@/lib/dungeonInput';
 
-const WALK_SPEED = 2.6;
-const RUN_SPEED = 4.6;
+const WALK_SPEED = 2.4;
+const RUN_SPEED = 6.2;
 const ACCEL = 12;
 const DECEL = 14;
 const JUMP_SPEED = 7.2;

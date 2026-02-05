@@ -217,20 +217,28 @@ export default function DungeonWorld() {
       {
         id: 'room-hidden',
         center: [-18, 0, 18],
-        size: { w: 10, d: 10 },
+        size: { w: 12, d: 12 },
         openings: { east: true },
       },
     ];
 
     const corridorA = buildCorridor('corridor-a', [0, 0, 9], 6, 4, 'z');
     const corridorC = buildCorridor('corridor-c', [9, 0, 18], 6, 4, 'x');
-    const corridorHidden = buildCorridor('corridor-hidden', [-9, 0, 18], 6, 3.5, 'x');
+    const corridorHidden = buildCorridor('corridor-hidden', [-9, 0, 18], 6, 4, 'x');
+
+    const hiddenGapFiller: BoxPiece = {
+      id: 'hidden-gap-filler',
+      size: [4, FLOOR_THICKNESS, 4],
+      position: [-12, -FLOOR_THICKNESS / 2, 18],
+      material: floorMaterial,
+    };
 
     return [
       ...rooms.flatMap(buildRoom),
       ...corridorA,
       ...corridorC,
       ...corridorHidden,
+      hiddenGapFiller,
     ];
   }, []);
 
