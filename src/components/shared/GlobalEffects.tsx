@@ -13,14 +13,16 @@ import { useEffect } from 'react';
 export default function GlobalEffects() {
   const pathname = usePathname();
   const showFloatingBlob = pathname !== '/';
+  const allowContextMenu = pathname?.startsWith('/interactive');
 
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {
+      if (allowContextMenu) return;
       e.preventDefault();
     };
     document.addEventListener('contextmenu', handleContextMenu);
     return () => document.removeEventListener('contextmenu', handleContextMenu);
-  }, []);
+  }, [allowContextMenu]);
 
   return (
     <>

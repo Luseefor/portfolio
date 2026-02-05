@@ -48,22 +48,44 @@ export default function InteractiveCanvas() {
       setHasFocus(true);
     };
 
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.button === 2) {
+        event.preventDefault();
+        if (document.pointerLockElement) {
+          document.exitPointerLock();
+        }
+        setPointerLocked(false);
+        setHasFocus(true);
+      }
+    };
+    const handlePointerUp = () => {
+      setMouseDown(false);
+    };
+
     canvasEl.addEventListener('mousedown', handleNativeMouseDown);
     canvasEl.addEventListener('mouseup', handleMouseUp);
     canvasEl.addEventListener('mouseleave', handleMouseLeave);
     canvasEl.addEventListener('contextmenu', handleContextMenu);
+    canvasEl.addEventListener('pointerdown', handlePointerDown);
+    canvasEl.addEventListener('pointerup', handlePointerUp);
     document.addEventListener('mousedown', handleNativeMouseDown, true);
     document.addEventListener('mouseup', handleMouseUp, true);
     document.addEventListener('contextmenu', handleContextMenu, true);
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('pointerup', handlePointerUp, true);
     window.addEventListener('contextmenu', handleContextMenu);
     return () => {
       canvasEl.removeEventListener('mousedown', handleNativeMouseDown);
       canvasEl.removeEventListener('mouseup', handleMouseUp);
       canvasEl.removeEventListener('mouseleave', handleMouseLeave);
       canvasEl.removeEventListener('contextmenu', handleContextMenu);
+      canvasEl.removeEventListener('pointerdown', handlePointerDown);
+      canvasEl.removeEventListener('pointerup', handlePointerUp);
       document.removeEventListener('mousedown', handleNativeMouseDown, true);
       document.removeEventListener('mouseup', handleMouseUp, true);
       document.removeEventListener('contextmenu', handleContextMenu, true);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('pointerup', handlePointerUp, true);
       window.removeEventListener('contextmenu', handleContextMenu);
     };
   }, [canvasEl, setHasFocus, setMouseDown, setPointerLocked]);
