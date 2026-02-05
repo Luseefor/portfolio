@@ -69,6 +69,9 @@ export default function PlayerCharacter({ animation = 'idle' }: { animation?: Pl
       }
     });
     action.reset().fadeIn(0.15).play();
+    if (animation === 'run') action.timeScale = 1.25;
+    else if (animation === 'walk') action.timeScale = 1.05;
+    else action.timeScale = 1.0;
     return () => {
       action.fadeOut(0.15);
     };

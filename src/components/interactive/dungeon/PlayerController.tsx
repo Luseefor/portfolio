@@ -43,6 +43,7 @@ export default function PlayerController({
   const [animation, setAnimation] = useState<PlayerAnimation>('idle');
   const groundedTimer = useRef(0);
   const jumpBuffer = useRef(1);
+  const rollTimer = useRef(0);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent, pressed: boolean) => {
@@ -158,6 +159,7 @@ export default function PlayerController({
     if (canJump) {
       nextY = JUMP_SPEED;
       if (forwardPressed) {
+        rollTimer.current = 0.6;
         const rollBoost = runPressed ? 3.2 : 2.4;
         body.setLinvel(
           {
@@ -176,9 +178,13 @@ export default function PlayerController({
 
     body.setLinvel({ x: nextX, y: nextY, z: nextZ }, true);
 
+    if (rollTimer.current > 0) {
+      rollTimer.current = Math.max(0, rollTimer.current - delta);
+    }
+
     const speed = Math.hypot(nextX, nextZ);
     let nextAnim: PlayerAnimation = 'idle';
-    if (canJump && forwardPressed) {
+    if (rollTimer.current > 0) {
       nextAnim = 'jump';
     } else if (speed > 0.15) {
       nextAnim = runPressed ? 'run' : 'walk';
