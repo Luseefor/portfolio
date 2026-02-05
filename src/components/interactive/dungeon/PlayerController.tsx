@@ -122,9 +122,15 @@ export default function PlayerController({
     const hit = world.castRay(ray, 0.8, true);
     const grounded = Boolean(hit && (hit as any).toi < 0.35);
 
-    // Camera-relative movement
+    // Camera-relative movement (fallback to forward if camera isn't ready)
     camera.getWorldDirection(forward);
+    if (!Number.isFinite(forward.x) || !Number.isFinite(forward.z)) {
+      forward.set(0, 0, 1);
+    }
     forward.y = 0;
+    if (forward.lengthSq() < 1e-4) {
+      forward.set(0, 0, 1);
+    }
     forward.normalize();
     right.copy(forward).cross(up).normalize().multiplyScalar(-1);
 

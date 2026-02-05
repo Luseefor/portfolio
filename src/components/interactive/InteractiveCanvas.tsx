@@ -40,6 +40,16 @@ export default function InteractiveCanvas() {
     };
   }, [canvasEl, setHasFocus, setMouseDown, setPointerLocked]);
 
+  useEffect(() => {
+    if (!canvasEl) return;
+    const focusCanvas = () => {
+      canvasEl.focus();
+      setHasFocus(true);
+    };
+    window.addEventListener('keydown', focusCanvas);
+    return () => window.removeEventListener('keydown', focusCanvas);
+  }, [canvasEl, setHasFocus]);
+
   const handleFocus = useCallback(() => {
     setHasFocus(true);
   }, [setHasFocus]);
@@ -74,6 +84,7 @@ export default function InteractiveCanvas() {
           gl.toneMappingExposure = rendererToneMapping.exposure;
           gl.shadowMap.enabled = true;
           setCanvasEl(gl.domElement);
+          gl.domElement.tabIndex = 0;
           gl.domElement.focus();
         }}
         tabIndex={0}
