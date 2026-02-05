@@ -1,80 +1,57 @@
 'use client';
 
+import { useEffect, useRef, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, type MutableRefObject, type RefObject } from 'react';
 import { useRapier, type RapierRigidBody } from '@react-three/rapier';
-import { Vector3, type Group } from 'three';
-import { useSettings } from '@/lib/settings';
+import { Vector3 } from 'three';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import {
   CAMERA_DISTANCE,
   CAMERA_OFFSET,
-  CAMERA_FOLLOW,
-  CAMERA_SENSITIVITY,
   CAMERA_PITCH,
+  CAMERA_SENSITIVITY,
+  CAMERA_FOLLOW,
   CAMERA_COLLISION,
 } from '@/constants/camera';
-import {
-  applyMouseDelta,
-  clampCameraDistance,
-  computeCameraDesired,
-  computeSmoothingFactor,
-  getCameraParentWarnings,
-} from './math/cameraMath';
+import { applyMouseDelta, clampCameraDistance, computeCameraDesired, computeSmoothingFactor } from './math/cameraMath';
 
 const targetPosition = new Vector3();
 const desiredPosition = new Vector3();
-const forward = new Vector3();
-const right = new Vector3();
 const rayDirection = new Vector3();
-const moveVector = new Vector3();
 
 export default function CameraRig({
-  target,
+  targetBody,
   yawRef,
   pitchRef,
-  targetBody,
 }: {
-  target: RefObject<Group | null>;
+  targetBody?: MutableRefObject<RapierRigidBody | null>;
   yawRef?: MutableRefObject<number>;
   pitchRef?: MutableRefObject<number>;
-  targetBody?: MutableRefObject<RapierRigidBody | null>;
 }) {
   const { camera } = useThree();
-  const { scene } = useThree();
   const { rapier, world } = useRapier();
-  const mouseSensitivity = useSettings((state) => state.mouseSensitivity);
   const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
-  const freeCam = useDungeonInput((state) => state.freeCam);
-  const keys = useDungeonInput((state) => state.keys);
   const mouseDown = useDungeonInput((state) => state.mouseDown);
-  const up = useMemo(() => new Vector3(0, 1, 0), []);
   const internalYaw = useRef(0);
   const internalPitch = useRef(CAMERA_PITCH.initial);
-  const distanceRef = useRef<number>(CAMERA_DISTANCE.default);
-  const devWarningTimer = useRef(0);
-  const devErrorTimer = useRef(0);
-  const isDev = process.env.NODE_ENV !== 'production';
+  const distanceRef = useRef(CAMERA_DISTANCE.default);
 
-  const yawValue = yawRef ?? internalYaw;
-  const pitchValue = pitchRef ?? internalPitch;
+  const yaw = yawRef ?? internalYaw;
+  const pitch = pitchRef ?? internalPitch;
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       if (!isPointerLocked && !mouseDown) return;
       const next = applyMouseDelta(
-        yawValue.current,
-        pitchValue.current,
+        yaw.current,
+        pitch.current,
         event.movementX,
         event.movementY,
-        {
-          yaw: CAMERA_SENSITIVITY.yaw * mouseSensitivity,
-          pitch: CAMERA_SENSITIVITY.pitch * mouseSensitivity,
-        },
+        CAMERA_SENSITIVITY,
         CAMERA_PITCH,
       );
-      yawValue.current = next.yaw;
-      pitchValue.current = next.pitch;
+      yaw.current = next.yaw;
+      pitch.current = next.pitch;
     };
 
     const handleWheel = (event: WheelEvent) => {
@@ -84,148 +61,53 @@ export default function CameraRig({
 
     document.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('wheel', handleWheel, { passive: true });
-
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('wheel', handleWheel);
     };
-  }, [isPointerLocked, mouseDown, mouseSensitivity, pitchValue, yawValue]);
+  }, [isPointerLocked, mouseDown, pitch, yaw]);
 
   useFrame((_, delta) => {
-    if (isDev) {
-      devWarningTimer.current += delta;
-      devErrorTimer.current += delta;
-    }
+    const body = targetBody?.current;
+    if (!body) return;
 
-    const yaw = yawValue.current;
-    const pitch = pitchValue.current;
-
-    if (isDev && (!Number.isFinite(yaw) || !Number.isFinite(pitch))) {
-      if (devErrorTimer.current > 0.5) {
-        console.error('[CameraRig] Non-finite yaw/pitch detected.', { yaw, pitch });
-        devErrorTimer.current = 0;
-      }
-      return;
-    }
-
-    forward.set(Math.sin(yaw), Math.sin(pitch), Math.cos(yaw)).normalize();
-    right.set(forward.z, 0, -forward.x).normalize();
-
-    if (freeCam) {
-      const speed = (keys.run ? 9 : 4) * (delta > 0 ? delta : 0);
-      moveVector.set(0, 0, 0);
-      if (keys.forward) moveVector.add(forward);
-      if (keys.backward) moveVector.sub(forward);
-      if (keys.left) moveVector.sub(right);
-      if (keys.right) moveVector.add(right);
-      if (moveVector.lengthSq() > 0) {
-        moveVector.normalize().multiplyScalar(speed);
-        camera.position.add(moveVector);
-      }
-      camera.lookAt(
-        camera.position.x + forward.x,
-        camera.position.y + forward.y,
-        camera.position.z + forward.z,
-      );
-      return;
-    }
-
-    const targetBodyRef = targetBody?.current ?? null;
-    if (targetBodyRef) {
-      const position = targetBodyRef.translation();
-      if (
-        isDev &&
-        (!Number.isFinite(position.x) ||
-          !Number.isFinite(position.y) ||
-          !Number.isFinite(position.z))
-      ) {
-        if (devErrorTimer.current > 0.5) {
-          console.error('[CameraRig] Non-finite player position detected.', position);
-          devErrorTimer.current = 0;
-        }
-        return;
-      }
-      targetPosition.set(position.x, position.y, position.z);
-    } else {
-      const targetGroup = target.current;
-      if (!targetGroup) return;
-      targetGroup.getWorldPosition(targetPosition);
-    }
-
-    const distance = distanceRef.current;
+    const position = body.translation();
+    targetPosition.set(position.x, position.y, position.z);
 
     const desired = computeCameraDesired(
       { x: targetPosition.x, y: targetPosition.y, z: targetPosition.z },
-      yaw,
-      pitch,
-      distance,
+      yaw.current,
+      pitch.current,
+      distanceRef.current,
       CAMERA_OFFSET,
     );
     desiredPosition.set(desired.x, desired.y, desired.z);
 
     rayDirection.copy(desiredPosition).sub(targetPosition);
     const rayDistance = rayDirection.length();
-    if (!Number.isFinite(rayDistance) || rayDistance < 1e-4) {
-      return;
-    }
-    rayDirection.normalize();
-
-    const ray = new rapier.Ray(
-      { x: targetPosition.x, y: targetPosition.y, z: targetPosition.z },
-      { x: rayDirection.x, y: rayDirection.y, z: rayDirection.z },
-    );
-    const hit = world.castRay(ray, rayDistance, true);
-    let cameraTarget = desiredPosition;
-    if (hit) {
-      const safeDistance = Math.max(
-        CAMERA_COLLISION.minCameraDistance,
-        (hit as any).toi - CAMERA_COLLISION.minDistanceFromWall,
+    if (rayDistance > 0.01) {
+      rayDirection.normalize();
+      const ray = new rapier.Ray(
+        { x: targetPosition.x, y: targetPosition.y, z: targetPosition.z },
+        { x: rayDirection.x, y: rayDirection.y, z: rayDirection.z },
       );
-      cameraTarget = targetPosition.clone().add(rayDirection.multiplyScalar(safeDistance));
+      const hit = world.castRay(ray, rayDistance, true);
+      if (hit) {
+        const safeDistance = Math.max(
+          CAMERA_COLLISION.minCameraDistance,
+          (hit as any).toi - CAMERA_COLLISION.minDistanceFromWall,
+        );
+        desiredPosition.copy(targetPosition).add(rayDirection.multiplyScalar(safeDistance));
+      }
     }
 
-    if (
-      !Number.isFinite(cameraTarget.x) ||
-      !Number.isFinite(cameraTarget.y) ||
-      !Number.isFinite(cameraTarget.z)
-    ) {
-      return;
-    }
     const lerpFactor = computeSmoothingFactor(delta, CAMERA_FOLLOW.smoothing);
-    camera.position.lerp(cameraTarget, lerpFactor);
-    if (
-      isDev &&
-      (!Number.isFinite(camera.position.x) ||
-        !Number.isFinite(camera.position.y) ||
-        !Number.isFinite(camera.position.z))
-    ) {
-      if (devErrorTimer.current > 0.5) {
-        console.error('[CameraRig] Non-finite camera position detected.', camera.position);
-        devErrorTimer.current = 0;
-      }
-      return;
-    }
+    camera.position.lerp(desiredPosition, lerpFactor);
     camera.lookAt(
       targetPosition.x,
       targetPosition.y + CAMERA_OFFSET.lookAtHeight,
       targetPosition.z,
     );
-
-    if (isDev && devWarningTimer.current > 0.75) {
-      devWarningTimer.current = 0;
-      if (isPointerLocked && document.pointerLockElement === null) {
-        console.warn(
-          '[CameraRig] Pointer lock state mismatch: expected locked but element is null.',
-        );
-      }
-      const warnings = getCameraParentWarnings(camera.parent, scene);
-      if (warnings.invalidParent) {
-        console.warn('[CameraRig] Camera parent is not the scene root.');
-      }
-      if (warnings.nonUnitScale) {
-        console.warn('[CameraRig] Camera parent has non-unit scale.');
-      }
-    }
   });
 
   return null;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ACESFilmicToneMapping } from 'three';
 import LoadingScreen from './LoadingScreen';
@@ -12,39 +12,22 @@ export default function InteractiveCanvas() {
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
   const setHasFocus = useDungeonInput((state) => state.setHasFocus);
   const setPointerLocked = useDungeonInput((state) => state.setPointerLocked);
-  const addEvent = useDungeonInput((state) => state.addEvent);
   const setMouseDown = useDungeonInput((state) => state.setMouseDown);
-  const forcePointerLock = useMemo(
-    () =>
-      typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).get('forcePointerLock') === '1',
-    [],
-  );
 
   useEffect(() => {
     if (!canvasEl) return;
 
     const handleNativeMouseDown = () => {
       setMouseDown(true);
-      if (forcePointerLock) {
-        setPointerLocked(true);
-        setHasFocus(true);
-        addEvent('pointerlock forced via query');
-        return;
-      }
-
       if (document.pointerLockElement !== canvasEl) {
         canvasEl.requestPointerLock();
-        addEvent('pointerlock requested');
       }
     };
     const handleMouseUp = () => {
       setMouseDown(false);
-      addEvent('mouse up');
     };
     const handleMouseLeave = () => {
       setMouseDown(false);
-      addEvent('mouse leave');
     };
 
     canvasEl.addEventListener('mousedown', handleNativeMouseDown);
@@ -55,39 +38,29 @@ export default function InteractiveCanvas() {
       canvasEl.removeEventListener('mouseup', handleMouseUp);
       canvasEl.removeEventListener('mouseleave', handleMouseLeave);
     };
-  }, [addEvent, canvasEl, forcePointerLock, setHasFocus, setMouseDown, setPointerLocked]);
+  }, [canvasEl, setHasFocus, setMouseDown, setPointerLocked]);
 
   const handleFocus = useCallback(() => {
     setHasFocus(true);
-    addEvent('canvas focus');
   }, [setHasFocus]);
 
   const handleBlur = useCallback(() => {
     setHasFocus(false);
-    if (forcePointerLock) {
-      setPointerLocked(false);
-    }
-    addEvent('canvas blur');
-  }, [forcePointerLock, setHasFocus, setPointerLocked]);
+    setPointerLocked(false);
+  }, [setHasFocus, setPointerLocked]);
 
   useEffect(() => {
     if (!canvasEl) return;
-    if (forcePointerLock) return;
     const handlePointerLockChange = () => {
       const isLocked = document.pointerLockElement === canvasEl;
       setPointerLocked(isLocked);
-      if (isLocked) {
-        setHasFocus(true);
-        addEvent('pointerlock acquired');
-      } else if (document.activeElement !== canvasEl) {
-        setHasFocus(false);
-        addEvent('pointerlock released');
-      }
+      if (isLocked) setHasFocus(true);
+      else if (document.activeElement !== canvasEl) setHasFocus(false);
     };
 
     document.addEventListener('pointerlockchange', handlePointerLockChange);
     return () => document.removeEventListener('pointerlockchange', handlePointerLockChange);
-  }, [canvasEl, forcePointerLock, setHasFocus, setPointerLocked]);
+  }, [canvasEl, setHasFocus, setPointerLocked]);
 
   return (
     <div className="absolute inset-0">
