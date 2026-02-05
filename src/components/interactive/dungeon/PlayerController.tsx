@@ -31,10 +31,70 @@ export default function PlayerController({
   const rigidBodyRef = bodyRef ?? internalBodyRef;
   const { camera } = useThree();
   const keys = useDungeonInput((state) => state.keys);
+  const inputRef = useRef({
+    forward: false,
+    backward: false,
+    left: false,
+    right: false,
+    run: false,
+    jump: false,
+  });
 
   const [animation, setAnimation] = useState<PlayerAnimation>('idle');
   const groundedTimer = useRef(0);
   const jumpBuffer = useRef(1);
+
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent, pressed: boolean) => {
+      switch (event.code) {
+        case 'KeyW':
+        case 'ArrowUp':
+          inputRef.current.forward = pressed;
+          break;
+        case 'KeyS':
+        case 'ArrowDown':
+          inputRef.current.backward = pressed;
+          break;
+        case 'KeyA':
+        case 'ArrowLeft':
+          inputRef.current.left = pressed;
+          break;
+        case 'KeyD':
+        case 'ArrowRight':
+          inputRef.current.right = pressed;
+          break;
+        case 'ShiftLeft':
+        case 'ShiftRight':
+          inputRef.current.run = pressed;
+          break;
+        case 'Space':
+          inputRef.current.jump = pressed;
+          break;
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => handleKey(e, true);
+    const onKeyUp = (e: KeyboardEvent) => handleKey(e, false);
+    const onBlur = () => {
+      inputRef.current = {
+        forward: false,
+        backward: false,
+        left: false,
+        right: false,
+        run: false,
+        jump: false,
+      };
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
 
   useFrame((_, delta) => {
     const body = rigidBodyRef.current;
@@ -58,14 +118,24 @@ export default function PlayerController({
     forward.normalize();
     right.copy(forward).cross(up).normalize().multiplyScalar(-1);
 
+    const forwardPressed = keys.forward || inputRef.current.forward;
+    const backwardPressed = keys.backward || inputRef.current.backward;
+    const leftPressed = keys.left || inputRef.current.left;
+    const rightPressed = keys.right || inputRef.current.right;
+    const runPressed = keys.run || inputRef.current.run;
+    const jumpPressed = keys.jump || inputRef.current.jump;
+
     moveDir.set(0, 0, 0);
-    if (keys.forward) moveDir.add(forward);
-    if (keys.backward) moveDir.sub(forward);
-    if (keys.left) moveDir.sub(right);
-    if (keys.right) moveDir.add(right);
+    if (forwardPressed) moveDir.add(forward);
+    if (backwardPressed) moveDir.sub(forward);
+    if (leftPressed) moveDir.sub(right);
+    if (rightPressed) moveDir.add(right);
 
     const hasInput = moveDir.lengthSq() > 0.001;
-    const targetSpeed = keys.run ? RUN_SPEED : WALK_SPEED;
+    if (hasInput || jumpPressed) {
+      body.wakeUp();
+    }
+    const targetSpeed = runPressed ? RUN_SPEED : WALK_SPEED;
     let targetX = 0;
     let targetZ = 0;
 
@@ -82,7 +152,7 @@ export default function PlayerController({
     const nextX = moveToward(linvel.x, targetX, accel * delta);
     const nextZ = moveToward(linvel.z, targetZ, accel * delta);
 
-    jumpBuffer.current = keys.jump ? 0 : jumpBuffer.current + delta;
+    jumpBuffer.current = jumpPressed ? 0 : jumpBuffer.current + delta;
     const canJump = jumpBuffer.current < 0.2 && groundedTimer.current < 0.2;
     let nextY = linvel.y - GRAVITY * delta;
     if (canJump) {
@@ -100,7 +170,7 @@ export default function PlayerController({
     if (!grounded && Math.abs(nextY) > 0.1) {
       nextAnim = 'jump';
     } else if (speed > 0.15) {
-      nextAnim = keys.run ? 'run' : 'walk';
+      nextAnim = runPressed ? 'run' : 'walk';
     }
     if (nextAnim !== animation) setAnimation(nextAnim);
   });
