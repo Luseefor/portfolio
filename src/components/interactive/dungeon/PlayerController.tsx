@@ -157,6 +157,17 @@ export default function PlayerController({
     let nextY = linvel.y - GRAVITY * delta;
     if (canJump) {
       nextY = JUMP_SPEED;
+      if (forwardPressed) {
+        const rollBoost = runPressed ? 3.2 : 2.4;
+        body.setLinvel(
+          {
+            x: nextX + moveDir.x * rollBoost,
+            y: nextY,
+            z: nextZ + moveDir.z * rollBoost,
+          },
+          true,
+        );
+      }
       jumpBuffer.current = 1;
       groundedTimer.current = 1;
     } else if (grounded) {
@@ -167,7 +178,7 @@ export default function PlayerController({
 
     const speed = Math.hypot(nextX, nextZ);
     let nextAnim: PlayerAnimation = 'idle';
-    if (!grounded && Math.abs(nextY) > 0.1) {
+    if (canJump && forwardPressed) {
       nextAnim = 'jump';
     } else if (speed > 0.15) {
       nextAnim = runPressed ? 'run' : 'walk';

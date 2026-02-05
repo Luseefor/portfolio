@@ -10,7 +10,7 @@ const CLIP_PATTERNS: Record<PlayerAnimation, RegExp[]> = {
   idle: [/idle/i, /breath/i, /stand/i],
   walk: [/walk/i, /walkforward/i, /walk_fwd/i],
   run: [/run/i, /sprint/i, /jog/i],
-  jump: [/jump/i, /leap/i],
+  jump: [/roll/i, /jump/i, /leap/i],
 };
 
 function pickClipName(names: string[], state: PlayerAnimation) {

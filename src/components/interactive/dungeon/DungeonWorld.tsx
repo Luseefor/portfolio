@@ -42,11 +42,6 @@ const wallMaterial = new MeshStandardMaterial({
   roughness: 0.92,
   metalness: 0.08,
 });
-const trimMaterial = new MeshStandardMaterial({
-  color: '#4a3f34',
-  roughness: 0.85,
-  metalness: 0.08,
-});
 
 function buildWallSegments(
   id: string,
@@ -135,12 +130,6 @@ function buildRoom(spec: RoomSpec): BoxPiece[] {
       size: [size.w, FLOOR_THICKNESS, size.d],
       position: [cx, cy - FLOOR_THICKNESS / 2, cz],
       material: floorMaterial,
-    },
-    {
-      id: `${id}-trim`,
-      size: [size.w * 0.96, FLOOR_THICKNESS * 0.6, size.d * 0.96],
-      position: [cx, cy + 0.04, cz],
-      material: trimMaterial,
     },
   ];
 
