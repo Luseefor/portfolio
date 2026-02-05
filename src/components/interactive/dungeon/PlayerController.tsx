@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
-import { Vector3 } from 'three';
+import { MathUtils, Quaternion, Vector3 } from 'three';
 import PlayerCharacter from './PlayerCharacter';
 import { Suspense } from 'react';
 import { useDungeonInput } from '@/lib/dungeonInput';
+import { getNextAnimationState } from './math/animationMath';
+
+const rotation = new Quaternion();
 
 const WALK_SPEED = 2.6;
 const RUN_SPEED = 4.4;
@@ -49,6 +52,7 @@ export default function PlayerController({
   const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
   const mouseDown = useDungeonInput((state) => state.mouseDown);
   const stepTimer = useRef(0);
+  const [animation, setAnimation] = useState<'idle' | 'walk' | 'run'>('idle');
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent, pressed: boolean) => {
@@ -161,6 +165,9 @@ export default function PlayerController({
       moveDir.normalize().multiplyScalar(targetSpeed);
       targetX = moveDir.x;
       targetZ = moveDir.z;
+      const desiredYaw = Math.atan2(moveDir.x, moveDir.z);
+      rotation.setFromAxisAngle(up, desiredYaw);
+      body.setRotation(rotation, true);
     }
 
     const accel = hasInput ? ACCEL : FRICTION;
@@ -183,6 +190,15 @@ export default function PlayerController({
         true,
       );
     }
+
+    const speedOnGround = Math.hypot(nextX, nextZ);
+    const nextAnim = getNextAnimationState(animation, {
+      inputActive: hasInput,
+      isRunning: runPressed,
+      grounded,
+      speedOnGround,
+    });
+    if (nextAnim !== animation) setAnimation(nextAnim);
 
     // Footsteps
     if (grounded && hasInput && (isPointerLocked || mouseDown)) {
@@ -219,7 +235,7 @@ export default function PlayerController({
             </mesh>
           }
         >
-          <PlayerCharacter />
+          <PlayerCharacter animation={animation} />
         </Suspense>
       </group>
     </RigidBody>
