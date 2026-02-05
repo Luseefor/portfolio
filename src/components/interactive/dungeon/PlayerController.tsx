@@ -124,9 +124,9 @@ export default function PlayerController({
     const position = body.translation();
 
     // Ground check
-    const ray = new rapier.Ray({ x: position.x, y: position.y + 0.3, z: position.z }, { x: 0, y: -1, z: 0 });
-    const hit = world.castRay(ray, 0.8, true);
-    const grounded = Boolean(hit && (hit as any).toi < 0.35);
+    const ray = new rapier.Ray({ x: position.x, y: position.y + 0.5, z: position.z }, { x: 0, y: -1, z: 0 });
+    const hit = world.castRay(ray, 1.4, true);
+    const grounded = Boolean(hit && (hit as any).toi < 0.7);
 
     // Camera-relative movement (fallback to forward if camera isn't ready)
     camera.getWorldDirection(forward);
@@ -198,7 +198,11 @@ export default function PlayerController({
       grounded,
       speedOnGround,
     });
-    if (nextAnim !== animation) setAnimation(nextAnim);
+    if (!hasInput && grounded && speedOnGround < 0.2 && nextAnim !== 'idle') {
+      setAnimation('idle');
+    } else if (nextAnim !== animation) {
+      setAnimation(nextAnim);
+    }
 
     // Footsteps
     if (grounded && hasInput && (isPointerLocked || mouseDown)) {
