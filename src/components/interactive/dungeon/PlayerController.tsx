@@ -171,8 +171,12 @@ export default function PlayerController({
     }
 
     const accel = hasInput ? ACCEL : FRICTION;
-    const nextX = moveToward(linvel.x, targetX, accel * delta);
-    const nextZ = moveToward(linvel.z, targetZ, accel * delta);
+    let nextX = moveToward(linvel.x, targetX, accel * delta);
+    let nextZ = moveToward(linvel.z, targetZ, accel * delta);
+    if (!hasInput && grounded) {
+      nextX = 0;
+      nextZ = 0;
+    }
     let nextY = linvel.y;
     const wantsJump = jumpPressed && grounded;
     if (wantsJump) {
@@ -198,8 +202,8 @@ export default function PlayerController({
       grounded,
       speedOnGround,
     });
-    if (!hasInput && grounded && speedOnGround < 0.2 && nextAnim !== 'idle') {
-      setAnimation('idle');
+    if (!hasInput && grounded) {
+      if (animation !== 'idle') setAnimation('idle');
     } else if (nextAnim !== animation) {
       setAnimation(nextAnim);
     }
