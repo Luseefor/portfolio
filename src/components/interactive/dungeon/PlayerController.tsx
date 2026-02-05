@@ -10,8 +10,9 @@ import { useDungeonInput } from '@/lib/dungeonInput';
 
 const WALK_SPEED = 2.4;
 const RUN_SPEED = 6.2;
-const ACCEL = 12;
-const DECEL = 14;
+const ACCEL = 10;
+const DECEL = 10;
+const SMOOTHING = 0.12;
 const JUMP_SPEED = 7.2;
 const GRAVITY = 24;
 const START_POSITION: [number, number, number] = [0, 2, 0];
@@ -152,6 +153,9 @@ export default function PlayerController({
     const accel = hasInput ? ACCEL : DECEL;
     const nextX = moveToward(linvel.x, targetX, accel * delta);
     const nextZ = moveToward(linvel.z, targetZ, accel * delta);
+    const smoothFactor = Math.min(1, SMOOTHING + delta * 0.2);
+    const smoothX = MathUtils.lerp(linvel.x, nextX, smoothFactor);
+    const smoothZ = MathUtils.lerp(linvel.z, nextZ, smoothFactor);
 
     jumpBuffer.current = jumpPressed ? 0 : jumpBuffer.current + delta;
     const canJump = jumpBuffer.current < 0.2 && groundedTimer.current < 0.2;
@@ -163,9 +167,9 @@ export default function PlayerController({
         const rollBoost = runPressed ? 3.2 : 2.4;
         body.setLinvel(
           {
-            x: nextX + moveDir.x * rollBoost,
+            x: smoothX + moveDir.x * rollBoost,
             y: nextY,
-            z: nextZ + moveDir.z * rollBoost,
+            z: smoothZ + moveDir.z * rollBoost,
           },
           true,
         );
@@ -176,13 +180,13 @@ export default function PlayerController({
       nextY = 0;
     }
 
-    body.setLinvel({ x: nextX, y: nextY, z: nextZ }, true);
+    body.setLinvel({ x: smoothX, y: nextY, z: smoothZ }, true);
 
     if (rollTimer.current > 0) {
       rollTimer.current = Math.max(0, rollTimer.current - delta);
     }
 
-    const speed = Math.hypot(nextX, nextZ);
+    const speed = Math.hypot(smoothX, smoothZ);
     let nextAnim: PlayerAnimation = 'idle';
     if (rollTimer.current > 0) {
       nextAnim = 'jump';
