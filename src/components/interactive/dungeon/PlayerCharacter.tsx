@@ -6,22 +6,44 @@ import { Mesh, type Group } from 'three';
 
 export type PlayerAnimation = 'idle' | 'walk' | 'run' | 'jump';
 
+const CLIP_PATTERNS: Record<PlayerAnimation, RegExp[]> = {
+  idle: [/idle/i, /breath/i, /stand/i],
+  walk: [/walk/i, /walkforward/i, /walk_fwd/i],
+  run: [/run/i, /sprint/i, /jog/i],
+  jump: [/jump/i, /leap/i],
+};
+
 function pickClipName(names: string[], state: PlayerAnimation) {
   const lowered = names.map((name) => name.toLowerCase());
   const isAttackIdle = (name: string) => name.includes('attack') && name.includes('idle');
-  const idleIndex = lowered.findIndex(
-    (name) => name.includes('idle') && !isAttackIdle(name),
-  );
-  const walkIndex = lowered.findIndex((name) => name.includes('walk'));
-  const runIndex = lowered.findIndex((name) => name.includes('run'));
-  const jumpIndex = lowered.findIndex((name) => name.includes('jump'));
-  const attackIdleIndex = lowered.findIndex((name) => isAttackIdle(name));
 
-  if (state === 'jump' && jumpIndex >= 0) return names[jumpIndex];
-  if (state === 'run' && runIndex >= 0) return names[runIndex];
-  if (state === 'walk' && walkIndex >= 0) return names[walkIndex];
-  if (idleIndex >= 0) return names[idleIndex];
-  if (attackIdleIndex >= 0) return names[attackIdleIndex];
+  const findByPatterns = (patterns: RegExp[], avoidAttackIdle = false) => {
+    const idx = lowered.findIndex((name) =>
+      patterns.some((pattern) => pattern.test(name)) &&
+      (!avoidAttackIdle || !isAttackIdle(name)),
+    );
+    return idx >= 0 ? names[idx] : null;
+  };
+
+  if (state === 'jump') {
+    const jumpClip = findByPatterns(CLIP_PATTERNS.jump);
+    if (jumpClip) return jumpClip;
+  }
+  if (state === 'run') {
+    const runClip = findByPatterns(CLIP_PATTERNS.run);
+    if (runClip) return runClip;
+  }
+  if (state === 'walk') {
+    const walkClip = findByPatterns(CLIP_PATTERNS.walk);
+    if (walkClip) return walkClip;
+  }
+
+  const idleClip = findByPatterns(CLIP_PATTERNS.idle, true);
+  if (idleClip) return idleClip;
+
+  const attackIdle = findByPatterns([/attack.*idle/i]);
+  if (attackIdle) return attackIdle;
+
   return names[0];
 }
 
@@ -31,6 +53,17 @@ export default function PlayerCharacter({ animation = 'idle' }: { animation?: Pl
   const { actions, names } = useAnimations(animations, group);
 
   const clipName = useMemo(() => pickClipName(names, animation), [names, animation]);
+
+  useEffect(() => {
+    if (names.length === 0) return;
+    // Print available clips and current mapping decisions
+    console.groupCollapsed('[PlayerCharacter] Animation clips');
+    console.table(names.map((name) => ({ name })));
+    (['idle', 'walk', 'run', 'jump'] as PlayerAnimation[]).forEach((state) => {
+      console.log(`${state} ->`, pickClipName(names, state));
+    });
+    console.groupEnd();
+  }, [names]);
 
   useEffect(() => {
     const action = clipName ? actions[clipName] : undefined;
