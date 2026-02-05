@@ -51,6 +51,58 @@ export default function PlayerController({
   const stepTimer = useRef(0);
 
   useEffect(() => {
+    const handleKey = (event: KeyboardEvent, pressed: boolean) => {
+      switch (event.code) {
+        case 'KeyW':
+        case 'ArrowUp':
+          inputRef.current.forward = pressed;
+          break;
+        case 'KeyS':
+        case 'ArrowDown':
+          inputRef.current.backward = pressed;
+          break;
+        case 'KeyA':
+        case 'ArrowLeft':
+          inputRef.current.left = pressed;
+          break;
+        case 'KeyD':
+        case 'ArrowRight':
+          inputRef.current.right = pressed;
+          break;
+        case 'ShiftLeft':
+        case 'ShiftRight':
+          inputRef.current.run = pressed;
+          break;
+        case 'Space':
+          inputRef.current.jump = pressed;
+          break;
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => handleKey(e, true);
+    const onKeyUp = (e: KeyboardEvent) => handleKey(e, false);
+    const onBlur = () => {
+      inputRef.current = {
+        forward: false,
+        backward: false,
+        left: false,
+        right: false,
+        run: false,
+        jump: false,
+      };
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
+
+  useEffect(() => {
     if (footstepAudio.current.length === 0) {
       footstepAudio.current = FOOTSTEP_URLS.map((url) => {
         const audio = new Audio(url);
@@ -178,54 +230,3 @@ function moveToward(current: number, target: number, maxDelta: number) {
   if (Math.abs(target - current) <= maxDelta) return target;
   return current + Math.sign(target - current) * maxDelta;
 }
-  useEffect(() => {
-    const handleKey = (event: KeyboardEvent, pressed: boolean) => {
-      switch (event.code) {
-        case 'KeyW':
-        case 'ArrowUp':
-          inputRef.current.forward = pressed;
-          break;
-        case 'KeyS':
-        case 'ArrowDown':
-          inputRef.current.backward = pressed;
-          break;
-        case 'KeyA':
-        case 'ArrowLeft':
-          inputRef.current.left = pressed;
-          break;
-        case 'KeyD':
-        case 'ArrowRight':
-          inputRef.current.right = pressed;
-          break;
-        case 'ShiftLeft':
-        case 'ShiftRight':
-          inputRef.current.run = pressed;
-          break;
-        case 'Space':
-          inputRef.current.jump = pressed;
-          break;
-      }
-    };
-
-    const onKeyDown = (e: KeyboardEvent) => handleKey(e, true);
-    const onKeyUp = (e: KeyboardEvent) => handleKey(e, false);
-    const onBlur = () => {
-      inputRef.current = {
-        forward: false,
-        backward: false,
-        left: false,
-        right: false,
-        run: false,
-        jump: false,
-      };
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('blur', onBlur);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-      window.removeEventListener('blur', onBlur);
-    };
-  }, []);
