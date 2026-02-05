@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 export default function AIAvatar({ speaking = false }: { speaking?: boolean }) {
   return (
-    <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-emerald-500/30 bg-black">
+    <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-[var(--ai-accent-30)] bg-black">
       <motion.div
         animate={{
           scale: speaking ? [1, 1.1, 1] : 1,

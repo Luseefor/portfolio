@@ -21,12 +21,12 @@ export default function TimeLocationCard() {
             Impact // Highlights
           </h3>
           <p
-            className="text-white font-bold leading-tight"
+            className={`font-bold leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}
             style={{ fontSize: 'clamp(1rem, 2vw, 1.25rem)' }}
           >
             Systems that ship fast and scale cleanly
           </p>
-          <div className="text-[11px] text-slate-500 mt-2 tracking-wide">
+          <div className={`text-[11px] mt-2 tracking-wide ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>
             Focused on reliability, performance, and measurable outcomes.
           </div>
         </div>
@@ -39,15 +39,17 @@ export default function TimeLocationCard() {
           ].map((item, index) => (
             <div
               key={item.label}
-              className="flex items-start gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2"
+              className={`flex items-start gap-3 rounded-lg px-3 py-2 ${
+                isDark ? 'border border-white/5 bg-white/[0.02]' : 'border border-black/10 bg-black/[0.02]'
+              }`}
               style={{ boxShadow: index === 0 ? `0 0 18px ${themeColor}12` : undefined }}
             >
               <item.icon size={14} style={{ color: themeColor }} className="mt-0.5" />
               <div>
-                <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-500">
+                <div className={`text-[10px] font-mono uppercase tracking-[0.2em] ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>
                   {item.label}
                 </div>
-                <div className="text-sm text-slate-200">{item.value}</div>
+                <div className={`text-sm ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{item.value}</div>
               </div>
             </div>
           ))}
@@ -56,7 +58,11 @@ export default function TimeLocationCard() {
 
       {/* Status Indicator */}
       <div className="mt-auto pt-4">
-        <div className="inline-flex items-center gap-3 px-3 py-1.5 rounded border border-white/5 bg-white/[0.02]">
+        <div
+          className={`inline-flex items-center gap-3 px-3 py-1.5 rounded ${
+            isDark ? 'border border-white/5 bg-white/[0.02]' : 'border border-black/10 bg-black/[0.02]'
+          }`}
+        >
           <span className="relative flex h-1.5 w-1.5">
             <span
               className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
@@ -67,8 +73,9 @@ export default function TimeLocationCard() {
               style={{ backgroundColor: themeColor }}
             ></span>
           </span>
-          <span className="text-[10px] font-medium text-slate-400 tracking-wider uppercase">
-            Signal: <span className="text-white">Open to work</span>
+          <span className={`text-[10px] font-medium tracking-wider uppercase ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+            Signal:{' '}
+            <span className={isDark ? 'text-white' : 'text-slate-900'}>Open to work</span>
           </span>
         </div>
       </div>

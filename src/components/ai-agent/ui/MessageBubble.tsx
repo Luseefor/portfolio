@@ -7,9 +7,10 @@ interface MessageBubbleProps {
   role: 'user' | 'assistant';
   content: string;
   isLatest?: boolean;
+  isDark: boolean;
 }
 
-export default function MessageBubble({ role, content, isLatest }: MessageBubbleProps) {
+export default function MessageBubble({ role, content, isLatest, isDark }: MessageBubbleProps) {
   const isUser = role === 'user';
 
   return (
@@ -27,8 +28,8 @@ export default function MessageBubble({ role, content, isLatest }: MessageBubble
       <div
         className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-md ${
           isUser
-            ? 'bg-emerald-500/90 text-white rounded-tr-sm border border-emerald-300/40'
-            : 'bg-white/90 border border-black/5 text-slate-900 rounded-tl-sm dark:bg-white/10 dark:border-white/10 dark:text-slate-100'
+            ? 'bg-[var(--ai-accent)] text-white rounded-tr-sm border border-[var(--ai-accent-40)]'
+            : `${isDark ? 'bg-white/10 border-white/10 text-slate-100' : 'bg-white/90 border-black/5 text-slate-900'} rounded-tl-sm`
         }`}
       >
         {!isUser && isLatest ? <TypewriterText text={content} /> : content}

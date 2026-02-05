@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { PORTFOLIO_CONTENT } from './portfolio-template';
 import { useStore } from '@/utils/store';
-import { getThemeColor } from '@/utils/themes';
+import { getThemeColor, hexToRgba } from '@/utils/themes';
 import dynamic from 'next/dynamic';
 
 const HeroAvatar3D = dynamic(() => import('./HeroAvatar3D'), { ssr: false });
@@ -15,6 +15,11 @@ export default function IdentityHero() {
     () => getThemeColor(currentTheme, isDark),
     [currentTheme, isDark],
   );
+  const themeTextSoft = hexToRgba(themeColor, 0.8);
+  const themeTextSoftHover = hexToRgba(themeColor, 0.9);
+  const themeLine = hexToRgba(themeColor, 0.3);
+  const themeLineSoft = hexToRgba(themeColor, 0.2);
+  const themeLineDim = hexToRgba(themeColor, 0.4);
 
   return (
     <section className="relative min-h-[120vh]">
@@ -33,7 +38,9 @@ export default function IdentityHero() {
             transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
           >
             <motion.h2
-              className="font-semibold text-slate-200/90 whitespace-nowrap"
+              className={`font-semibold whitespace-nowrap ${
+                isDark ? 'text-slate-200/90' : 'text-slate-600'
+              }`}
               style={{ fontSize: 'clamp(0.875rem, 2.5vh, 1.75rem)' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -69,7 +76,9 @@ export default function IdentityHero() {
             </motion.h1>
 
             <motion.p
-              className="mt-2 md:mt-6 text-slate-300/90 font-light max-w-4xl mx-auto leading-relaxed"
+              className={`mt-2 md:mt-6 font-light max-w-4xl mx-auto leading-relaxed ${
+                isDark ? 'text-slate-300/90' : 'text-slate-600'
+              }`}
               style={{ fontSize: 'clamp(0.75rem, 1.8vh, 1.5rem)' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -79,17 +88,35 @@ export default function IdentityHero() {
             </motion.p>
 
             <motion.div
-              className="mt-8 md:mt-12 flex items-center gap-4 md:gap-8 uppercase tracking-[0.3em] md:tracking-[0.5em] font-terminal text-emerald-300/80"
-              style={{ fontSize: 'clamp(0.5rem, 1.2vh, 0.875rem)' }}
+              className="mt-8 md:mt-12 flex items-center gap-4 md:gap-8 uppercase tracking-[0.3em] md:tracking-[0.5em] font-terminal"
+              style={{ fontSize: 'clamp(0.5rem, 1.2vh, 0.875rem)', color: themeTextSoft }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
             >
-              <span className="hover:text-emerald-400 transition-colors">Identity</span>
-              <span className="h-[1px] w-6 md:w-10 bg-emerald-400/30" />
-              <span className="hover:text-emerald-400 transition-colors">Systems</span>
-              <span className="h-[1px] w-6 md:w-10 bg-emerald-400/30" />
-              <span className="hover:text-emerald-400 transition-colors">Interface</span>
+              <span
+                className="transition-colors"
+                onMouseEnter={(e) => (e.currentTarget.style.color = themeTextSoftHover)}
+                onMouseLeave={(e) => (e.currentTarget.style.color = themeTextSoft)}
+              >
+                Identity
+              </span>
+              <span className="h-[1px] w-6 md:w-10" style={{ backgroundColor: themeLine }} />
+              <span
+                className="transition-colors"
+                onMouseEnter={(e) => (e.currentTarget.style.color = themeTextSoftHover)}
+                onMouseLeave={(e) => (e.currentTarget.style.color = themeTextSoft)}
+              >
+                Systems
+              </span>
+              <span className="h-[1px] w-6 md:w-10" style={{ backgroundColor: themeLine }} />
+              <span
+                className="transition-colors"
+                onMouseEnter={(e) => (e.currentTarget.style.color = themeTextSoftHover)}
+                onMouseLeave={(e) => (e.currentTarget.style.color = themeTextSoft)}
+              >
+                Interface
+              </span>
             </motion.div>
 
             <motion.div
@@ -99,18 +126,24 @@ export default function IdentityHero() {
               transition={{ delay: 1.2, duration: 1 }}
             >
               <motion.div
-                className="flex items-center gap-3 uppercase tracking-[0.4em] md:tracking-[0.6em] font-terminal text-emerald-300/60"
+                className="flex items-center gap-3 uppercase tracking-[0.4em] md:tracking-[0.6em] font-terminal"
                 style={{ fontSize: 'clamp(0.45rem, 1vh, 0.75rem)' }}
                 animate={{ y: [0, 6, 0], opacity: [0.4, 0.9, 0.4] }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
               >
-                <span className="h-[1px] w-8 md:w-16 bg-emerald-400/20" />
+                <span className="h-[1px] w-8 md:w-16" style={{ backgroundColor: themeLineSoft }} />
                 Exploration_Uplink
-                <span className="h-[1px] w-8 md:w-16 bg-emerald-400/20" />
+                <span className="h-[1px] w-8 md:w-16" style={{ backgroundColor: themeLineSoft }} />
               </motion.div>
               <div className="flex flex-col items-center gap-1.5 opacity-60">
-                <div className="h-2 w-2 md:h-2.5 md:w-2.5 rotate-45 border-b-2 border-r-2 border-emerald-400/40" />
-                <div className="h-2 w-2 md:h-2.5 md:w-2.5 rotate-45 border-b-2 border-r-2 border-emerald-400/20" />
+                <div
+                  className="h-2 w-2 md:h-2.5 md:w-2.5 rotate-45 border-b-2 border-r-2"
+                  style={{ borderColor: themeLineDim }}
+                />
+                <div
+                  className="h-2 w-2 md:h-2.5 md:w-2.5 rotate-45 border-b-2 border-r-2"
+                  style={{ borderColor: themeLineSoft }}
+                />
               </div>
             </motion.div>
           </motion.div>

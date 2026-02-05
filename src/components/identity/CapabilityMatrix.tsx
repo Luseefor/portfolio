@@ -92,6 +92,10 @@ export default function CapabilityMatrix() {
     const b = parseInt(cleaned.slice(4, 6), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }, []);
+  const themeFade = React.useMemo(
+    () => toRgba(themeColor, isDark ? 0.35 : 0.7),
+    [themeColor, isDark, toRgba],
+  );
 
   const [activeProject, setActiveProject] = React.useState<string | null>(null);
   const [activeSkill, setActiveSkill] = React.useState<string | null>(null);
@@ -234,17 +238,19 @@ export default function CapabilityMatrix() {
           <div className="flex items-center gap-3 mb-4">
             <span className="w-10 h-[2px]" style={{ backgroundColor: themeColor }} />
             <span className="font-terminal text-[11px] tracking-[0.45em] uppercase text-slate-500">
-              System Modules
+              Projects // Skill Mesh
             </span>
           </div>
           <h2
-            className="font-black tracking-tight leading-[0.95]"
-            style={{ fontSize: 'clamp(2.2rem, 6vw, 4.5rem)' }}
+            className={`font-black tracking-tighter leading-[0.95] ${
+              isDark ? 'text-white' : 'text-slate-900'
+            }`}
+            style={{ fontSize: 'clamp(2.25rem, 6.5vw, 4.75rem)' }}
           >
-            <span className="text-white">Signal</span>{' '}
+            <span>Signal</span>{' '}
             <span
               className="text-transparent bg-clip-text"
-              style={{ backgroundImage: `linear-gradient(90deg, ${themeColor}, #e7fff2)` }}
+              style={{ backgroundImage: `linear-gradient(90deg, ${themeColor}, ${themeFade})` }}
             >
               Map
             </span>
@@ -254,11 +260,7 @@ export default function CapabilityMatrix() {
 
       <div className="mt-10 relative overflow-hidden">
         <div className="relative z-10">
-          <div className="flex items-center justify-between">
-            <div className="text-white/70 text-[11px] md:text-xs font-mono uppercase tracking-[0.28em]">
-              Projects // Skill Mesh
-            </div>
-          </div>
+          <div className="flex items-center justify-between" />
 
           <div
             ref={graphRef}
@@ -289,10 +291,20 @@ export default function CapabilityMatrix() {
               backgroundColor: 'transparent',
             }}
           >
-            <div className="absolute right-6 top-6 flex items-center gap-2 rounded-full border border-white/10 bg-black/60 px-3 py-1 text-xs text-slate-300">
+            <div
+              className={`absolute right-6 top-6 flex items-center gap-2 rounded-full px-3 py-1 text-xs ${
+                isDark
+                  ? 'border border-white/10 bg-black/60 text-slate-300'
+                  : 'border border-black/10 bg-white/80 text-slate-600'
+              }`}
+            >
               <button
                 type="button"
-                className="h-7 w-7 rounded-full border border-white/10 flex items-center justify-center hover:text-white"
+                className={`h-7 w-7 rounded-full flex items-center justify-center ${
+                  isDark
+                    ? 'border border-white/10 hover:text-white'
+                    : 'border border-black/10 hover:text-slate-900'
+                }`}
                 onClick={() =>
                   setTransform((prev) => ({ ...prev, scale: Math.min(2.6, prev.scale + 0.1) }))
                 }
@@ -301,7 +313,11 @@ export default function CapabilityMatrix() {
               </button>
               <button
                 type="button"
-                className="h-7 w-7 rounded-full border border-white/10 flex items-center justify-center hover:text-white"
+                className={`h-7 w-7 rounded-full flex items-center justify-center ${
+                  isDark
+                    ? 'border border-white/10 hover:text-white'
+                    : 'border border-black/10 hover:text-slate-900'
+                }`}
                 onClick={() =>
                   setTransform((prev) => ({ ...prev, scale: Math.max(0.6, prev.scale - 0.1) }))
                 }
@@ -324,12 +340,12 @@ export default function CapabilityMatrix() {
               >
                 <defs>
                   <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor={toRgba(themeColor, 0.15)} />
-                    <stop offset="50%" stopColor={toRgba(themeColor, 0.6)} />
-                    <stop offset="100%" stopColor={toRgba(themeColor, 0.2)} />
+                    <stop offset="0%" stopColor={toRgba(themeColor, isDark ? 0.15 : 0.25)} />
+                    <stop offset="50%" stopColor={toRgba(themeColor, isDark ? 0.6 : 0.85)} />
+                    <stop offset="100%" stopColor={toRgba(themeColor, isDark ? 0.2 : 0.35)} />
                   </linearGradient>
                   <filter id="nodeGlow">
-                    <feGaussianBlur stdDeviation="6" result="coloredBlur" />
+                    <feGaussianBlur stdDeviation={isDark ? 6 : 4} result="coloredBlur" />
                     <feMerge>
                       <feMergeNode in="coloredBlur" />
                       <feMergeNode in="SourceGraphic" />
@@ -358,9 +374,9 @@ export default function CapabilityMatrix() {
                     <motion.path
                       key={`${edge.from}-${edge.to}`}
                       d={`M ${a.x} ${a.y} C ${c1x} ${c1y} ${c2x} ${c2y} ${b.x} ${b.y}`}
-                      stroke={active ? 'url(#edgeGradient)' : toRgba(themeColor, 0.12)}
-                      strokeOpacity={active ? 0.8 : 0.22}
-                      strokeWidth={active ? 1.8 : 0.9}
+                      stroke={active ? 'url(#edgeGradient)' : toRgba(themeColor, isDark ? 0.12 : 0.2)}
+                      strokeOpacity={active ? (isDark ? 0.8 : 0.55) : isDark ? 0.22 : 0.18}
+                      strokeWidth={active ? (isDark ? 1.8 : 1.6) : isDark ? 0.9 : 0.8}
                       fill="none"
                       initial={{ pathLength: 0 }}
                       animate={{ pathLength: 1 }}
@@ -414,8 +430,16 @@ export default function CapabilityMatrix() {
                         cx={node.x}
                         cy={node.y}
                         r={radius}
-                        fill={isProject ? toRgba(themeColor, 0.18) : toRgba(themeColor, 0.06)}
-                        stroke={isProject ? themeColor : toRgba(themeColor, 0.25)}
+                        fill={
+                          isProject
+                            ? toRgba(themeColor, isDark ? 0.18 : 0.14)
+                            : toRgba(themeColor, isDark ? 0.06 : 0.08)
+                        }
+                        stroke={
+                          isProject
+                            ? toRgba(themeColor, isDark ? 1 : 0.9)
+                            : toRgba(themeColor, isDark ? 0.25 : 0.45)
+                        }
                         strokeWidth={isProject ? 1.6 : 1}
                         filter={isProject ? 'url(#nodeGlow)' : undefined}
                       />
@@ -425,15 +449,21 @@ export default function CapabilityMatrix() {
                         textAnchor="middle"
                         fill={
                           isProject
-                            ? '#ffffff'
-                            : isHighlightedSkill
+                            ? isDark
                               ? '#ffffff'
-                              : toRgba(themeColor, 0.65)
+                              : '#0f172a'
+                            : isHighlightedSkill
+                              ? isDark
+                                ? '#ffffff'
+                                : '#0f172a'
+                              : toRgba(themeColor, isDark ? 0.65 : 0.55)
                         }
                         fontSize={isProject ? 12.5 : isHighlightedSkill ? 12.5 : 11}
                         fontWeight={isProject ? 600 : isHighlightedSkill ? 600 : 500}
                         style={{
-                          textShadow: '0 0 18px rgba(0,0,0,0.7)',
+                          textShadow: isDark
+                            ? '0 0 18px rgba(0,0,0,0.7)'
+                            : '0 0 12px rgba(255,255,255,0.8)',
                           opacity: isHighlightedSkill ? 1 : labelVisibility,
                         }}
                       >

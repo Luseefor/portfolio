@@ -5,6 +5,7 @@ import OverscrollPreventer from './OverscrollPreventer';
 
 const TechCursor = dynamic(() => import('./TechCursor'), { ssr: false });
 const AIAgent = dynamic(() => import('@/components/ai-agent/AIAgent'), { ssr: false });
+const FloatingAIBlob = dynamic(() => import('./FloatingAIBlob'), { ssr: false });
 
 import { useEffect } from 'react';
 
@@ -22,6 +23,7 @@ export default function GlobalEffects() {
       <OverscrollPreventer />
       <TechCursor />
       <AIAgent />
+      <FloatingAIBlob />
     </>
   );
 }

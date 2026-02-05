@@ -6,7 +6,7 @@ import { ArrowUpRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { PORTFOLIO_CONTENT } from './portfolio-template';
 import { useStore } from '@/utils/store';
-import { getThemeColor } from '@/utils/themes';
+import { getThemeColor, hexToRgba } from '@/utils/themes';
 
 const FuturisticCard = dynamic(() => import('./FuturisticCard'), { ssr: false });
 const ProjectDetailsModal = dynamic(() => import('./ProjectDetailsModal'), { ssr: false });
@@ -17,6 +17,7 @@ export default function ProjectsSection() {
     () => getThemeColor(currentTheme, isDark),
     [currentTheme, isDark],
   );
+  const themeFade = hexToRgba(themeColor, isDark ? 0.35 : 0.65);
   const [selectedProject, setSelectedProject] = useState<any>(null);
 
   return (
@@ -26,6 +27,7 @@ export default function ProjectsSection() {
         onClose={() => setSelectedProject(null)}
         project={selectedProject}
         themeColor={themeColor}
+        isDark={isDark}
       />
 
       <div className="flex flex-col md:flex-row items-end justify-between mb-20 gap-8">
@@ -36,18 +38,25 @@ export default function ProjectsSection() {
         >
           <div className="flex items-center gap-4 mb-4">
             <div className="h-[2px] w-12" style={{ backgroundColor: themeColor }} />
-            <span className="text-sm font-mono uppercase tracking-widest text-slate-400">
+            <span className="text-[11px] font-mono uppercase tracking-[0.45em] text-slate-500">
               Selected Works
             </span>
           </div>
-          <h2
-            className="font-black text-white tracking-tighter leading-tight"
-            style={{ fontSize: 'clamp(2.25rem, 8vw, 5.5rem)' }}
-          >
-            Impact & <br />
+        <h2
+          className={`font-black tracking-tighter leading-[0.95] ${
+            isDark ? 'text-white' : 'text-slate-900'
+          }`}
+          style={{ fontSize: 'clamp(2.25rem, 6.5vw, 4.75rem)' }}
+        >
+            <span style={{ textShadow: `0 0 30px ${hexToRgba(themeColor, 0.25)}` }}>
+              Impact
+            </span>{' '}
+            & <br />
             <span
               className="text-transparent bg-clip-text"
-              style={{ backgroundImage: `linear-gradient(to right, ${themeColor}, white)` }}
+              style={{
+                backgroundImage: `linear-gradient(90deg, ${themeColor}, ${themeFade})`,
+              }}
             >
               Engineering
             </span>
@@ -64,10 +73,19 @@ export default function ProjectsSection() {
               whileHover={{ y: -5 }}
               transition={{ duration: 0.3 }}
               onClick={() => setSelectedProject(project)}
-              className="group relative bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all cursor-pointer overflow-hidden"
+              className={`group relative rounded-2xl p-8 transition-all cursor-pointer overflow-hidden ${
+                isDark
+                  ? 'bg-[#0a0a0a] border border-white/10 hover:border-white/20'
+                  : 'bg-white/90 border border-black/10 hover:border-black/20'
+              }`}
+              style={
+                {
+                  '--theme-color': themeColor,
+                } as React.CSSProperties
+              }
             >
               <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                <ArrowUpRight className="text-white" size={24} />
+                <ArrowUpRight className={isDark ? 'text-white' : 'text-slate-900'} size={24} />
               </div>
 
               <div
@@ -77,17 +95,31 @@ export default function ProjectsSection() {
 
               <div className="h-full flex flex-col justify-between">
                 <div>
-                  <h3 className="text-3xl font-bold text-white mb-4 group-hover:text-cyan-400 transition-colors">
+                  <h3
+                    className={`text-3xl font-bold mb-4 group-hover:text-[var(--theme-color)] transition-colors ${
+                      isDark ? 'text-white' : 'text-slate-900'
+                    }`}
+                  >
                     {project.title}
                   </h3>
-                  <p className="text-slate-200 text-base leading-relaxed mb-8 font-light">{project.desc}</p>
+                  <p
+                    className={`text-base leading-relaxed mb-8 font-light ${
+                      isDark ? 'text-slate-200' : 'text-slate-600'
+                    }`}
+                  >
+                    {project.desc}
+                  </p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   {project.stack.map((tech, j) => (
                     <span
                       key={j}
-                      className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded border border-white/5 text-slate-500 group-hover:border-white/10 group-hover:text-slate-300 transition-colors"
+                      className={`text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded border transition-colors ${
+                        isDark
+                          ? 'border-white/5 text-slate-500 group-hover:border-white/10 group-hover:text-slate-300'
+                          : 'border-black/10 text-slate-500 group-hover:border-black/20 group-hover:text-slate-700'
+                      }`}
                     >
                       {tech}
                     </span>

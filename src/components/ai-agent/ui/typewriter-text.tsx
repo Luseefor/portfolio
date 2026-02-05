@@ -45,7 +45,7 @@ export default function TypewriterText({
         <motion.span
           animate={{ opacity: [1, 0] }}
           transition={{ duration: 0.5, repeat: Infinity }}
-          className="inline-block h-3 w-1.5 translate-y-[2px] bg-emerald-500"
+          className="inline-block h-3 w-1.5 translate-y-[2px] bg-[var(--ai-accent)]"
         />
       )}
     </span>
