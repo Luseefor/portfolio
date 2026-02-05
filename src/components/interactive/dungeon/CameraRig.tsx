@@ -92,7 +92,7 @@ export default function CameraRig({
         { x: rayDirection.x, y: rayDirection.y, z: rayDirection.z },
       );
       const hit = world.castRay(ray, rayDistance, true);
-      if (hit) {
+      if (hit && (hit as any).toi > 0.15) {
         const safeDistance = Math.max(
           CAMERA_COLLISION.minCameraDistance,
           (hit as any).toi - CAMERA_COLLISION.minDistanceFromWall,

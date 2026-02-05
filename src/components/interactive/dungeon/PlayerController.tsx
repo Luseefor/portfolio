@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
-import { MathUtils, Vector3, type PositionalAudio as PositionalAudioImpl } from 'three';
-import { PositionalAudio } from '@react-three/drei';
+import { Vector3 } from 'three';
 import PlayerCharacter from './PlayerCharacter';
+import { useDungeonInput } from '@/lib/dungeonInput';
 
 const WALK_SPEED = 2.6;
 const RUN_SPEED = 4.4;
@@ -43,7 +43,9 @@ export default function PlayerController({
     run: false,
     jump: false,
   });
-  const footstepRefs = useRef<PositionalAudioImpl[]>([]);
+  const footstepAudio = useRef<HTMLAudioElement[]>([]);
+  const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
+  const mouseDown = useDungeonInput((state) => state.mouseDown);
   const stepTimer = useRef(0);
 
   useEffect(() => {
@@ -98,6 +100,16 @@ export default function PlayerController({
     };
   }, []);
 
+  useEffect(() => {
+    if (footstepAudio.current.length === 0) {
+      footstepAudio.current = FOOTSTEP_URLS.map((url) => {
+        const audio = new Audio(url);
+        audio.volume = 0.35;
+        return audio;
+      });
+    }
+  }, []);
+
   useFrame((_, delta) => {
     const body = rigidBodyRef.current;
     if (!body) return;
@@ -149,15 +161,15 @@ export default function PlayerController({
     body.setLinvel({ x: nextX, y: nextY, z: nextZ }, true);
 
     // Footsteps
-    if (grounded && hasInput) {
+    if (grounded && hasInput && (isPointerLocked || mouseDown)) {
       stepTimer.current -= delta;
       if (stepTimer.current <= 0) {
         stepTimer.current = inputRef.current.run ? 0.32 : 0.48;
-        const idx = Math.floor(Math.random() * footstepRefs.current.length);
-        const clip = footstepRefs.current[idx];
-        if (clip && !clip.isPlaying) {
-          clip.setDetune(MathUtils.randFloat(-60, 60));
-          clip.play();
+        const idx = Math.floor(Math.random() * footstepAudio.current.length);
+        const clip = footstepAudio.current[idx];
+        if (clip) {
+          clip.currentTime = 0;
+          clip.play().catch(() => {});
         }
       }
     }
@@ -176,17 +188,6 @@ export default function PlayerController({
       <CapsuleCollider args={[0.8, 0.35]} position={[0, 1.1, 0]} />
       <group>
         <PlayerCharacter />
-        {FOOTSTEP_URLS.map((url, i) => (
-          <PositionalAudio
-            key={url}
-            ref={(el) => {
-              if (el) footstepRefs.current[i] = el;
-            }}
-            url={url}
-            distance={6}
-            loop={false}
-          />
-        ))}
       </group>
     </RigidBody>
   );
