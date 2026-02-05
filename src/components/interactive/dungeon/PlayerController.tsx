@@ -37,6 +37,14 @@ export default function PlayerController({
   const { rapier, world } = useRapier();
 
   const keys = useDungeonInput((state) => state.keys);
+  const inputRef = useRef({
+    forward: false,
+    backward: false,
+    left: false,
+    right: false,
+    run: false,
+    jump: false,
+  });
   const footstepAudio = useRef<HTMLAudioElement[]>([]);
   const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
   const mouseDown = useDungeonInput((state) => state.mouseDown);
@@ -77,16 +85,23 @@ export default function PlayerController({
     right.copy(forward).cross(up).normalize().multiplyScalar(-1);
 
     moveDir.set(0, 0, 0);
-    if (keys.forward) moveDir.add(forward);
-    if (keys.backward) moveDir.sub(forward);
-    if (keys.left) moveDir.sub(right);
-    if (keys.right) moveDir.add(right);
+    const forwardPressed = keys.forward || inputRef.current.forward;
+    const backwardPressed = keys.backward || inputRef.current.backward;
+    const leftPressed = keys.left || inputRef.current.left;
+    const rightPressed = keys.right || inputRef.current.right;
+    const runPressed = keys.run || inputRef.current.run;
+    const jumpPressed = keys.jump || inputRef.current.jump;
+
+    if (forwardPressed) moveDir.add(forward);
+    if (backwardPressed) moveDir.sub(forward);
+    if (leftPressed) moveDir.sub(right);
+    if (rightPressed) moveDir.add(right);
 
     const hasInput = moveDir.lengthSq() > 0.001;
-    if (hasInput || keys.jump) {
+    if (hasInput || jumpPressed) {
       body.wakeUp();
     }
-    const targetSpeed = keys.run ? RUN_SPEED : WALK_SPEED;
+    const targetSpeed = runPressed ? RUN_SPEED : WALK_SPEED;
 
     let targetX = 0;
     let targetZ = 0;
@@ -100,7 +115,7 @@ export default function PlayerController({
     const nextX = moveToward(linvel.x, targetX, accel * delta);
     const nextZ = moveToward(linvel.z, targetZ, accel * delta);
     let nextY = linvel.y;
-    const wantsJump = keys.jump && grounded;
+    const wantsJump = jumpPressed && grounded;
     if (wantsJump) {
       nextY = JUMP_SPEED;
     } else if (!grounded) {
@@ -110,12 +125,18 @@ export default function PlayerController({
     }
 
     body.setLinvel({ x: nextX, y: nextY, z: nextZ }, true);
+    if (hasInput) {
+      body.setTranslation(
+        { x: position.x + moveDir.x * delta, y: position.y, z: position.z + moveDir.z * delta },
+        true,
+      );
+    }
 
     // Footsteps
     if (grounded && hasInput && (isPointerLocked || mouseDown)) {
       stepTimer.current -= delta;
       if (stepTimer.current <= 0) {
-        stepTimer.current = keys.run ? 0.32 : 0.48;
+        stepTimer.current = runPressed ? 0.32 : 0.48;
         const idx = Math.floor(Math.random() * footstepAudio.current.length);
         const clip = footstepAudio.current[idx];
         if (clip) {
@@ -157,3 +178,54 @@ function moveToward(current: number, target: number, maxDelta: number) {
   if (Math.abs(target - current) <= maxDelta) return target;
   return current + Math.sign(target - current) * maxDelta;
 }
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent, pressed: boolean) => {
+      switch (event.code) {
+        case 'KeyW':
+        case 'ArrowUp':
+          inputRef.current.forward = pressed;
+          break;
+        case 'KeyS':
+        case 'ArrowDown':
+          inputRef.current.backward = pressed;
+          break;
+        case 'KeyA':
+        case 'ArrowLeft':
+          inputRef.current.left = pressed;
+          break;
+        case 'KeyD':
+        case 'ArrowRight':
+          inputRef.current.right = pressed;
+          break;
+        case 'ShiftLeft':
+        case 'ShiftRight':
+          inputRef.current.run = pressed;
+          break;
+        case 'Space':
+          inputRef.current.jump = pressed;
+          break;
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => handleKey(e, true);
+    const onKeyUp = (e: KeyboardEvent) => handleKey(e, false);
+    const onBlur = () => {
+      inputRef.current = {
+        forward: false,
+        backward: false,
+        left: false,
+        right: false,
+        run: false,
+        jump: false,
+      };
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
