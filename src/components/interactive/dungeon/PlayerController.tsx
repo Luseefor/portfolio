@@ -64,11 +64,7 @@ export default function PlayerController({
         audio.volume = 0.35;
       });
     }
-    if (!jumpAudioRef.current) {
-      jumpAudioRef.current = new Audio('/sounds/player/jump.wav');
-      jumpAudioRef.current.preload = 'auto';
-      jumpAudioRef.current.volume = 0.5;
-    }
+    jumpAudioRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -186,11 +182,6 @@ export default function PlayerController({
     let nextY = linvel.y - GRAVITY * delta;
     if (canJump) {
       nextY = JUMP_SPEED;
-      if (jumpAudioRef.current) {
-        jumpAudioRef.current.currentTime = 0;
-        jumpAudioRef.current.playbackRate = 1;
-        jumpAudioRef.current.play().catch(() => {});
-      }
       if (forwardPressed) {
         rollTimer.current = 0.6;
         const rollBoost = runPressed ? 3.2 : 2.4;
