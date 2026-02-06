@@ -62,7 +62,7 @@ const FLOOR_NODES = [
   'Floor_Tree',
 ] as const;
 
-const SHOW_FLOOR_GRID = process.env.NODE_ENV !== 'production';
+const SHOW_FLOOR_GRID = true;
 
 function buildWallSegments(
   id: string,
@@ -286,13 +286,21 @@ export default function DungeonWorld() {
       ))}
 
       {SHOW_FLOOR_GRID ? (
-        <group position={[-30, 0.02, -30]}>
+        <group position={[0, 0.02, -18]}>
           {FLOOR_NODES.map((name, index) => {
             const node = nodes?.[name];
             if (!node) return null;
             const x = (index % 4) * 8;
             const z = Math.floor(index / 4) * 8;
-            return <primitive key={`floor-grid-${name}`} object={node.clone(true)} position={[x, 0, z]} />;
+            return (
+              <group key={`floor-grid-${name}`} position={[x, 0, z]}>
+                <mesh position={[0, -0.01, 0]} receiveShadow>
+                  <boxGeometry args={[6, 0.1, 6]} />
+                  <meshStandardMaterial color="#3a3a3a" />
+                </mesh>
+                <primitive object={node.clone(true)} />
+              </group>
+            );
           })}
         </group>
       ) : null}
