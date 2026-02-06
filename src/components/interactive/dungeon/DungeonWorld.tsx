@@ -313,10 +313,12 @@ export default function DungeonWorld() {
       const tiles: { id: string; name: string; position: Vec3 }[] = [];
       const gxCount = Math.ceil(size.w / step);
       const gzCount = Math.ceil(size.d / step);
+      const startX = -halfW + step / 2;
+      const startZ = -halfD + step / 2;
       for (let gx = 0; gx < gxCount; gx += 1) {
         for (let gz = 0; gz < gzCount; gz += 1) {
-          const x = -halfW + step / 2 + gx * step;
-          const z = -halfD + step / 2 + gz * step;
+          const x = startX + gx * step;
+          const z = startZ + gz * step;
           tiles.push({
             id: `${center[0]}-${center[2]}-${gx}-${gz}`,
             name: pickTile(gx, gz),
@@ -385,12 +387,9 @@ export default function DungeonWorld() {
             const node = nodes?.[tile.name];
             if (!node) return null;
             const placed = node.clone(true);
-            placed.position.set(
-              tile.position[0] - (node.position?.x || 0),
-              tile.position[1] - (node.position?.y || 0),
-              tile.position[2] - (node.position?.z || 0),
-            );
+            placed.position.set(tile.position[0], tile.position[1], tile.position[2]);
             placed.rotation.set(-Math.PI / 2, 0, 0);
+            placed.updateMatrixWorld(true);
             return <primitive key={`tile-${tile.id}`} object={placed} />;
           })
         : null}
