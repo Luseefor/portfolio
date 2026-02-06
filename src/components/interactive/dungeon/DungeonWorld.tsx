@@ -251,7 +251,7 @@ export default function DungeonWorld() {
 
     const baseSize = getSize('Floor_SquareLarge');
     const baseTile = Math.max(3, Math.max(baseSize.x || 4, baseSize.z || 4));
-    const tile = baseTile;
+    const tile = Math.max(baseTile, 6);
 
     const weightedTiles = [
       'Floor_Standard',
