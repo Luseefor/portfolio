@@ -240,17 +240,37 @@ export default function DungeonWorld() {
       return null;
     };
 
-    const getSize = (name: string) => {
+    const bakedCache = new Map<
+      string,
+      { geometry: any; size: { x: number; y: number; z: number }; material: any }
+    >();
+
+    const bakeMesh = (name: string) => {
+      if (bakedCache.has(name)) return bakedCache.get(name)!;
       const mesh = resolveMesh(name);
-      if (!mesh) return { x: 4, y: 0.2, z: 4 };
-      const box = new Box3().setFromObject(mesh);
-      const size = new Vector3();
-      box.getSize(size);
-      return size;
+      if (!mesh?.geometry) {
+        const fallback = { geometry: null, size: { x: 4, y: 0.2, z: 4 }, material: null };
+        bakedCache.set(name, fallback);
+        return fallback;
+      }
+      mesh.updateMatrix();
+      const baked = mesh.geometry.clone();
+      baked.applyMatrix4(mesh.matrix);
+      baked.computeBoundingBox();
+      const box = baked.boundingBox || new Box3();
+      const sizeVec = new Vector3();
+      box.getSize(sizeVec);
+      const entry = {
+        geometry: baked,
+        size: { x: sizeVec.x || 4, y: sizeVec.y || 0.2, z: sizeVec.z || 4 },
+        material: mesh.material,
+      };
+      bakedCache.set(name, entry);
+      return entry;
     };
 
-    const baseSize = getSize('Floor_SquareLarge');
-    const baseTile = Math.max(3, Math.max(baseSize.x || 4, baseSize.z || 4));
+    const base = bakeMesh('Floor_SquareLarge');
+    const baseTile = Math.max(3, Math.max(base.size.x || 4, base.size.z || 4));
     const tile = Math.max(baseTile, 6);
 
     const weightedTiles = [
@@ -295,19 +315,18 @@ export default function DungeonWorld() {
       for (let x = -halfW + step / 2; x <= halfW - step / 2 + 0.001; x += step) {
         for (let z = -halfD + step / 2; z <= halfD - step / 2 + 0.001; z += step) {
           const name = pickTile(Math.round(x), Math.round(z));
-          const mesh = resolveMesh(name);
-          if (!mesh?.geometry) continue;
-          const dims = getSize(name);
-          const scaleX = tile / Math.max(0.001, dims.x);
-          const scaleZ = tile / Math.max(0.001, dims.z);
+          const baked = bakeMesh(name);
+          if (!baked.geometry) continue;
+          const scaleX = tile / Math.max(0.001, baked.size.x);
+          const scaleZ = tile / Math.max(0.001, baked.size.z);
           tiles.push({
             id: `${name}-${cx + x}-${cz + z}`,
             name,
             position: [cx + x, cy + 0.03, cz + z],
             scale: [scaleX, 1, scaleZ],
-            rotation: mesh.quaternion.clone(),
-            geometry: mesh.geometry,
-            material: mesh.material,
+            rotation: new Quaternion(),
+            geometry: baked.geometry,
+            material: baked.material,
           });
         }
       }
