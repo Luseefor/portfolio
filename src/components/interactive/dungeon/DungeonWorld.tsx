@@ -20,10 +20,10 @@ type RoomSpec = {
   openings?: WallOpening;
 };
 
-const WALL_HEIGHT = 4.2;
-const WALL_THICKNESS = 0.4;
-const FLOOR_THICKNESS = 0.35;
-const DOOR_WIDTH = 3.2;
+const WALL_HEIGHT = 6.5;
+const WALL_THICKNESS = 0.6;
+const FLOOR_THICKNESS = 0.4;
+const DOOR_WIDTH = 4.6;
 
 type BoxPiece = {
   id: string;
@@ -199,46 +199,38 @@ export default function DungeonWorld() {
       {
         id: 'room-a',
         center: [0, 0, 0],
-        size: { w: 12, d: 12 },
+        size: { w: 26, d: 26 },
         openings: { north: true },
       },
       {
         id: 'room-b',
-        center: [0, 0, 18],
-        size: { w: 12, d: 12 },
+        center: [0, 0, 32],
+        size: { w: 26, d: 26 },
         openings: { south: true, east: true, west: true },
       },
       {
         id: 'room-c',
-        center: [18, 0, 18],
-        size: { w: 12, d: 12 },
+        center: [32, 0, 32],
+        size: { w: 26, d: 26 },
         openings: { west: true },
       },
       {
         id: 'room-hidden',
-        center: [-18, 0, 18],
-        size: { w: 12, d: 12 },
+        center: [-32, 0, 32],
+        size: { w: 26, d: 26 },
         openings: { east: true },
       },
     ];
 
-    const corridorA = buildCorridor('corridor-a', [0, 0, 9], 6, 4, 'z');
-    const corridorC = buildCorridor('corridor-c', [9, 0, 18], 6, 4, 'x');
-    const corridorHidden = buildCorridor('corridor-hidden', [-9, 0, 18], 6, 4, 'x');
-
-    const hiddenGapFiller: BoxPiece = {
-      id: 'hidden-gap-filler',
-      size: [4, FLOOR_THICKNESS, 4],
-      position: [-12, -FLOOR_THICKNESS / 2, 18],
-      material: floorMaterial,
-    };
+    const corridorA = buildCorridor('corridor-a', [0, 0, 16], 6, 6, 'z');
+    const corridorC = buildCorridor('corridor-c', [16, 0, 32], 6, 6, 'x');
+    const corridorHidden = buildCorridor('corridor-hidden', [-16, 0, 32], 6, 6, 'x');
 
     return [
       ...rooms.flatMap(buildRoom),
       ...corridorA,
       ...corridorC,
       ...corridorHidden,
-      hiddenGapFiller,
     ];
   }, []);
 
@@ -264,12 +256,12 @@ export default function DungeonWorld() {
             position={piece.position}
           />
         ))}
-        <CuboidCollider args={[80, 1, 80]} position={[0, -4, 0]} />
+        <CuboidCollider args={[120, 1, 120]} position={[0, -4, 0]} />
         {/* Outer bounds to keep camera/player inside */}
-        <CuboidCollider args={[1, 6, 50]} position={[40, 2, 0]} />
-        <CuboidCollider args={[1, 6, 50]} position={[-40, 2, 0]} />
-        <CuboidCollider args={[50, 6, 1]} position={[0, 2, 40]} />
-        <CuboidCollider args={[50, 6, 1]} position={[0, 2, -40]} />
+        <CuboidCollider args={[1, 8, 70]} position={[55, 3, 0]} />
+        <CuboidCollider args={[1, 8, 70]} position={[-55, 3, 0]} />
+        <CuboidCollider args={[70, 8, 1]} position={[0, 3, 55]} />
+        <CuboidCollider args={[70, 8, 1]} position={[0, 3, -55]} />
       </RigidBody>
     </group>
   );
