@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useMemo } from 'react';
-import { Box3, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
+import { Box3, Matrix4, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { useGLTF } from '@react-three/drei';
 
@@ -253,16 +253,27 @@ export default function DungeonWorld() {
         bakedCache.set(name, fallback);
         return fallback;
       }
-      mesh.updateMatrix();
       const baked = mesh.geometry.clone();
-      baked.applyMatrix4(mesh.matrix);
+      const bakedMatrix = new Matrix4().compose(
+        new Vector3(0, 0, 0),
+        mesh.quaternion || new Quaternion(),
+        mesh.scale || new Vector3(1, 1, 1),
+      );
+      baked.applyMatrix4(bakedMatrix);
       baked.computeBoundingBox();
       const box = baked.boundingBox || new Box3();
       const sizeVec = new Vector3();
       box.getSize(sizeVec);
+      const center = new Vector3();
+      box.getCenter(center);
+      // Recenter so tiles place cleanly on grid and sit on y=0
+      baked.translate(-center.x, -box.min.y, -center.z);
+      baked.computeBoundingBox();
+      const finalSize = new Vector3();
+      baked.boundingBox?.getSize(finalSize);
       const entry = {
         geometry: baked,
-        size: { x: sizeVec.x || 4, y: sizeVec.y || 0.2, z: sizeVec.z || 4 },
+        size: { x: finalSize.x || sizeVec.x || 4, y: finalSize.y || sizeVec.y || 0.2, z: finalSize.z || sizeVec.z || 4 },
         material: mesh.material,
       };
       bakedCache.set(name, entry);
