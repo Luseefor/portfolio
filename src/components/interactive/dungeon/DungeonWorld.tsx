@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useMemo } from 'react';
-import { MeshStandardMaterial } from 'three';
+import { Box3, MeshStandardMaterial, Vector3 } from 'three';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { useGLTF } from '@react-three/drei';
 
@@ -51,18 +51,15 @@ const ceilingMaterial = new MeshStandardMaterial({
   metalness: 0.02,
 });
 
-const FLOOR_NODES = [
-  'Floor_Diamond',
-  'Floor_Hole_Corner',
-  'Floor_Hole_Straight',
-  'Floor_SquareLarge',
-  'Floor_Squares',
-  'Floor_Standard',
-  'Floor_Standard_Half',
-  'Floor_Tree',
-] as const;
+const FLOOR_NODES = ['Floor_Diamond', 'Floor_Squares', 'Floor_Hole_Straight'] as const;
 
-const SHOW_FLOOR_GRID = true;
+const SHOW_FLOOR_GRID = false;
+const FLOOR_OVERLAY = true;
+const FLOOR_TILES = {
+  primary: 'Floor_Squares',
+  accent: 'Floor_Diamond',
+  broken: 'Floor_Hole_Straight',
+} as const;
 
 function buildWallSegments(
   id: string,
@@ -270,6 +267,72 @@ export default function DungeonWorld() {
     ];
   }, []);
 
+  const floorPattern = useMemo(() => {
+    if (!nodes || !FLOOR_OVERLAY) return [];
+
+    const resolveNode = (name: string) => nodes?.[name] ?? null;
+
+    const getTileSize = (node: any) => {
+      const clone = node.clone(true);
+      clone.position.set(0, 0, 0);
+      clone.rotation.set(0, 0, 0);
+      clone.updateMatrixWorld(true);
+      const box = new Box3().setFromObject(clone);
+      const size = new Vector3();
+      box.getSize(size);
+      return size;
+    };
+
+    const baseNode = resolveNode(FLOOR_TILES.primary);
+    if (!baseNode) return [];
+    const baseSize = getTileSize(baseNode);
+    const step = Math.max(3, Math.min(baseSize.x || 4, baseSize.z || 4));
+
+    const pickTile = (gx: number, gz: number) => {
+      if ((gx + gz) % 2 === 0) return FLOOR_TILES.accent;
+      if ((gx * 7 + gz * 11) % 13 === 0) return FLOOR_TILES.broken;
+      return FLOOR_TILES.primary;
+    };
+
+    const buildArea = (center: Vec3, size: { w: number; d: number }) => {
+      const [cx, cy, cz] = center;
+      const halfW = size.w / 2;
+      const halfD = size.d / 2;
+      const tiles: { id: string; name: string; position: Vec3 }[] = [];
+      const gxCount = Math.floor(size.w / step);
+      const gzCount = Math.floor(size.d / step);
+      for (let gx = 0; gx < gxCount; gx += 1) {
+        for (let gz = 0; gz < gzCount; gz += 1) {
+          const x = -halfW + step / 2 + gx * step;
+          const z = -halfD + step / 2 + gz * step;
+          tiles.push({
+            id: `${center[0]}-${center[2]}-${gx}-${gz}`,
+            name: pickTile(gx, gz),
+            position: [cx + x, cy + 0.02, cz + z],
+          });
+        }
+      }
+      return tiles;
+    };
+
+    const rooms: RoomSpec[] = [
+      { id: 'room-a', center: [0, 0, 0], size: { w: 40, d: 40 }, openings: { north: true } },
+      { id: 'room-b', center: [0, 0, 52], size: { w: 40, d: 40 }, openings: { south: true, east: true, west: true } },
+      { id: 'room-c', center: [52, 0, 52], size: { w: 40, d: 40 }, openings: { west: true } },
+      { id: 'room-hidden', center: [-52, 0, 52], size: { w: 40, d: 40 }, openings: { east: true } },
+    ];
+    const corridors = [
+      { center: [0, 0, 26] as Vec3, size: { w: 6, d: 12 } },
+      { center: [26, 0, 52] as Vec3, size: { w: 12, d: 6 } },
+      { center: [-26, 0, 52] as Vec3, size: { w: 12, d: 6 } },
+    ];
+
+    return [
+      ...rooms.flatMap((room) => buildArea(room.center, room.size)),
+      ...corridors.flatMap((corr) => buildArea(corr.center, corr.size)),
+    ];
+  }, [nodes]);
+
   return (
     <group name="dungeon-world">
       {pieces.map((piece) => (
@@ -304,6 +367,21 @@ export default function DungeonWorld() {
           })}
         </group>
       ) : null}
+
+      {FLOOR_OVERLAY
+        ? floorPattern.map((tile) => {
+            const node = nodes?.[tile.name];
+            if (!node) return null;
+            const placed = node.clone(true);
+            placed.position.set(
+              tile.position[0] - (node.position?.x || 0),
+              tile.position[1] - (node.position?.y || 0),
+              tile.position[2] - (node.position?.z || 0),
+            );
+            placed.rotation.set(0, 0, 0);
+            return <primitive key={`tile-${tile.id}`} object={placed} />;
+          })
+        : null}
 
       <RigidBody type="fixed" colliders={false} name="dungeon-colliders">
         {pieces.map((piece) => (
