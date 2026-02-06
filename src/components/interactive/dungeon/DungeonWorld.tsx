@@ -1,8 +1,9 @@
 'use client';
 
 import { Fragment, useMemo } from 'react';
-import { MeshStandardMaterial } from 'three';
+import { Box3, MeshStandardMaterial, Vector3 } from 'three';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
+import { useGLTF } from '@react-three/drei';
 
 type Vec3 = [number, number, number];
 
@@ -31,6 +32,7 @@ type BoxPiece = {
   size: Vec3;
   position: Vec3;
   material: MeshStandardMaterial;
+  visible?: boolean;
 };
 
 const floorMaterial = new MeshStandardMaterial({
@@ -48,6 +50,17 @@ const ceilingMaterial = new MeshStandardMaterial({
   roughness: 0.98,
   metalness: 0.02,
 });
+
+const FLOOR_NODES = [
+  'Floor_Diamond',
+  'Floor_Hole_Corner',
+  'Floor_Hole_Straight',
+  'Floor_SquareLarge',
+  'Floor_Squares',
+  'Floor_Standard',
+  'Floor_Standard_Half',
+  'Floor_Tree',
+] as const;
 
 function buildWallSegments(
   id: string,
@@ -136,6 +149,7 @@ function buildRoom(spec: RoomSpec): BoxPiece[] {
       size: [size.w, FLOOR_THICKNESS, size.d],
       position: [cx, cy - FLOOR_THICKNESS / 2, cz],
       material: floorMaterial,
+      visible: false,
     },
     {
       id: `${id}-ceiling`,
@@ -164,6 +178,7 @@ function buildCorridor(id: string, center: Vec3, length: number, width: number, 
     size,
     position: [cx, cy - FLOOR_THICKNESS / 2, cz],
     material: floorMaterial,
+    visible: false,
   });
   pieces.push({
     id: `${id}-ceiling`,
@@ -212,6 +227,93 @@ function buildCorridor(id: string, center: Vec3, length: number, width: number, 
 }
 
 export default function DungeonWorld() {
+  const { nodes } = useGLTF('/models/dungeon/structure/Modular Ruins Pack.glb') as any;
+
+  const floorTiles = useMemo(() => {
+    const getSize = (name: string) => {
+      const node = nodes?.[name];
+      if (!node?.geometry) return { x: 4, y: 0.2, z: 4 };
+      const geom = node.geometry;
+      if (!geom.boundingBox) geom.computeBoundingBox();
+      const box = geom.boundingBox || new Box3();
+      const size = new Vector3();
+      box.getSize(size);
+      return size;
+    };
+
+    const baseSize = getSize('Floor_Standard');
+    const tile = Math.max(2, Math.min(baseSize.x || 4, baseSize.z || 4));
+
+    const weightedTiles = [
+      'Floor_Standard',
+      'Floor_Standard',
+      'Floor_Standard',
+      'Floor_Standard',
+      'Floor_Standard',
+      'Floor_Standard',
+      'Floor_Squares',
+      'Floor_Squares',
+      'Floor_Squares',
+      'Floor_Diamond',
+      'Floor_Diamond',
+      'Floor_SquareLarge',
+      'Floor_Standard_Half',
+      'Floor_Tree',
+      'Floor_Hole_Straight',
+      'Floor_Hole_Corner',
+    ] as const;
+
+    const pickTile = (x: number, z: number) => {
+      const hash = Math.abs(Math.floor((x * 73856093) ^ (z * 19349663)));
+      return weightedTiles[hash % weightedTiles.length];
+    };
+
+    const buildArea = (center: Vec3, size: { w: number; d: number }, density = 1) => {
+      const [cx, cy, cz] = center;
+      const tiles: {
+        id: string;
+        name: (typeof FLOOR_NODES)[number] | string;
+        position: Vec3;
+        scale: Vec3;
+      }[] = [];
+      const halfW = size.w / 2;
+      const halfD = size.d / 2;
+      const step = tile * density;
+
+      for (let x = -halfW + step / 2; x <= halfW - step / 2 + 0.001; x += step) {
+        for (let z = -halfD + step / 2; z <= halfD - step / 2 + 0.001; z += step) {
+          const name = pickTile(Math.round(x), Math.round(z));
+          const dims = getSize(name);
+          const scaleX = tile / Math.max(0.001, dims.x);
+          const scaleZ = tile / Math.max(0.001, dims.z);
+          tiles.push({
+            id: `${name}-${cx + x}-${cz + z}`,
+            name,
+            position: [cx + x, cy + 0.02, cz + z],
+            scale: [scaleX, 1, scaleZ],
+          });
+        }
+      }
+      return tiles;
+    };
+
+    const rooms: RoomSpec[] = [
+      { id: 'room-a', center: [0, 0, 0], size: { w: 40, d: 40 }, openings: { north: true } },
+      { id: 'room-b', center: [0, 0, 52], size: { w: 40, d: 40 }, openings: { south: true, east: true, west: true } },
+      { id: 'room-c', center: [52, 0, 52], size: { w: 40, d: 40 }, openings: { west: true } },
+      { id: 'room-hidden', center: [-52, 0, 52], size: { w: 40, d: 40 }, openings: { east: true } },
+    ];
+    const corridors = [
+      { center: [0, 0, 26] as Vec3, size: { w: 6, d: 12 } },
+      { center: [26, 0, 52] as Vec3, size: { w: 12, d: 6 } },
+      { center: [-26, 0, 52] as Vec3, size: { w: 12, d: 6 } },
+    ];
+
+    return [
+      ...rooms.flatMap((room) => buildArea(room.center, room.size, 1)),
+      ...corridors.flatMap((corr) => buildArea(corr.center, corr.size, 1)),
+    ];
+  }, [nodes]);
   const pieces = useMemo(() => {
     const rooms: RoomSpec[] = [
       {
@@ -261,10 +363,26 @@ export default function DungeonWorld() {
           castShadow
           receiveShadow
           material={piece.material}
+          visible={piece.visible !== false}
         >
           <boxGeometry args={piece.size} />
         </mesh>
       ))}
+
+      {floorTiles.map((tile) => {
+        const node = nodes?.[tile.name];
+        if (!node?.geometry) return null;
+        return (
+          <mesh
+            key={`floor-${tile.id}`}
+            geometry={node.geometry}
+            material={node.material}
+            position={tile.position}
+            scale={tile.scale}
+            receiveShadow
+          />
+        );
+      })}
 
       <RigidBody type="fixed" colliders={false} name="dungeon-colliders">
         {pieces.map((piece) => (

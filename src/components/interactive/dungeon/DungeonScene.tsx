@@ -68,7 +68,9 @@ export default function DungeonScene() {
       </Suspense>
 
       <Physics gravity={[0, -24, 0]}>
-        <DungeonWorld />
+        <Suspense fallback={null}>
+          <DungeonWorld />
+        </Suspense>
         <CameraRig targetBody={playerBodyRef} />
         <PlayerController bodyRef={playerBodyRef} />
       </Physics>
