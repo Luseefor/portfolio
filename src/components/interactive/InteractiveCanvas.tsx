@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ACESFilmicToneMapping } from 'three';
 import LoadingScreen from './LoadingScreen';
@@ -14,19 +14,34 @@ export default function InteractiveCanvas() {
   const setPointerLocked = useDungeonInput((state) => state.setPointerLocked);
   const setMouseDown = useDungeonInput((state) => state.setMouseDown);
   const setKeys = useDungeonInput((state) => state.setKeys);
+  const unlockRequestRef = useRef(0);
 
   useEffect(() => {
     if (!canvasEl) return;
 
+    const requestUnlock = (event?: Event) => {
+      unlockRequestRef.current = Date.now();
+      if (event) {
+        event.preventDefault();
+        if ('stopImmediatePropagation' in event) event.stopImmediatePropagation();
+      }
+      if (document.pointerLockElement) {
+        document.exitPointerLock();
+        setTimeout(() => {
+          if (document.pointerLockElement) document.exitPointerLock();
+        }, 0);
+        requestAnimationFrame(() => {
+          if (document.pointerLockElement) document.exitPointerLock();
+        });
+      }
+      setPointerLocked(false);
+      setHasFocus(true);
+    };
+
     const handleNativeMouseDown = (event: MouseEvent) => {
       setMouseDown(true);
       if (event.button === 2) {
-        event.preventDefault();
-        if (document.pointerLockElement) {
-          document.exitPointerLock();
-        }
-        setPointerLocked(false);
-        setHasFocus(true);
+        requestUnlock(event);
         return;
       }
       if (document.pointerLockElement !== canvasEl && event.target === canvasEl) {
@@ -39,23 +54,11 @@ export default function InteractiveCanvas() {
     const handleMouseLeave = () => {
       setMouseDown(false);
     };
-    const handleContextMenu = (event: MouseEvent) => {
-      event.preventDefault();
-      if (document.pointerLockElement) {
-        document.exitPointerLock();
-      }
-      setPointerLocked(false);
-      setHasFocus(true);
-    };
+    const handleContextMenu = (event: MouseEvent) => requestUnlock(event);
 
     const handlePointerDown = (event: PointerEvent) => {
       if (event.button === 2) {
-        event.preventDefault();
-        if (document.pointerLockElement) {
-          document.exitPointerLock();
-        }
-        setPointerLocked(false);
-        setHasFocus(true);
+        requestUnlock(event);
       }
     };
     const handlePointerUp = () => {
@@ -73,6 +76,7 @@ export default function InteractiveCanvas() {
     document.addEventListener('contextmenu', handleContextMenu, true);
     document.addEventListener('pointerdown', handlePointerDown, true);
     document.addEventListener('pointerup', handlePointerUp, true);
+    document.addEventListener('auxclick', handleContextMenu, true);
     window.addEventListener('contextmenu', handleContextMenu);
     return () => {
       canvasEl.removeEventListener('mousedown', handleNativeMouseDown);
@@ -86,6 +90,7 @@ export default function InteractiveCanvas() {
       document.removeEventListener('contextmenu', handleContextMenu, true);
       document.removeEventListener('pointerdown', handlePointerDown, true);
       document.removeEventListener('pointerup', handlePointerUp, true);
+      document.removeEventListener('auxclick', handleContextMenu, true);
       window.removeEventListener('contextmenu', handleContextMenu);
     };
   }, [canvasEl, setHasFocus, setMouseDown, setPointerLocked]);
@@ -157,6 +162,10 @@ export default function InteractiveCanvas() {
     if (!canvasEl) return;
     const handlePointerLockChange = () => {
       const isLocked = document.pointerLockElement === canvasEl;
+      if (isLocked && Date.now() - unlockRequestRef.current < 200) {
+        document.exitPointerLock();
+        return;
+      }
       setPointerLocked(isLocked);
       if (isLocked) setHasFocus(true);
       else if (document.activeElement !== canvasEl) setHasFocus(false);
