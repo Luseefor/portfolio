@@ -10,6 +10,7 @@ import DungeonAmbience from './DungeonAmbience';
 import DungeonWorld from './DungeonWorld';
 
 const FOG_COLOR = new Color('#0b0f14');
+const DEV_FULLBRIGHT = process.env.NODE_ENV !== 'production';
 
 export default function DungeonScene() {
   const playerBodyRef = useRef<RapierRigidBody | null>(null);
@@ -49,6 +50,12 @@ export default function DungeonScene() {
         shadow-camera-top={20}
         shadow-camera-bottom={-20}
       />
+      {DEV_FULLBRIGHT ? (
+        <>
+          <ambientLight intensity={1.1} color="#ffffff" />
+          <directionalLight position={[0, 18, 0]} intensity={1.4} color="#ffffff" />
+        </>
+      ) : null}
 
       {/* Room lights */}
       <pointLight position={[0, 3, 0]} intensity={2.0} color="#ffb26b" distance={14} decay={2} />

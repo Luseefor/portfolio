@@ -16,6 +16,8 @@ const SMOOTHING = 10;
 const JUMP_SPEED = 7.2;
 const GRAVITY = 24;
 const START_POSITION: [number, number, number] = [0, 2, 0];
+const STEP_INTERVAL_WALK = 0.48;
+const STEP_INTERVAL_RUN = 0.34;
 
 const forward = new Vector3();
 const right = new Vector3();
@@ -45,6 +47,29 @@ export default function PlayerController({
   const groundedTimer = useRef(0);
   const jumpBuffer = useRef(1);
   const rollTimer = useRef(0);
+  const stepTimer = useRef(0);
+  const stepIndex = useRef(0);
+  const stepAudioRef = useRef<HTMLAudioElement[]>([]);
+  const jumpAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!stepAudioRef.current.length) {
+      stepAudioRef.current = [
+        new Audio('/sounds/footsteps/gravel_step.wav'),
+        new Audio('/sounds/footsteps/grassy_step.wav'),
+      ];
+      stepAudioRef.current.forEach((audio) => {
+        audio.preload = 'auto';
+        audio.volume = 0.35;
+      });
+    }
+    if (!jumpAudioRef.current) {
+      jumpAudioRef.current = new Audio('/sounds/player/jump.wav');
+      jumpAudioRef.current.preload = 'auto';
+      jumpAudioRef.current.volume = 0.5;
+    }
+  }, []);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent, pressed: boolean) => {
@@ -161,6 +186,11 @@ export default function PlayerController({
     let nextY = linvel.y - GRAVITY * delta;
     if (canJump) {
       nextY = JUMP_SPEED;
+      if (jumpAudioRef.current) {
+        jumpAudioRef.current.currentTime = 0;
+        jumpAudioRef.current.playbackRate = 1;
+        jumpAudioRef.current.play().catch(() => {});
+      }
       if (forwardPressed) {
         rollTimer.current = 0.6;
         const rollBoost = runPressed ? 3.2 : 2.4;
@@ -190,6 +220,23 @@ export default function PlayerController({
     }
 
     const speed = Math.hypot(smoothX, smoothZ);
+    stepTimer.current -= delta;
+    if (grounded && speed > 0.2 && rollTimer.current <= 0) {
+      if (stepTimer.current <= 0) {
+        const index = stepIndex.current % stepAudioRef.current.length;
+        const stepAudio = stepAudioRef.current[index];
+        if (stepAudio) {
+          stepAudio.currentTime = 0;
+          stepAudio.volume = runPressed ? 0.55 : 0.38;
+          stepAudio.playbackRate = runPressed ? 1.1 + Math.random() * 0.12 : 0.92 + Math.random() * 0.08;
+          stepAudio.play().catch(() => {});
+        }
+        stepIndex.current += 1;
+        stepTimer.current = runPressed ? STEP_INTERVAL_RUN : STEP_INTERVAL_WALK;
+      }
+    } else {
+      stepTimer.current = 0;
+    }
     let nextAnim: PlayerAnimation = 'idle';
     if (rollTimer.current > 0) {
       nextAnim = 'jump';
