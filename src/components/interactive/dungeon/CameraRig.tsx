@@ -35,23 +35,58 @@ export default function CameraRig({
   const internalYaw = useRef(0);
   const internalPitch = useRef(CAMERA_PITCH.initial);
   const distanceRef = useRef(CAMERA_DISTANCE.default);
+  const lastClientRef = useRef<{ x: number; y: number } | null>(null);
 
   const yaw = yawRef ?? internalYaw;
   const pitch = pitchRef ?? internalPitch;
 
   useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      if (!isPointerLocked && !mouseDown) return;
+    lastClientRef.current = null;
+  }, [isPointerLocked]);
+
+  useEffect(() => {
+    const applyDelta = (deltaX: number, deltaY: number) => {
+      if (deltaX === 0 && deltaY === 0) return;
       const next = applyMouseDelta(
         yaw.current,
         pitch.current,
-        event.movementX,
-        event.movementY,
+        deltaX,
+        deltaY,
         CAMERA_SENSITIVITY,
         CAMERA_PITCH,
       );
       yaw.current = next.yaw;
       pitch.current = next.pitch;
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isPointerLocked && !mouseDown) return;
+      const rawX =
+        event.movementX ||
+        (event as MouseEvent & { mozMovementX?: number }).mozMovementX ||
+        (event as MouseEvent & { webkitMovementX?: number }).webkitMovementX ||
+        0;
+      const rawY =
+        event.movementY ||
+        (event as MouseEvent & { mozMovementY?: number }).mozMovementY ||
+        (event as MouseEvent & { webkitMovementY?: number }).webkitMovementY ||
+        0;
+
+      if (rawX === 0 && rawY === 0 && isPointerLocked) {
+        if (lastClientRef.current) {
+          applyDelta(event.clientX - lastClientRef.current.x, event.clientY - lastClientRef.current.y);
+        }
+        lastClientRef.current = { x: event.clientX, y: event.clientY };
+        return;
+      }
+
+      lastClientRef.current = { x: event.clientX, y: event.clientY };
+      applyDelta(rawX, rawY);
+    };
+
+    const handlePointerRawUpdate = (event: PointerEvent) => {
+      if (!isPointerLocked && !mouseDown) return;
+      applyDelta(event.movementX || 0, event.movementY || 0);
     };
 
     const handleWheel = (event: WheelEvent) => {
@@ -60,9 +95,11 @@ export default function CameraRig({
     };
 
     document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('pointerrawupdate', handlePointerRawUpdate);
     window.addEventListener('wheel', handleWheel, { passive: true });
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('pointerrawupdate', handlePointerRawUpdate);
       window.removeEventListener('wheel', handleWheel);
     };
   }, [isPointerLocked, mouseDown, pitch, yaw]);
