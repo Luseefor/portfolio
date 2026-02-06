@@ -90,13 +90,23 @@ export default function CameraRig({
     };
 
     const handleWheel = (event: WheelEvent) => {
+      const hasTrackpad = typeof navigator !== 'undefined' && (navigator.maxTouchPoints ?? 0) > 0;
+      const hasDelta = Math.abs(event.deltaX) + Math.abs(event.deltaY) > 0.01;
+      const useWheelLook = isPointerLocked && hasTrackpad && hasDelta && !event.metaKey && !event.ctrlKey;
+
+      if (useWheelLook) {
+        event.preventDefault();
+        applyDelta(event.deltaX * 0.6, event.deltaY * 0.6);
+        return;
+      }
+
       const next = distanceRef.current + Math.sign(event.deltaY) * CAMERA_DISTANCE.scrollStep;
       distanceRef.current = clampCameraDistance(next);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('pointerrawupdate', handlePointerRawUpdate);
-    window.addEventListener('wheel', handleWheel, { passive: true });
+    window.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('pointerrawupdate', handlePointerRawUpdate);
