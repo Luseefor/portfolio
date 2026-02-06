@@ -16,8 +16,8 @@ const SMOOTHING = 10;
 const JUMP_SPEED = 7.2;
 const GRAVITY = 24;
 const START_POSITION: [number, number, number] = [0, 2, 0];
-const STEP_INTERVAL_WALK = 0.48;
-const STEP_INTERVAL_RUN = 0.34;
+const STEP_INTERVAL_WALK = 0.6;
+const STEP_INTERVAL_RUN = 0.42;
 
 const forward = new Vector3();
 const right = new Vector3();
@@ -223,7 +223,9 @@ export default function PlayerController({
           stepAudio.play().catch(() => {});
         }
         stepIndex.current += 1;
-        stepTimer.current = runPressed ? STEP_INTERVAL_RUN : STEP_INTERVAL_WALK;
+        const speedBlend = Math.min(1, speed / RUN_SPEED);
+        const interval = MathUtils.lerp(STEP_INTERVAL_WALK, STEP_INTERVAL_RUN, speedBlend);
+        stepTimer.current = interval * (0.95 + Math.random() * 0.1);
       }
     } else {
       stepTimer.current = 0;
