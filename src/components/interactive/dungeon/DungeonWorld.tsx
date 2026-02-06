@@ -20,10 +20,11 @@ type RoomSpec = {
   openings?: WallOpening;
 };
 
-const WALL_HEIGHT = 6.5;
-const WALL_THICKNESS = 0.6;
-const FLOOR_THICKNESS = 0.4;
-const DOOR_WIDTH = 4.6;
+const WALL_HEIGHT = 10.5;
+const WALL_THICKNESS = 0.8;
+const FLOOR_THICKNESS = 0.45;
+const CEILING_THICKNESS = 0.35;
+const DOOR_WIDTH = 6;
 
 type BoxPiece = {
   id: string;
@@ -41,6 +42,11 @@ const wallMaterial = new MeshStandardMaterial({
   color: '#3a352f',
   roughness: 0.92,
   metalness: 0.08,
+});
+const ceilingMaterial = new MeshStandardMaterial({
+  color: '#1f1e1b',
+  roughness: 0.98,
+  metalness: 0.02,
 });
 
 function buildWallSegments(
@@ -131,6 +137,12 @@ function buildRoom(spec: RoomSpec): BoxPiece[] {
       position: [cx, cy - FLOOR_THICKNESS / 2, cz],
       material: floorMaterial,
     },
+    {
+      id: `${id}-ceiling`,
+      size: [size.w, CEILING_THICKNESS, size.d],
+      position: [cx, cy + WALL_HEIGHT - CEILING_THICKNESS / 2, cz],
+      material: ceilingMaterial,
+    },
   ];
 
   pieces.push(
@@ -152,6 +164,12 @@ function buildCorridor(id: string, center: Vec3, length: number, width: number, 
     size,
     position: [cx, cy - FLOOR_THICKNESS / 2, cz],
     material: floorMaterial,
+  });
+  pieces.push({
+    id: `${id}-ceiling`,
+    size: axis === 'z' ? [width, CEILING_THICKNESS, length] : [length, CEILING_THICKNESS, width],
+    position: [cx, cy + WALL_HEIGHT - CEILING_THICKNESS / 2, cz],
+    material: ceilingMaterial,
   });
 
   const wallSize: Vec3 = axis === 'z'
@@ -199,32 +217,32 @@ export default function DungeonWorld() {
       {
         id: 'room-a',
         center: [0, 0, 0],
-        size: { w: 26, d: 26 },
+        size: { w: 40, d: 40 },
         openings: { north: true },
       },
       {
         id: 'room-b',
-        center: [0, 0, 32],
-        size: { w: 26, d: 26 },
+        center: [0, 0, 52],
+        size: { w: 40, d: 40 },
         openings: { south: true, east: true, west: true },
       },
       {
         id: 'room-c',
-        center: [32, 0, 32],
-        size: { w: 26, d: 26 },
+        center: [52, 0, 52],
+        size: { w: 40, d: 40 },
         openings: { west: true },
       },
       {
         id: 'room-hidden',
-        center: [-32, 0, 32],
-        size: { w: 26, d: 26 },
+        center: [-52, 0, 52],
+        size: { w: 40, d: 40 },
         openings: { east: true },
       },
     ];
 
-    const corridorA = buildCorridor('corridor-a', [0, 0, 16], 6, 6, 'z');
-    const corridorC = buildCorridor('corridor-c', [16, 0, 32], 6, 6, 'x');
-    const corridorHidden = buildCorridor('corridor-hidden', [-16, 0, 32], 6, 6, 'x');
+    const corridorA = buildCorridor('corridor-a', [0, 0, 26], 12, 6, 'z');
+    const corridorC = buildCorridor('corridor-c', [26, 0, 52], 12, 6, 'x');
+    const corridorHidden = buildCorridor('corridor-hidden', [-26, 0, 52], 12, 6, 'x');
 
     return [
       ...rooms.flatMap(buildRoom),
@@ -256,12 +274,12 @@ export default function DungeonWorld() {
             position={piece.position}
           />
         ))}
-        <CuboidCollider args={[120, 1, 120]} position={[0, -4, 0]} />
+        <CuboidCollider args={[180, 1, 180]} position={[0, -4, 0]} />
         {/* Outer bounds to keep camera/player inside */}
-        <CuboidCollider args={[1, 8, 70]} position={[55, 3, 0]} />
-        <CuboidCollider args={[1, 8, 70]} position={[-55, 3, 0]} />
-        <CuboidCollider args={[70, 8, 1]} position={[0, 3, 55]} />
-        <CuboidCollider args={[70, 8, 1]} position={[0, 3, -55]} />
+        <CuboidCollider args={[1, 12, 110]} position={[85, 5, 0]} />
+        <CuboidCollider args={[1, 12, 110]} position={[-85, 5, 0]} />
+        <CuboidCollider args={[110, 12, 1]} position={[0, 5, 85]} />
+        <CuboidCollider args={[110, 12, 1]} position={[0, 5, -85]} />
       </RigidBody>
     </group>
   );
