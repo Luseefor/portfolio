@@ -51,7 +51,14 @@ const ceilingMaterial = new MeshStandardMaterial({
   metalness: 0.02,
 });
 
-const FLOOR_NODES = ['Floor_Diamond', 'Floor_Squares', 'Floor_Hole_Straight'] as const;
+const FLOOR_NODES = [
+  'Floor_Diamond',
+  'Floor_Squares',
+  'Floor_Standard',
+  'Floor_Standard_Half',
+  'Floor_SquareLarge',
+  'Floor_Hole_Straight',
+] as const;
 
 const SHOW_FLOOR_GRID = false;
 const FLOOR_OVERLAY = true;
@@ -59,6 +66,9 @@ const FLOOR_TILES = {
   primary: 'Floor_Squares',
   accent: 'Floor_Diamond',
   broken: 'Floor_Hole_Straight',
+  filler: 'Floor_Standard',
+  large: 'Floor_SquareLarge',
+  half: 'Floor_Standard_Half',
 } as const;
 
 function buildWallSegments(
@@ -148,7 +158,7 @@ function buildRoom(spec: RoomSpec): BoxPiece[] {
       size: [size.w, FLOOR_THICKNESS, size.d],
       position: [cx, cy - FLOOR_THICKNESS / 2, cz],
       material: floorMaterial,
-      visible: true,
+      visible: false,
     },
     {
       id: `${id}-ceiling`,
@@ -177,7 +187,7 @@ function buildCorridor(id: string, center: Vec3, length: number, width: number, 
     size,
     position: [cx, cy - FLOOR_THICKNESS / 2, cz],
     material: floorMaterial,
-    visible: true,
+    visible: false,
   });
   pieces.push({
     id: `${id}-ceiling`,
@@ -275,7 +285,7 @@ export default function DungeonWorld() {
     const getTileSize = (node: any) => {
       const clone = node.clone(true);
       clone.position.set(0, 0, 0);
-      clone.rotation.set(0, 0, 0);
+      clone.rotation.set(-Math.PI / 2, 0, 0);
       clone.updateMatrixWorld(true);
       const box = new Box3().setFromObject(clone);
       const size = new Vector3();
@@ -289,8 +299,10 @@ export default function DungeonWorld() {
     const step = Math.max(3, Math.min(baseSize.x || 4, baseSize.z || 4));
 
     const pickTile = (gx: number, gz: number) => {
+      if ((gx * 7 + gz * 11) % 23 === 0) return FLOOR_TILES.broken;
+      if ((gx + gz) % 6 === 0) return FLOOR_TILES.large;
       if ((gx + gz) % 2 === 0) return FLOOR_TILES.accent;
-      if ((gx * 7 + gz * 11) % 13 === 0) return FLOOR_TILES.broken;
+      if ((gx * 3 + gz * 5) % 7 === 0) return FLOOR_TILES.half;
       return FLOOR_TILES.primary;
     };
 
@@ -299,8 +311,8 @@ export default function DungeonWorld() {
       const halfW = size.w / 2;
       const halfD = size.d / 2;
       const tiles: { id: string; name: string; position: Vec3 }[] = [];
-      const gxCount = Math.floor(size.w / step);
-      const gzCount = Math.floor(size.d / step);
+      const gxCount = Math.ceil(size.w / step);
+      const gzCount = Math.ceil(size.d / step);
       for (let gx = 0; gx < gxCount; gx += 1) {
         for (let gz = 0; gz < gzCount; gz += 1) {
           const x = -halfW + step / 2 + gx * step;
@@ -378,7 +390,7 @@ export default function DungeonWorld() {
               tile.position[1] - (node.position?.y || 0),
               tile.position[2] - (node.position?.z || 0),
             );
-            placed.rotation.set(0, 0, 0);
+            placed.rotation.set(-Math.PI / 2, 0, 0);
             return <primitive key={`tile-${tile.id}`} object={placed} />;
           })
         : null}
