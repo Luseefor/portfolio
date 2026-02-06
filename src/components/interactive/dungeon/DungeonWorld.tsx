@@ -249,8 +249,9 @@ export default function DungeonWorld() {
       return size;
     };
 
-    const baseSize = getSize('Floor_Standard');
-    const tile = Math.max(2.5, Math.min(baseSize.x || 4, baseSize.z || 4));
+    const baseSize = getSize('Floor_SquareLarge');
+    const baseTile = Math.max(3, Math.max(baseSize.x || 4, baseSize.z || 4));
+    const tile = baseTile;
 
     const weightedTiles = [
       'Floor_Standard',
@@ -303,7 +304,7 @@ export default function DungeonWorld() {
             id: `${name}-${cx + x}-${cz + z}`,
             name,
             position: [cx + x, cy + 0.03, cz + z],
-            scale: [scaleX * mesh.scale.x, mesh.scale.y, scaleZ * mesh.scale.z],
+            scale: [scaleX, 1, scaleZ],
             rotation: mesh.quaternion.clone(),
             geometry: mesh.geometry,
             material: mesh.material,
