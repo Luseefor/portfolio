@@ -3,6 +3,7 @@
 import { Fragment, useMemo } from 'react';
 import { MeshStandardMaterial } from 'three';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
+import { useGLTF } from '@react-three/drei';
 
 type Vec3 = [number, number, number];
 
@@ -49,6 +50,19 @@ const ceilingMaterial = new MeshStandardMaterial({
   roughness: 0.98,
   metalness: 0.02,
 });
+
+const FLOOR_NODES = [
+  'Floor_Diamond',
+  'Floor_Hole_Corner',
+  'Floor_Hole_Straight',
+  'Floor_SquareLarge',
+  'Floor_Squares',
+  'Floor_Standard',
+  'Floor_Standard_Half',
+  'Floor_Tree',
+] as const;
+
+const SHOW_FLOOR_GRID = process.env.NODE_ENV !== 'production';
 
 function buildWallSegments(
   id: string,
@@ -215,6 +229,7 @@ function buildCorridor(id: string, center: Vec3, length: number, width: number, 
 }
 
 export default function DungeonWorld() {
+  const { nodes } = useGLTF('/models/dungeon/structure/Modular Ruins Pack.glb') as any;
   const pieces = useMemo(() => {
     const rooms: RoomSpec[] = [
       {
@@ -261,14 +276,26 @@ export default function DungeonWorld() {
         <mesh
           key={`mesh-${piece.id}`}
           position={piece.position}
-          castShadow
-          receiveShadow
+          castShadow={false}
+          receiveShadow={piece.id.includes('floor')}
           material={piece.material}
           visible={piece.visible !== false}
         >
           <boxGeometry args={piece.size} />
         </mesh>
       ))}
+
+      {SHOW_FLOOR_GRID ? (
+        <group position={[-30, 0.02, -30]}>
+          {FLOOR_NODES.map((name, index) => {
+            const node = nodes?.[name];
+            if (!node) return null;
+            const x = (index % 4) * 8;
+            const z = Math.floor(index / 4) * 8;
+            return <primitive key={`floor-grid-${name}`} object={node.clone(true)} position={[x, 0, z]} />;
+          })}
+        </group>
+      ) : null}
 
       <RigidBody type="fixed" colliders={false} name="dungeon-colliders">
         {pieces.map((piece) => (
