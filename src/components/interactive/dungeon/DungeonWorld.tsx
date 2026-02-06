@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useMemo } from 'react';
-import { Box3, MeshStandardMaterial, Vector3 } from 'three';
+import { Box3, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { useGLTF } from '@react-three/drei';
 
@@ -230,19 +230,27 @@ export default function DungeonWorld() {
   const { nodes } = useGLTF('/models/dungeon/structure/Modular Ruins Pack.glb') as any;
 
   const floorTiles = useMemo(() => {
-    const getSize = (name: string) => {
+    const resolveMesh = (name: string) => {
       const node = nodes?.[name];
-      if (!node?.geometry) return { x: 4, y: 0.2, z: 4 };
-      const geom = node.geometry;
-      if (!geom.boundingBox) geom.computeBoundingBox();
-      const box = geom.boundingBox || new Box3();
+      if (!node) return null;
+      if (node.isMesh) return node;
+      if (node.children?.length) {
+        return node.children.find((child: any) => child.isMesh) || null;
+      }
+      return null;
+    };
+
+    const getSize = (name: string) => {
+      const mesh = resolveMesh(name);
+      if (!mesh) return { x: 4, y: 0.2, z: 4 };
+      const box = new Box3().setFromObject(mesh);
       const size = new Vector3();
       box.getSize(size);
       return size;
     };
 
     const baseSize = getSize('Floor_Standard');
-    const tile = Math.max(2, Math.min(baseSize.x || 4, baseSize.z || 4));
+    const tile = Math.max(2.5, Math.min(baseSize.x || 4, baseSize.z || 4));
 
     const weightedTiles = [
       'Floor_Standard',
@@ -275,6 +283,9 @@ export default function DungeonWorld() {
         name: (typeof FLOOR_NODES)[number] | string;
         position: Vec3;
         scale: Vec3;
+        rotation: Quaternion;
+        material: any;
+        geometry: any;
       }[] = [];
       const halfW = size.w / 2;
       const halfD = size.d / 2;
@@ -283,14 +294,19 @@ export default function DungeonWorld() {
       for (let x = -halfW + step / 2; x <= halfW - step / 2 + 0.001; x += step) {
         for (let z = -halfD + step / 2; z <= halfD - step / 2 + 0.001; z += step) {
           const name = pickTile(Math.round(x), Math.round(z));
+          const mesh = resolveMesh(name);
+          if (!mesh?.geometry) continue;
           const dims = getSize(name);
           const scaleX = tile / Math.max(0.001, dims.x);
           const scaleZ = tile / Math.max(0.001, dims.z);
           tiles.push({
             id: `${name}-${cx + x}-${cz + z}`,
             name,
-            position: [cx + x, cy + 0.02, cz + z],
-            scale: [scaleX, 1, scaleZ],
+            position: [cx + x, cy + 0.03, cz + z],
+            scale: [scaleX * mesh.scale.x, mesh.scale.y, scaleZ * mesh.scale.z],
+            rotation: mesh.quaternion.clone(),
+            geometry: mesh.geometry,
+            material: mesh.material,
           });
         }
       }
@@ -370,15 +386,14 @@ export default function DungeonWorld() {
       ))}
 
       {floorTiles.map((tile) => {
-        const node = nodes?.[tile.name];
-        if (!node?.geometry) return null;
         return (
           <mesh
             key={`floor-${tile.id}`}
-            geometry={node.geometry}
-            material={node.material}
+            geometry={tile.geometry}
+            material={tile.material}
             position={tile.position}
             scale={tile.scale}
+            quaternion={tile.rotation}
             receiveShadow
           />
         );
