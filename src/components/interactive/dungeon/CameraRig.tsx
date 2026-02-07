@@ -5,6 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useRapier, type RapierRigidBody } from '@react-three/rapier';
 import { Vector3 } from 'three';
 import { useDungeonInput } from '@/lib/dungeonInput';
+import { getDungeonVisualLiftAt } from '@/lib/dungeonVisualLift';
 import {
   CAMERA_DISTANCE,
   CAMERA_OFFSET,
@@ -22,8 +23,8 @@ const smoothedLookAtPosition = new Vector3();
 const desiredPosition = new Vector3();
 const rayDirection = new Vector3();
 const TARGET_FOLLOW_SMOOTHING = 0.005;
-const FLOOR_PROBE_HEIGHT = 8;
-const FLOOR_PROBE_DISTANCE = 32;
+const FLOOR_PROBE_HEIGHT = 2.4;
+const FLOOR_PROBE_DISTANCE = 10;
 const CAMERA_FLOOR_CLEARANCE = 0.45;
 const CAMERA_MIN_Y = 0.35;
 
@@ -176,20 +177,22 @@ export default function CameraRig({
       }
     }
 
-    // Keep camera above any floor/collider under its target x/z to avoid dipping below room floors.
-    const probeOriginY = Math.max(
-      desiredPosition.y + FLOOR_PROBE_HEIGHT,
-      smoothedTargetPosition.y + FLOOR_PROBE_HEIGHT,
-    );
+    // Use floor collider height + visual tile lift so lifted tiles remain the final camera floor boundary.
+    const probeOriginY = smoothedTargetPosition.y + FLOOR_PROBE_HEIGHT;
     const floorProbe = new rapier.Ray(
       { x: desiredPosition.x, y: probeOriginY, z: desiredPosition.z },
       { x: 0, y: -1, z: 0 },
     );
     const floorHit = world.castRay(floorProbe, FLOOR_PROBE_DISTANCE, true);
-    let minAllowedY = CAMERA_MIN_Y;
+    const visualLift = getDungeonVisualLiftAt(desiredPosition.x, desiredPosition.z);
+    let minAllowedY = CAMERA_MIN_Y + visualLift;
     if (floorHit) {
       const floorY = probeOriginY - floorHit.toi;
-      minAllowedY = Math.max(minAllowedY, floorY + CAMERA_FLOOR_CLEARANCE);
+      minAllowedY = Math.max(minAllowedY, floorY + visualLift + CAMERA_FLOOR_CLEARANCE);
+    } else {
+      // Fallback when ray misses: infer local floor from player center and still respect tile lift.
+      const inferredFloorY = smoothedTargetPosition.y - 2;
+      minAllowedY = Math.max(minAllowedY, inferredFloorY + visualLift + CAMERA_FLOOR_CLEARANCE);
     }
     if (desiredPosition.y < minAllowedY) {
       desiredPosition.y = minAllowedY;
