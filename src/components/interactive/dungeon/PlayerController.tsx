@@ -10,8 +10,6 @@ import { useDungeonInput } from '@/lib/dungeonInput';
 
 const WALK_SPEED = 2.4;
 const RUN_SPEED = 6.2;
-const ACCEL = 12;
-const DECEL = 14;
 const SMOOTHING = 10;
 const JUMP_SPEED = 7.2;
 const GRAVITY = 24;
@@ -41,6 +39,7 @@ export default function PlayerController({
     right: false,
     run: false,
     jump: false,
+    roll: false,
   });
 
   const [animation, setAnimation] = useState<PlayerAnimation>('idle');
@@ -93,6 +92,10 @@ export default function PlayerController({
         case 'Space':
           inputRef.current.jump = pressed;
           break;
+        case 'KeyC':
+        case 'KeyR':
+          inputRef.current.roll = pressed;
+          break;
       }
     };
 
@@ -106,6 +109,7 @@ export default function PlayerController({
         right: false,
         run: false,
         jump: false,
+        roll: false,
       };
     };
 
@@ -126,11 +130,7 @@ export default function PlayerController({
     const position = body.translation();
     const linvel = body.linvel();
 
-    const rayOrigin = { x: position.x, y: position.y + 0.5, z: position.z };
-    const rayDir = { x: 0, y: -1, z: 0 };
-    const ray = { origin: rayOrigin, dir: rayDir } as any;
-
-    // Very cheap ground check using vertical velocity + position threshold
+    // Keep grounding simple and deterministic for this tilemap.
     const grounded = Math.abs(linvel.y) < 0.2 && position.y <= 2.05;
     if (grounded) groundedTimer.current = 0;
     else groundedTimer.current += delta;
@@ -147,6 +147,7 @@ export default function PlayerController({
     const rightPressed = keys.right || inputRef.current.right;
     const runPressed = keys.run || inputRef.current.run;
     const jumpPressed = keys.jump || inputRef.current.jump;
+    const rollPressed = keys.roll || inputRef.current.roll;
 
     moveDir.set(0, 0, 0);
     if (forwardPressed) moveDir.add(forward);
@@ -177,12 +178,23 @@ export default function PlayerController({
     const smoothX = MathUtils.lerp(linvel.x, desiredX, smoothing);
     const smoothZ = MathUtils.lerp(linvel.z, desiredZ, smoothing);
 
-    jumpBuffer.current = jumpPressed ? 0 : jumpBuffer.current + delta;
+    jumpBuffer.current = jumpPressed || rollPressed ? 0 : jumpBuffer.current + delta;
     const canJump = jumpBuffer.current < 0.2 && groundedTimer.current < 0.2;
     let nextY = linvel.y - GRAVITY * delta;
     if (canJump) {
       nextY = JUMP_SPEED;
-      if (forwardPressed) {
+      if (rollPressed && hasInput) {
+        rollTimer.current = 0.6;
+        const rollBoost = runPressed ? 3.4 : 2.6;
+        body.setLinvel(
+          {
+            x: smoothX + moveDir.x * rollBoost,
+            y: nextY,
+            z: smoothZ + moveDir.z * rollBoost,
+          },
+          true,
+        );
+      } else if (forwardPressed) {
         rollTimer.current = 0.6;
         const rollBoost = runPressed ? 3.2 : 2.4;
         body.setLinvel(
@@ -263,9 +275,4 @@ export default function PlayerController({
       </group>
     </RigidBody>
   );
-}
-
-function moveToward(current: number, target: number, maxDelta: number) {
-  if (Math.abs(target - current) <= maxDelta) return target;
-  return current + Math.sign(target - current) * maxDelta;
 }

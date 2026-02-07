@@ -45,7 +45,17 @@ export default function InteractiveCanvas() {
         return;
       }
       if (document.pointerLockElement !== canvasEl && event.target === canvasEl) {
-        canvasEl.requestPointerLock();
+        try {
+          canvasEl.requestPointerLock();
+        } catch {
+          // Ignore pointer lock request errors and keep keyboard focus flow alive.
+        }
+      }
+    };
+    const handleDocumentMouseDown = (event: MouseEvent) => {
+      setMouseDown(true);
+      if (event.button === 2) {
+        requestUnlock(event);
       }
     };
     const handleMouseUp = () => {
@@ -71,7 +81,7 @@ export default function InteractiveCanvas() {
     canvasEl.addEventListener('contextmenu', handleContextMenu);
     canvasEl.addEventListener('pointerdown', handlePointerDown);
     canvasEl.addEventListener('pointerup', handlePointerUp);
-    document.addEventListener('mousedown', handleNativeMouseDown, true);
+    document.addEventListener('mousedown', handleDocumentMouseDown, true);
     document.addEventListener('mouseup', handleMouseUp, true);
     document.addEventListener('contextmenu', handleContextMenu, true);
     document.addEventListener('pointerdown', handlePointerDown, true);
@@ -85,7 +95,7 @@ export default function InteractiveCanvas() {
       canvasEl.removeEventListener('contextmenu', handleContextMenu);
       canvasEl.removeEventListener('pointerdown', handlePointerDown);
       canvasEl.removeEventListener('pointerup', handlePointerUp);
-      document.removeEventListener('mousedown', handleNativeMouseDown, true);
+      document.removeEventListener('mousedown', handleDocumentMouseDown, true);
       document.removeEventListener('mouseup', handleMouseUp, true);
       document.removeEventListener('contextmenu', handleContextMenu, true);
       document.removeEventListener('pointerdown', handlePointerDown, true);
@@ -131,13 +141,25 @@ export default function InteractiveCanvas() {
         case 'Space':
           setKeys({ jump: pressed });
           break;
+        case 'KeyC':
+        case 'KeyR':
+          setKeys({ roll: pressed });
+          break;
       }
     };
 
     const onKeyDown = (e: KeyboardEvent) => handleKey(e, true);
     const onKeyUp = (e: KeyboardEvent) => handleKey(e, false);
     const onBlur = () =>
-      setKeys({ forward: false, backward: false, left: false, right: false, run: false, jump: false });
+      setKeys({
+        forward: false,
+        backward: false,
+        left: false,
+        right: false,
+        run: false,
+        jump: false,
+        roll: false,
+      });
 
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
