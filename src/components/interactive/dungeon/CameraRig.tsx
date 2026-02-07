@@ -16,8 +16,12 @@ import {
 import { applyMouseDelta, clampCameraDistance, computeCameraDesired, computeSmoothingFactor } from './math/cameraMath';
 
 const targetPosition = new Vector3();
+const smoothedTargetPosition = new Vector3();
+const lookAtPosition = new Vector3();
+const smoothedLookAtPosition = new Vector3();
 const desiredPosition = new Vector3();
 const rayDirection = new Vector3();
+const TARGET_FOLLOW_SMOOTHING = 0.005;
 
 export default function CameraRig({
   targetBody,
@@ -36,6 +40,7 @@ export default function CameraRig({
   const internalPitch = useRef(CAMERA_PITCH.initial);
   const distanceRef = useRef(CAMERA_DISTANCE.default);
   const lastClientRef = useRef<{ x: number; y: number } | null>(null);
+  const initializedRef = useRef(false);
 
   const yaw = yawRef ?? internalYaw;
   const pitch = pitchRef ?? internalPitch;
@@ -120,9 +125,28 @@ export default function CameraRig({
 
     const position = body.translation();
     targetPosition.set(position.x, position.y, position.z);
+    if (!initializedRef.current) {
+      smoothedTargetPosition.copy(targetPosition);
+      lookAtPosition.set(
+        targetPosition.x,
+        targetPosition.y + CAMERA_OFFSET.lookAtHeight,
+        targetPosition.z,
+      );
+      smoothedLookAtPosition.copy(lookAtPosition);
+      initializedRef.current = true;
+    } else {
+      const targetLerp = computeSmoothingFactor(delta, TARGET_FOLLOW_SMOOTHING);
+      smoothedTargetPosition.lerp(targetPosition, targetLerp);
+      lookAtPosition.set(
+        targetPosition.x,
+        targetPosition.y + CAMERA_OFFSET.lookAtHeight,
+        targetPosition.z,
+      );
+      smoothedLookAtPosition.lerp(lookAtPosition, targetLerp);
+    }
 
     const desired = computeCameraDesired(
-      { x: targetPosition.x, y: targetPosition.y, z: targetPosition.z },
+      { x: smoothedTargetPosition.x, y: smoothedTargetPosition.y, z: smoothedTargetPosition.z },
       yaw.current,
       pitch.current,
       distanceRef.current,
@@ -130,31 +154,27 @@ export default function CameraRig({
     );
     desiredPosition.set(desired.x, desired.y, desired.z);
 
-    rayDirection.copy(desiredPosition).sub(targetPosition);
+    rayDirection.copy(desiredPosition).sub(smoothedTargetPosition);
     const rayDistance = rayDirection.length();
     if (rayDistance > 0.01) {
       rayDirection.normalize();
       const ray = new rapier.Ray(
-        { x: targetPosition.x, y: targetPosition.y, z: targetPosition.z },
+        { x: smoothedTargetPosition.x, y: smoothedTargetPosition.y, z: smoothedTargetPosition.z },
         { x: rayDirection.x, y: rayDirection.y, z: rayDirection.z },
       );
       const hit = world.castRay(ray, rayDistance, true);
-      if (hit && (hit as any).toi > 0.25) {
+      if (hit && hit.toi > 0.25) {
         const safeDistance = Math.max(
           CAMERA_COLLISION.minCameraDistance,
-          (hit as any).toi - CAMERA_COLLISION.minDistanceFromWall,
+          hit.toi - CAMERA_COLLISION.minDistanceFromWall,
         );
-        desiredPosition.copy(targetPosition).add(rayDirection.multiplyScalar(safeDistance));
+        desiredPosition.copy(smoothedTargetPosition).add(rayDirection.multiplyScalar(safeDistance));
       }
     }
 
     const lerpFactor = computeSmoothingFactor(delta, CAMERA_FOLLOW.smoothing);
     camera.position.lerp(desiredPosition, lerpFactor);
-    camera.lookAt(
-      targetPosition.x,
-      targetPosition.y + CAMERA_OFFSET.lookAtHeight,
-      targetPosition.z,
-    );
+    camera.lookAt(smoothedLookAtPosition);
   });
 
   return null;
