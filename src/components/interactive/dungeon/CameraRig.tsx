@@ -22,6 +22,10 @@ const smoothedLookAtPosition = new Vector3();
 const desiredPosition = new Vector3();
 const rayDirection = new Vector3();
 const TARGET_FOLLOW_SMOOTHING = 0.005;
+const FLOOR_PROBE_HEIGHT = 8;
+const FLOOR_PROBE_DISTANCE = 32;
+const CAMERA_FLOOR_CLEARANCE = 0.45;
+const CAMERA_MIN_Y = 0.35;
 
 export default function CameraRig({
   targetBody,
@@ -170,6 +174,25 @@ export default function CameraRig({
         );
         desiredPosition.copy(smoothedTargetPosition).add(rayDirection.multiplyScalar(safeDistance));
       }
+    }
+
+    // Keep camera above any floor/collider under its target x/z to avoid dipping below room floors.
+    const probeOriginY = Math.max(
+      desiredPosition.y + FLOOR_PROBE_HEIGHT,
+      smoothedTargetPosition.y + FLOOR_PROBE_HEIGHT,
+    );
+    const floorProbe = new rapier.Ray(
+      { x: desiredPosition.x, y: probeOriginY, z: desiredPosition.z },
+      { x: 0, y: -1, z: 0 },
+    );
+    const floorHit = world.castRay(floorProbe, FLOOR_PROBE_DISTANCE, true);
+    let minAllowedY = CAMERA_MIN_Y;
+    if (floorHit) {
+      const floorY = probeOriginY - floorHit.toi;
+      minAllowedY = Math.max(minAllowedY, floorY + CAMERA_FLOOR_CLEARANCE);
+    }
+    if (desiredPosition.y < minAllowedY) {
+      desiredPosition.y = minAllowedY;
     }
 
     const lerpFactor = computeSmoothingFactor(delta, CAMERA_FOLLOW.smoothing);
