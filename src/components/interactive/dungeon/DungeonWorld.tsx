@@ -79,6 +79,7 @@ const FLOOR_NODES = [
 
 const SHOW_FLOOR_GRID = false;
 const FLOOR_OVERLAY = true;
+const SHOW_WALL_NODE_PATCHES = true;
 const FLOOR_TILES = {
   primary: 'Floor_Squares',
   accent: 'Floor_Standard',
@@ -202,6 +203,18 @@ const COLUMN_KIT_VARIANTS = [
 
 const SUPPORT_KIT_VARIANTS = ['Support_Left', 'Support_Right', 'Support_Center', 'Support_Tall'] as const;
 const FLAG_KIT_VARIANTS = ['Flag_Wall', 'Flag_Wall2', 'Flag_GothicArch', 'Flag_RoundArch'] as const;
+const WALL_PATCH_NODES = [
+  'Wall',
+  'Wall_Overgrown',
+  'Wall_Broken',
+  'Wall_Half',
+  'Wall_Hole',
+  'Wall_ArchGothic',
+  'Wall_ArchRound',
+  'Doors_GothicArch_Covered',
+  'Window_Bars',
+  'Column_Square',
+] as const;
 
 function hashText(value: string) {
   let hash = 2166136261;
@@ -547,12 +560,14 @@ export default function DungeonWorld() {
       id: string;
       name: string;
       position: Vec3;
+      rotationX: number;
       rotationY: number;
       scale: number;
     };
 
     type NodeMetrics = {
       baseY: number;
+      rotationX: number;
       spanX: number;
       spanZ: number;
     };
@@ -571,19 +586,36 @@ export default function DungeonWorld() {
       if (metricCache.has(name)) return metricCache.get(name)!;
       const source = nodes[name];
       if (!source) {
-        const fallback = { baseY: 0, spanX: 4, spanZ: 1 };
+        const fallback = { baseY: 0, rotationX: -Math.PI / 2, spanX: 4, spanZ: 1 };
         metricCache.set(name, fallback);
         return fallback;
       }
       const probe = source.clone(true);
-      probe.position.set(0, 0, 0);
-      probe.rotation.set(-Math.PI / 2, 0, 0);
-      probe.updateMatrixWorld(true);
-      const box = new Box3().setFromObject(probe);
+      const candidateRotations = [0, -Math.PI / 2];
+      let bestRotationX = -Math.PI / 2;
+      let bestBox: Box3 | null = null;
+      let bestHeight = -Infinity;
+      for (let i = 0; i < candidateRotations.length; i += 1) {
+        const rotationX = candidateRotations[i];
+        probe.position.set(0, 0, 0);
+        probe.rotation.set(rotationX, 0, 0);
+        probe.updateMatrixWorld(true);
+        const box = new Box3().setFromObject(probe);
+        const size = new Vector3();
+        box.getSize(size);
+        if (size.y > bestHeight) {
+          bestHeight = size.y;
+          bestRotationX = rotationX;
+          bestBox = box;
+        }
+      }
+
+      const box = bestBox ?? new Box3();
       const size = new Vector3();
       box.getSize(size);
       const metrics = {
         baseY: -box.min.y + 0.01,
+        rotationX: bestRotationX,
         spanX: Math.max(1, size.x || 1),
         spanZ: Math.max(1, size.z || 1),
       };
@@ -622,6 +654,7 @@ export default function DungeonWorld() {
         id: `${idPrefix}-${placementCounter++}`,
         name,
         position: [position[0], metrics.baseY + yOffset, position[2]],
+        rotationX: metrics.rotationX,
         rotationY,
         scale,
       });
@@ -756,6 +789,45 @@ export default function DungeonWorld() {
     return placements;
   }, [nodes, pieces]);
 
+  const wallNodePatches = useMemo(() => {
+    if (!nodes || !SHOW_WALL_NODE_PATCHES) return [];
+    return WALL_PATCH_NODES.filter((name) => Boolean(nodes[name])).map((name, index) => {
+      const source = nodes[name];
+      const probe = source.clone(true);
+      const candidateRotations = [0, -Math.PI / 2];
+      let bestRotationX = -Math.PI / 2;
+      let bestSpan = 4;
+      let baseY = 0;
+
+      for (let i = 0; i < candidateRotations.length; i += 1) {
+        const rotationX = candidateRotations[i];
+        probe.position.set(0, 0, 0);
+        probe.rotation.set(rotationX, 0, 0);
+        probe.updateMatrixWorld(true);
+        const box = new Box3().setFromObject(probe);
+        const size = new Vector3();
+        box.getSize(size);
+        if (size.y > bestSpan) {
+          bestRotationX = rotationX;
+          bestSpan = Math.max(size.x || 1, size.z || 1);
+          baseY = -box.min.y + 0.02;
+        }
+      }
+
+      const targetSpan = 5.5;
+      const scale = bestSpan > 0 ? targetSpan / bestSpan : 1;
+      const col = index % 5;
+      const row = Math.floor(index / 5);
+      return {
+        id: `patch-${name}`,
+        name,
+        position: [-58 + col * 12, baseY, -92 - row * 12] as Vec3,
+        rotationX: bestRotationX,
+        scale,
+      };
+    });
+  }, [nodes]);
+
   return (
     <group name="dungeon-world">
       {pieces.map((piece) => (
@@ -765,7 +837,7 @@ export default function DungeonWorld() {
           castShadow={false}
           receiveShadow={piece.id.includes('floor')}
           material={piece.material}
-          visible={piece.visible !== false && !piece.id.includes('-wall')}
+          visible={piece.visible !== false && (piece.id.includes('floor') || piece.id.includes('ceiling'))}
         >
           <boxGeometry args={piece.size} />
         </mesh>
@@ -819,10 +891,21 @@ export default function DungeonWorld() {
           }
         });
         placed.position.set(decor.position[0], decor.position[1], decor.position[2]);
-        placed.rotation.set(-Math.PI / 2, decor.rotationY, 0);
+        placed.rotation.set(decor.rotationX, decor.rotationY, 0);
         placed.scale.setScalar(decor.scale);
         placed.updateMatrixWorld(true);
         return <primitive key={`decor-${decor.id}`} object={placed} />;
+      })}
+
+      {wallNodePatches.map((patch) => {
+        const source = nodes?.[patch.name];
+        if (!source) return null;
+        const placed = source.clone(true);
+        placed.position.set(patch.position[0], patch.position[1], patch.position[2]);
+        placed.rotation.set(patch.rotationX, 0, 0);
+        placed.scale.setScalar(patch.scale);
+        placed.updateMatrixWorld(true);
+        return <primitive key={patch.id} object={placed} />;
       })}
 
       <RigidBody type="fixed" colliders={false} name="dungeon-colliders">
