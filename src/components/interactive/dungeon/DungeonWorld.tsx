@@ -26,7 +26,9 @@ const WALL_THICKNESS = 0.8;
 const FLOOR_THICKNESS = 0.45;
 const CEILING_THICKNESS = 0.35;
 const DOOR_WIDTH = 6;
-const FLOOR_TILE_OVERLAP = 0.06;
+const FLOOR_TILE_OVERLAP = 0.015;
+const UNDERFLOOR_SIZE: Vec3 = [220, 0.2, 220];
+const UNDERFLOOR_Y = -0.2;
 
 type BoxPiece = {
   id: string;
@@ -51,6 +53,11 @@ const ceilingMaterial = new MeshStandardMaterial({
   roughness: 0.98,
   metalness: 0.02,
 });
+const underfloorMaterial = new MeshStandardMaterial({
+  color: '#6a6456',
+  roughness: 0.97,
+  metalness: 0.01,
+});
 
 const FLOOR_NODES = [
   'Floor_Diamond',
@@ -65,9 +72,8 @@ const SHOW_FLOOR_GRID = false;
 const FLOOR_OVERLAY = true;
 const FLOOR_TILES = {
   primary: 'Floor_Squares',
-  accent: 'Floor_Diamond',
+  accent: 'Floor_Standard',
   filler: 'Floor_Standard',
-  large: 'Floor_SquareLarge',
 } as const;
 
 function buildWallSegments(
@@ -302,6 +308,16 @@ export default function DungeonWorld() {
     const baseStep = Math.max(baseSize.x || 1, baseSize.z || 1);
     const step = baseStep * (1 - FLOOR_TILE_OVERLAP);
 
+    const isCompatibleFootprint = (name: string) => {
+      const size = getTileSize(name);
+      if (!size || baseStep <= 0) return false;
+      const footprint = Math.max(size.x || 0, size.z || 0);
+      const ratio = footprint / baseStep;
+      return ratio >= 0.88 && ratio <= 1.12;
+    };
+
+    const safeTile = (name: string) => (isCompatibleFootprint(name) ? name : FLOOR_TILES.primary);
+
     const pickTile = (
       gx: number,
       gz: number,
@@ -324,24 +340,28 @@ export default function DungeonWorld() {
       if (kind === 'corridor') {
         const stripeOnX = gxCount <= gzCount;
         const isStripe = stripeOnX ? gx === centerX : gz === centerZ;
-        if (isStripe) return FLOOR_TILES.accent;
-        if (edge) return FLOOR_TILES.filler;
-        if (onAxis && checker) return FLOOR_TILES.filler;
-        return FLOOR_TILES.primary;
+        if (isStripe) return safeTile(FLOOR_TILES.accent);
+        if (edge) return safeTile(FLOOR_TILES.filler);
+        if (onAxis && checker) return safeTile(FLOOR_TILES.filler);
+        return safeTile(FLOOR_TILES.primary);
       }
 
-      if (isCenter) return FLOOR_TILES.large;
-      if (edge) return FLOOR_TILES.accent;
-      if (innerEdge && checker) return FLOOR_TILES.filler;
-      if (ring === 2) return FLOOR_TILES.accent;
-      if (ring === 3 && checker) return FLOOR_TILES.filler;
-      if (ring === 4 && onDiagonal) return FLOOR_TILES.accent;
-      if (ring === 5 && onAxis && checker) return FLOOR_TILES.filler;
-      if (ring === 6 && checker) return FLOOR_TILES.accent;
-      return FLOOR_TILES.primary;
+      if (isCenter) return safeTile(FLOOR_TILES.accent);
+      if (edge) return safeTile(FLOOR_TILES.accent);
+      if (innerEdge && checker) return safeTile(FLOOR_TILES.filler);
+      if (ring === 2) return safeTile(FLOOR_TILES.accent);
+      if (ring === 3 && checker) return safeTile(FLOOR_TILES.filler);
+      if (ring === 4 && onDiagonal) return safeTile(FLOOR_TILES.accent);
+      if (ring === 5 && onAxis && checker) return safeTile(FLOOR_TILES.filler);
+      if (ring === 6 && checker) return safeTile(FLOOR_TILES.accent);
+      return safeTile(FLOOR_TILES.primary);
     };
 
-    const buildArea = (center: Vec3, size: { w: number; d: number }, kind: 'room' | 'corridor') => {
+    const buildArea = (
+      center: Vec3,
+      size: { w: number; d: number },
+      kind: 'room' | 'corridor',
+    ) => {
       const [cx, cy, cz] = center;
       const halfW = size.w / 2;
       const halfD = size.d / 2;
@@ -414,6 +434,10 @@ export default function DungeonWorld() {
           })}
         </group>
       ) : null}
+
+      <mesh position={[0, UNDERFLOOR_Y, 0]} castShadow={false} receiveShadow material={underfloorMaterial}>
+        <boxGeometry args={UNDERFLOOR_SIZE} />
+      </mesh>
 
       {FLOOR_OVERLAY
         ? floorPattern.map((tile) => {
