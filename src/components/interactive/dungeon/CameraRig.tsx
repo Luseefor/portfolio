@@ -46,6 +46,7 @@ export default function CameraRig({
   const distanceRef = useRef(CAMERA_DISTANCE.default);
   const lastClientRef = useRef<{ x: number; y: number } | null>(null);
   const initializedRef = useRef(false);
+  const lastFloorYRef = useRef(CAMERA_MIN_Y);
 
   const yaw = yawRef ?? internalYaw;
   const pitch = pitchRef ?? internalPitch;
@@ -177,29 +178,38 @@ export default function CameraRig({
       }
     }
 
-    // Use floor collider height + visual tile lift so lifted tiles remain the final camera floor boundary.
     const probeOriginY = smoothedTargetPosition.y + FLOOR_PROBE_HEIGHT;
-    const floorProbe = new rapier.Ray(
-      { x: desiredPosition.x, y: probeOriginY, z: desiredPosition.z },
-      { x: 0, y: -1, z: 0 },
+    const probeFloorAt = (x: number, z: number) => {
+      const floorProbe = new rapier.Ray({ x, y: probeOriginY, z }, { x: 0, y: -1, z: 0 });
+      const floorHit = world.castRay(floorProbe, FLOOR_PROBE_DISTANCE, true);
+      if (!floorHit) return null;
+      return probeOriginY - floorHit.toi;
+    };
+
+    const floorAtDesired = probeFloorAt(desiredPosition.x, desiredPosition.z);
+    const floorAtTarget = probeFloorAt(smoothedTargetPosition.x, smoothedTargetPosition.z);
+    const floorY =
+      floorAtDesired != null && floorAtTarget != null
+        ? Math.max(floorAtDesired, floorAtTarget)
+        : floorAtDesired ?? floorAtTarget ?? lastFloorYRef.current;
+    lastFloorYRef.current = floorY;
+
+    const visualLift = Math.max(
+      getDungeonVisualLiftAt(desiredPosition.x, desiredPosition.z),
+      getDungeonVisualLiftAt(smoothedTargetPosition.x, smoothedTargetPosition.z),
     );
-    const floorHit = world.castRay(floorProbe, FLOOR_PROBE_DISTANCE, true);
-    const visualLift = getDungeonVisualLiftAt(desiredPosition.x, desiredPosition.z);
-    let minAllowedY = CAMERA_MIN_Y + visualLift;
-    if (floorHit) {
-      const floorY = probeOriginY - floorHit.toi;
-      minAllowedY = Math.max(minAllowedY, floorY + visualLift + CAMERA_FLOOR_CLEARANCE);
-    } else {
-      // Fallback when ray misses: infer local floor from player center and still respect tile lift.
-      const inferredFloorY = smoothedTargetPosition.y - 2;
-      minAllowedY = Math.max(minAllowedY, inferredFloorY + visualLift + CAMERA_FLOOR_CLEARANCE);
-    }
+    let minAllowedY = Math.max(CAMERA_MIN_Y, floorY + visualLift + CAMERA_FLOOR_CLEARANCE);
+    // Ensure we never sink far below the player anchor even if a probe misses.
+    minAllowedY = Math.max(minAllowedY, smoothedTargetPosition.y - 0.15);
     if (desiredPosition.y < minAllowedY) {
       desiredPosition.y = minAllowedY;
     }
 
     const lerpFactor = computeSmoothingFactor(delta, CAMERA_FOLLOW.smoothing);
     camera.position.lerp(desiredPosition, lerpFactor);
+    if (camera.position.y < minAllowedY) {
+      camera.position.lerp(desiredPosition, 1);
+    }
     camera.lookAt(smoothedLookAtPosition);
   });
 
