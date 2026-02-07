@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, type RapierRigidBody } from '@react-three/rapier';
-import { MathUtils, Quaternion, Vector3 } from 'three';
+import { Group, MathUtils, Quaternion, Vector3 } from 'three';
 import { Suspense } from 'react';
 import PlayerCharacter, { type PlayerAnimation } from './PlayerCharacter';
 import { useDungeonInput } from '@/lib/dungeonInput';
+import { getDungeonVisualLiftAt } from '@/lib/dungeonVisualLift';
 
 const WALK_SPEED = 2.4;
 const RUN_SPEED = 6.2;
@@ -16,6 +17,8 @@ const GRAVITY = 24;
 const START_POSITION: [number, number, number] = [0, 2, 0];
 const STEP_INTERVAL_WALK = 0.6;
 const STEP_INTERVAL_RUN = 0.42;
+const PLAYER_LIFT_UP_SMOOTHING = 18;
+const PLAYER_LIFT_DOWN_SMOOTHING = 8;
 
 const forward = new Vector3();
 const right = new Vector3();
@@ -48,6 +51,8 @@ export default function PlayerController({
   const rollTimer = useRef(0);
   const stepTimer = useRef(0);
   const stepIndex = useRef(0);
+  const characterRootRef = useRef<Group | null>(null);
+  const visualLiftRef = useRef(0);
   const stepAudioRef = useRef<HTMLAudioElement[]>([]);
   const jumpAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -132,6 +137,15 @@ export default function PlayerController({
 
     // Keep grounding simple and deterministic for this tilemap.
     const grounded = Math.abs(linvel.y) < 0.2 && position.y <= 2.05;
+
+    const targetVisualLift = grounded ? getDungeonVisualLiftAt(position.x, position.z) : 0;
+    const liftSmoothing =
+      targetVisualLift >= visualLiftRef.current ? PLAYER_LIFT_UP_SMOOTHING : PLAYER_LIFT_DOWN_SMOOTHING;
+    const liftLerp = 1 - Math.exp(-liftSmoothing * delta);
+    visualLiftRef.current = MathUtils.lerp(visualLiftRef.current, targetVisualLift, liftLerp);
+    if (characterRootRef.current) {
+      characterRootRef.current.position.y = visualLiftRef.current;
+    }
     if (grounded) groundedTimer.current = 0;
     else groundedTimer.current += delta;
 
@@ -261,7 +275,7 @@ export default function PlayerController({
       angularDamping={0.2}
     >
       <CapsuleCollider args={[0.8, 0.35]} position={[0, 1.1, 0]} />
-      <group>
+      <group ref={characterRootRef}>
         <Suspense
           fallback={
             <mesh position={[0, 1.1, 0]}>

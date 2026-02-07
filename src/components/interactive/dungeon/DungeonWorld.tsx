@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Box3, MeshStandardMaterial, Vector3, type Object3D } from 'three';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { useGLTF } from '@react-three/drei';
+import { clearDungeonVisualLiftTiles, setDungeonVisualLiftTiles } from '@/lib/dungeonVisualLift';
 
 type Vec3 = [number, number, number];
 
@@ -75,6 +76,7 @@ const FLOOR_TILES = {
   accent: 'Floor_Standard',
   filler: 'Floor_Standard',
 } as const;
+const LIFTED_TILE_VISUAL_HEIGHT = 0.23;
 
 const ROOM_TILE_THEMES: Record<
   string,
@@ -321,12 +323,13 @@ export default function DungeonWorld() {
     if (!nodes || !FLOOR_OVERLAY) return [];
 
     const resolveNode = (name: string) => nodes?.[name] ?? null;
-    const sizeCache = new Map<string, Vector3>();
+    const footprintCache = new Map<string, number>();
+    const topCache = new Map<string, number>();
 
-    const getTileSize = (name: string) => {
-      if (sizeCache.has(name)) return sizeCache.get(name)!;
+    const getTileFootprint = (name: string) => {
+      if (footprintCache.has(name)) return footprintCache.get(name)!;
       const node = resolveNode(name);
-      if (!node) return null;
+      if (!node) return 0;
       const clone = node.clone(true);
       clone.position.set(0, 0, 0);
       clone.rotation.set(-Math.PI / 2, 0, 0);
@@ -334,19 +337,33 @@ export default function DungeonWorld() {
       const box = new Box3().setFromObject(clone);
       const size = new Vector3();
       box.getSize(size);
-      sizeCache.set(name, size);
-      return size;
+      const footprint = Math.max(size.x || 0, size.z || 0);
+      footprintCache.set(name, footprint);
+      return footprint;
     };
 
-    const baseSize = getTileSize(FLOOR_TILES.primary);
-    if (!baseSize) return [];
-    const baseStep = Math.max(baseSize.x || 1, baseSize.z || 1);
+    const getTileTop = (name: string) => {
+      if (topCache.has(name)) return topCache.get(name)!;
+      const node = resolveNode(name);
+      if (!node) return 0;
+      const clone = node.clone(true);
+      clone.position.set(0, 0, 0);
+      clone.rotation.set(-Math.PI / 2, 0, 0);
+      clone.updateMatrixWorld(true);
+      const box = new Box3().setFromObject(clone);
+      const top = box.max.y;
+      topCache.set(name, top);
+      return top;
+    };
+
+    const baseFootprint = getTileFootprint(FLOOR_TILES.primary);
+    if (baseFootprint <= 0) return [];
+    const baseStep = baseFootprint;
     const step = baseStep * (1 - FLOOR_TILE_OVERLAP);
 
     const isCompatibleFootprint = (name: string) => {
-      const size = getTileSize(name);
-      if (!size || baseStep <= 0) return false;
-      const footprint = Math.max(size.x || 0, size.z || 0);
+      const footprint = getTileFootprint(name);
+      if (!footprint || baseStep <= 0) return false;
       const ratio = footprint / baseStep;
       return ratio >= 0.88 && ratio <= 1.12;
     };
@@ -402,20 +419,29 @@ export default function DungeonWorld() {
       const [cx, cy, cz] = center;
       const halfW = size.w / 2;
       const halfD = size.d / 2;
-      const tiles: { id: string; name: string; position: Vec3 }[] = [];
+      const tiles: { id: string; name: string; position: Vec3; lift: number; halfSize: number }[] = [];
       const gxCount = Math.ceil(size.w / step);
       const gzCount = Math.ceil(size.d / step);
       const selectedTheme =
         ROOM_TILE_THEMES[themeName] ??
         (kind === 'corridor' ? ROOM_TILE_THEMES.corridor : FLOOR_TILES);
+      const normalTop = Math.min(
+        getTileTop(safeTile(selectedTheme.primary)),
+        getTileTop(safeTile(selectedTheme.filler)),
+        getTileTop(safeTile(selectedTheme.accent)),
+      );
       for (let gx = 0; gx < gxCount; gx += 1) {
         for (let gz = 0; gz < gzCount; gz += 1) {
           const x = -halfW + step / 2 + gx * step;
           const z = -halfD + step / 2 + gz * step;
+          const picked = pickTile(gx, gz, gxCount, gzCount, kind, selectedTheme);
+          const liftFromMesh = Math.max(0, getTileTop(picked) - normalTop);
           tiles.push({
             id: `${center[0]}-${center[2]}-${gx}-${gz}`,
-            name: pickTile(gx, gz, gxCount, gzCount, kind, selectedTheme),
+            name: picked,
             position: [cx + x, cy + 0.02, cz + z],
+            lift: Math.min(LIFTED_TILE_VISUAL_HEIGHT, liftFromMesh),
+            halfSize: step * 0.5,
           });
         }
       }
@@ -439,6 +465,17 @@ export default function DungeonWorld() {
       ...corridors.flatMap((corr) => buildArea(corr.center, corr.size, 'corridor', corr.id)),
     ];
   }, [nodes]);
+
+  useEffect(() => {
+    const surfaceTiles = floorPattern.map((tile) => ({
+        x: tile.position[0],
+        z: tile.position[2],
+        halfSize: tile.halfSize * 0.95,
+        lift: tile.lift,
+      }));
+    setDungeonVisualLiftTiles(surfaceTiles);
+    return () => clearDungeonVisualLiftTiles();
+  }, [floorPattern]);
 
   return (
     <group name="dungeon-world">
