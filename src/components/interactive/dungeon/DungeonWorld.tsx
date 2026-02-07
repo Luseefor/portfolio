@@ -1,7 +1,7 @@
 'use client';
 
-import { Fragment, useMemo } from 'react';
-import { Box3, MeshStandardMaterial, Vector3 } from 'three';
+import { useMemo } from 'react';
+import { Box3, MeshStandardMaterial, Vector3, type Object3D } from 'three';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { useGLTF } from '@react-three/drei';
 
@@ -26,6 +26,7 @@ const WALL_THICKNESS = 0.8;
 const FLOOR_THICKNESS = 0.45;
 const CEILING_THICKNESS = 0.35;
 const DOOR_WIDTH = 6;
+const FLOOR_TILE_OVERLAP = 0.06;
 
 type BoxPiece = {
   id: string;
@@ -65,10 +66,8 @@ const FLOOR_OVERLAY = true;
 const FLOOR_TILES = {
   primary: 'Floor_Squares',
   accent: 'Floor_Diamond',
-  broken: 'Floor_Hole_Straight',
   filler: 'Floor_Standard',
   large: 'Floor_SquareLarge',
-  half: 'Floor_Standard_Half',
 } as const;
 
 function buildWallSegments(
@@ -158,7 +157,6 @@ function buildRoom(spec: RoomSpec): BoxPiece[] {
       size: [size.w, FLOOR_THICKNESS, size.d],
       position: [cx, cy - FLOOR_THICKNESS / 2, cz],
       material: floorMaterial,
-      visible: false,
     },
     {
       id: `${id}-ceiling`,
@@ -187,7 +185,6 @@ function buildCorridor(id: string, center: Vec3, length: number, width: number, 
     size,
     position: [cx, cy - FLOOR_THICKNESS / 2, cz],
     material: floorMaterial,
-    visible: false,
   });
   pieces.push({
     id: `${id}-ceiling`,
@@ -236,7 +233,9 @@ function buildCorridor(id: string, center: Vec3, length: number, width: number, 
 }
 
 export default function DungeonWorld() {
-  const { nodes } = useGLTF('/models/dungeon/structure/Modular Ruins Pack.glb') as any;
+  const { nodes } = useGLTF('/models/dungeon/structure/Modular Ruins Pack.glb') as {
+    nodes: Record<string, Object3D>;
+  };
   const pieces = useMemo(() => {
     const rooms: RoomSpec[] = [
       {
@@ -281,8 +280,12 @@ export default function DungeonWorld() {
     if (!nodes || !FLOOR_OVERLAY) return [];
 
     const resolveNode = (name: string) => nodes?.[name] ?? null;
+    const sizeCache = new Map<string, Vector3>();
 
-    const getTileSize = (node: any) => {
+    const getTileSize = (name: string) => {
+      if (sizeCache.has(name)) return sizeCache.get(name)!;
+      const node = resolveNode(name);
+      if (!node) return null;
       const clone = node.clone(true);
       clone.position.set(0, 0, 0);
       clone.rotation.set(-Math.PI / 2, 0, 0);
@@ -290,38 +293,68 @@ export default function DungeonWorld() {
       const box = new Box3().setFromObject(clone);
       const size = new Vector3();
       box.getSize(size);
+      sizeCache.set(name, size);
       return size;
     };
 
-    const baseNode = resolveNode(FLOOR_TILES.primary);
-    if (!baseNode) return [];
-    const baseSize = getTileSize(baseNode);
-    const step = Math.max(3, Math.min(baseSize.x || 4, baseSize.z || 4));
+    const baseSize = getTileSize(FLOOR_TILES.primary);
+    if (!baseSize) return [];
+    const baseStep = Math.max(baseSize.x || 1, baseSize.z || 1);
+    const step = baseStep * (1 - FLOOR_TILE_OVERLAP);
 
-    const pickTile = (gx: number, gz: number) => {
-      if ((gx * 7 + gz * 11) % 23 === 0) return FLOOR_TILES.broken;
-      if ((gx + gz) % 6 === 0) return FLOOR_TILES.large;
-      if ((gx + gz) % 2 === 0) return FLOOR_TILES.accent;
-      if ((gx * 3 + gz * 5) % 7 === 0) return FLOOR_TILES.half;
+    const pickTile = (
+      gx: number,
+      gz: number,
+      gxCount: number,
+      gzCount: number,
+      kind: 'room' | 'corridor',
+    ) => {
+      const edge = gx === 0 || gz === 0 || gx === gxCount - 1 || gz === gzCount - 1;
+      const innerEdge = gx === 1 || gz === 1 || gx === gxCount - 2 || gz === gzCount - 2;
+      const centerX = Math.floor(gxCount / 2);
+      const centerZ = Math.floor(gzCount / 2);
+      const distX = Math.abs(gx - centerX);
+      const distZ = Math.abs(gz - centerZ);
+      const ring = Math.max(distX, distZ);
+      const isCenter = distX <= 1 && distZ <= 1;
+      const checker = (gx + gz) % 2 === 0;
+      const onAxis = gx === centerX || gz === centerZ;
+      const onDiagonal = distX === distZ;
+
+      if (kind === 'corridor') {
+        const stripeOnX = gxCount <= gzCount;
+        const isStripe = stripeOnX ? gx === centerX : gz === centerZ;
+        if (isStripe) return FLOOR_TILES.accent;
+        if (edge) return FLOOR_TILES.filler;
+        if (onAxis && checker) return FLOOR_TILES.filler;
+        return FLOOR_TILES.primary;
+      }
+
+      if (isCenter) return FLOOR_TILES.large;
+      if (edge) return FLOOR_TILES.accent;
+      if (innerEdge && checker) return FLOOR_TILES.filler;
+      if (ring === 2) return FLOOR_TILES.accent;
+      if (ring === 3 && checker) return FLOOR_TILES.filler;
+      if (ring === 4 && onDiagonal) return FLOOR_TILES.accent;
+      if (ring === 5 && onAxis && checker) return FLOOR_TILES.filler;
+      if (ring === 6 && checker) return FLOOR_TILES.accent;
       return FLOOR_TILES.primary;
     };
 
-    const buildArea = (center: Vec3, size: { w: number; d: number }) => {
+    const buildArea = (center: Vec3, size: { w: number; d: number }, kind: 'room' | 'corridor') => {
       const [cx, cy, cz] = center;
       const halfW = size.w / 2;
       const halfD = size.d / 2;
       const tiles: { id: string; name: string; position: Vec3 }[] = [];
       const gxCount = Math.ceil(size.w / step);
       const gzCount = Math.ceil(size.d / step);
-      const startX = -halfW + step / 2;
-      const startZ = -halfD + step / 2;
       for (let gx = 0; gx < gxCount; gx += 1) {
         for (let gz = 0; gz < gzCount; gz += 1) {
-          const x = startX + gx * step;
-          const z = startZ + gz * step;
+          const x = -halfW + step / 2 + gx * step;
+          const z = -halfD + step / 2 + gz * step;
           tiles.push({
             id: `${center[0]}-${center[2]}-${gx}-${gz}`,
-            name: pickTile(gx, gz),
+            name: pickTile(gx, gz, gxCount, gzCount, kind),
             position: [cx + x, cy + 0.02, cz + z],
           });
         }
@@ -342,8 +375,8 @@ export default function DungeonWorld() {
     ];
 
     return [
-      ...rooms.flatMap((room) => buildArea(room.center, room.size)),
-      ...corridors.flatMap((corr) => buildArea(corr.center, corr.size)),
+      ...rooms.flatMap((room) => buildArea(room.center, room.size, 'room')),
+      ...corridors.flatMap((corr) => buildArea(corr.center, corr.size, 'corridor')),
     ];
   }, [nodes]);
 
