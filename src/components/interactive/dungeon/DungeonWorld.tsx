@@ -562,7 +562,6 @@ export default function DungeonWorld() {
       position: Vec3;
       rotationX: number;
       rotationY: number;
-      scale: number;
     };
 
     type NodeMetrics = {
@@ -644,7 +643,6 @@ export default function DungeonWorld() {
       name: string | null,
       position: Vec3,
       rotationY: number,
-      scale = 1,
       yOffset = 0,
       idPrefix = 'decor',
     ) => {
@@ -656,7 +654,6 @@ export default function DungeonWorld() {
         position: [position[0], metrics.baseY + yOffset, position[2]],
         rotationX: metrics.rotationX,
         rotationY,
-        scale,
       });
     };
 
@@ -666,9 +663,9 @@ export default function DungeonWorld() {
       const columnLeft = nextFrom(columnPool, 'column');
       const columnRight = nextFrom(columnPool, 'column');
       const support = nextFrom(supportPool, 'support');
-      addPlacement(door, position, rotationY, 1, 0, 'door');
-      addPlacement(arch, position, rotationY, 1, 0, 'arch');
-      addPlacement(support, position, rotationY, 1, 0, 'support');
+      addPlacement(door, position, rotationY, 0, 'door');
+      addPlacement(arch, position, rotationY, 0, 'arch');
+      addPlacement(support, position, rotationY, 0, 'support');
       const sideOffset = DOOR_WIDTH * 0.45;
       const tangentX = Math.cos(rotationY);
       const tangentZ = -Math.sin(rotationY);
@@ -676,7 +673,6 @@ export default function DungeonWorld() {
         columnLeft,
         [position[0] - tangentX * sideOffset, position[1], position[2] - tangentZ * sideOffset],
         rotationY,
-        1,
         0,
         'column',
       );
@@ -684,7 +680,6 @@ export default function DungeonWorld() {
         columnRight,
         [position[0] + tangentX * sideOffset, position[1], position[2] + tangentZ * sideOffset],
         rotationY,
-        1,
         0,
         'column',
       );
@@ -720,10 +715,10 @@ export default function DungeonWorld() {
           nodeName = nextFrom(supportPool, 'support');
         }
 
-        addPlacement(nodeName, [x, 0, z], rotationY, 1, 0, 'wall');
+        addPlacement(nodeName, [x, 0, z], rotationY, 0, 'wall');
 
         if (flagPool.length && !piece.id.includes('corridor') && i === slots - 1 && slots > 2) {
-          addPlacement(nextFrom(flagPool, 'flag'), [x, 0, z], rotationY, 1, 1.6, 'flag');
+          addPlacement(nextFrom(flagPool, 'flag'), [x, 0, z], rotationY, 1.6, 'flag');
         }
       }
     });
@@ -768,9 +763,9 @@ export default function DungeonWorld() {
           const windowA = nextFrom(windowPool, 'window');
           const windowB = nextFrom(windowPool, 'window');
           const [posA, posB] = closedWindowOffsets[side];
-          addPlacement(windowA, posA, rotationY, 1, 0, 'window');
-          addPlacement(windowB, posB, rotationY, 1, 0, 'window');
-          addPlacement(nextFrom(flagPool, 'flag'), sideCenter(side), rotationY, 1, 1.4, 'flag');
+          addPlacement(windowA, posA, rotationY, 0, 'window');
+          addPlacement(windowB, posB, rotationY, 0, 'window');
+          addPlacement(nextFrom(flagPool, 'flag'), sideCenter(side), rotationY, 1.4, 'flag');
         }
       });
     });
@@ -814,8 +809,6 @@ export default function DungeonWorld() {
         }
       }
 
-      const targetSpan = 5.5;
-      const scale = bestSpan > 0 ? targetSpan / bestSpan : 1;
       const col = index % 5;
       const row = Math.floor(index / 5);
       return {
@@ -823,7 +816,6 @@ export default function DungeonWorld() {
         name,
         position: [-58 + col * 12, baseY, -92 - row * 12] as Vec3,
         rotationX: bestRotationX,
-        scale,
       };
     });
   }, [nodes]);
@@ -892,7 +884,6 @@ export default function DungeonWorld() {
         });
         placed.position.set(decor.position[0], decor.position[1], decor.position[2]);
         placed.rotation.set(decor.rotationX, decor.rotationY, 0);
-        placed.scale.setScalar(decor.scale);
         placed.updateMatrixWorld(true);
         return <primitive key={`decor-${decor.id}`} object={placed} />;
       })}
@@ -903,7 +894,6 @@ export default function DungeonWorld() {
         const placed = source.clone(true);
         placed.position.set(patch.position[0], patch.position[1], patch.position[2]);
         placed.rotation.set(patch.rotationX, 0, 0);
-        placed.scale.setScalar(patch.scale);
         placed.updateMatrixWorld(true);
         return <primitive key={patch.id} object={placed} />;
       })}
