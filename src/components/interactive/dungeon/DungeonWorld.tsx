@@ -76,6 +76,41 @@ const FLOOR_TILES = {
   filler: 'Floor_Standard',
 } as const;
 
+const ROOM_TILE_THEMES: Record<
+  string,
+  {
+    primary: string;
+    accent: string;
+    filler: string;
+  }
+> = {
+  'room-a': {
+    primary: 'Floor_Squares',
+    accent: 'Floor_Standard',
+    filler: 'Floor_Standard',
+  },
+  'room-b': {
+    primary: 'Floor_Standard',
+    accent: 'Floor_Squares',
+    filler: 'Floor_Standard',
+  },
+  'room-c': {
+    primary: 'Floor_Squares',
+    accent: 'Floor_Diamond',
+    filler: 'Floor_Standard',
+  },
+  'room-hidden': {
+    primary: 'Floor_Standard',
+    accent: 'Floor_Diamond',
+    filler: 'Floor_Squares',
+  },
+  corridor: {
+    primary: 'Floor_Standard',
+    accent: 'Floor_Squares',
+    filler: 'Floor_Standard',
+  },
+};
+
 function buildWallSegments(
   id: string,
   center: Vec3,
@@ -324,6 +359,7 @@ export default function DungeonWorld() {
       gxCount: number,
       gzCount: number,
       kind: 'room' | 'corridor',
+      theme: { primary: string; accent: string; filler: string },
     ) => {
       const edge = gx === 0 || gz === 0 || gx === gxCount - 1 || gz === gzCount - 1;
       const innerEdge = gx === 1 || gz === 1 || gx === gxCount - 2 || gz === gzCount - 2;
@@ -340,27 +376,28 @@ export default function DungeonWorld() {
       if (kind === 'corridor') {
         const stripeOnX = gxCount <= gzCount;
         const isStripe = stripeOnX ? gx === centerX : gz === centerZ;
-        if (isStripe) return safeTile(FLOOR_TILES.accent);
-        if (edge) return safeTile(FLOOR_TILES.filler);
-        if (onAxis && checker) return safeTile(FLOOR_TILES.filler);
-        return safeTile(FLOOR_TILES.primary);
+        if (isStripe) return safeTile(theme.accent);
+        if (edge) return safeTile(theme.filler);
+        if (onAxis && checker) return safeTile(theme.filler);
+        return safeTile(theme.primary);
       }
 
-      if (isCenter) return safeTile(FLOOR_TILES.accent);
-      if (edge) return safeTile(FLOOR_TILES.accent);
-      if (innerEdge && checker) return safeTile(FLOOR_TILES.filler);
-      if (ring === 2) return safeTile(FLOOR_TILES.accent);
-      if (ring === 3 && checker) return safeTile(FLOOR_TILES.filler);
-      if (ring === 4 && onDiagonal) return safeTile(FLOOR_TILES.accent);
-      if (ring === 5 && onAxis && checker) return safeTile(FLOOR_TILES.filler);
-      if (ring === 6 && checker) return safeTile(FLOOR_TILES.accent);
-      return safeTile(FLOOR_TILES.primary);
+      if (isCenter) return safeTile(theme.accent);
+      if (edge) return safeTile(theme.accent);
+      if (innerEdge && checker) return safeTile(theme.filler);
+      if (ring === 2) return safeTile(theme.accent);
+      if (ring === 3 && checker) return safeTile(theme.filler);
+      if (ring === 4 && onDiagonal) return safeTile(theme.accent);
+      if (ring === 5 && onAxis && checker) return safeTile(theme.filler);
+      if (ring === 6 && checker) return safeTile(theme.accent);
+      return safeTile(theme.primary);
     };
 
     const buildArea = (
       center: Vec3,
       size: { w: number; d: number },
       kind: 'room' | 'corridor',
+      themeName: string,
     ) => {
       const [cx, cy, cz] = center;
       const halfW = size.w / 2;
@@ -368,13 +405,16 @@ export default function DungeonWorld() {
       const tiles: { id: string; name: string; position: Vec3 }[] = [];
       const gxCount = Math.ceil(size.w / step);
       const gzCount = Math.ceil(size.d / step);
+      const selectedTheme =
+        ROOM_TILE_THEMES[themeName] ??
+        (kind === 'corridor' ? ROOM_TILE_THEMES.corridor : FLOOR_TILES);
       for (let gx = 0; gx < gxCount; gx += 1) {
         for (let gz = 0; gz < gzCount; gz += 1) {
           const x = -halfW + step / 2 + gx * step;
           const z = -halfD + step / 2 + gz * step;
           tiles.push({
             id: `${center[0]}-${center[2]}-${gx}-${gz}`,
-            name: pickTile(gx, gz, gxCount, gzCount, kind),
+            name: pickTile(gx, gz, gxCount, gzCount, kind, selectedTheme),
             position: [cx + x, cy + 0.02, cz + z],
           });
         }
@@ -389,14 +429,14 @@ export default function DungeonWorld() {
       { id: 'room-hidden', center: [-52, 0, 52], size: { w: 40, d: 40 }, openings: { east: true } },
     ];
     const corridors = [
-      { center: [0, 0, 26] as Vec3, size: { w: 6, d: 12 } },
-      { center: [26, 0, 52] as Vec3, size: { w: 12, d: 6 } },
-      { center: [-26, 0, 52] as Vec3, size: { w: 12, d: 6 } },
+      { id: 'corridor-a', center: [0, 0, 26] as Vec3, size: { w: 6, d: 12 } },
+      { id: 'corridor-c', center: [26, 0, 52] as Vec3, size: { w: 12, d: 6 } },
+      { id: 'corridor-hidden', center: [-26, 0, 52] as Vec3, size: { w: 12, d: 6 } },
     ];
 
     return [
-      ...rooms.flatMap((room) => buildArea(room.center, room.size, 'room')),
-      ...corridors.flatMap((corr) => buildArea(corr.center, corr.size, 'corridor')),
+      ...rooms.flatMap((room) => buildArea(room.center, room.size, 'room', room.id)),
+      ...corridors.flatMap((corr) => buildArea(corr.center, corr.size, 'corridor', corr.id)),
     ];
   }, [nodes]);
 
