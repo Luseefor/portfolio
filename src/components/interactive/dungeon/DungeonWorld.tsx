@@ -765,7 +765,7 @@ export default function DungeonWorld() {
           castShadow={false}
           receiveShadow={piece.id.includes('floor')}
           material={piece.material}
-          visible={piece.visible !== false}
+          visible={piece.visible !== false && !piece.id.includes('-wall')}
         >
           <boxGeometry args={piece.size} />
         </mesh>
