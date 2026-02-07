@@ -22,6 +22,14 @@ type RoomSpec = {
   openings?: WallOpening;
 };
 
+type CorridorSpec = {
+  id: string;
+  center: Vec3;
+  length: number;
+  width: number;
+  axis: 'x' | 'z';
+};
+
 const WALL_HEIGHT = 10.5;
 const WALL_THICKNESS = 0.8;
 const FLOOR_THICKNESS = 0.45;
@@ -112,6 +120,97 @@ const ROOM_TILE_THEMES: Record<
     filler: 'Floor_Standard',
   },
 };
+
+const ROOM_LAYOUT: RoomSpec[] = [
+  {
+    id: 'room-a',
+    center: [0, 0, 0],
+    size: { w: 40, d: 40 },
+    openings: { north: true },
+  },
+  {
+    id: 'room-b',
+    center: [0, 0, 52],
+    size: { w: 40, d: 40 },
+    openings: { south: true, east: true, west: true },
+  },
+  {
+    id: 'room-c',
+    center: [52, 0, 52],
+    size: { w: 40, d: 40 },
+    openings: { west: true },
+  },
+  {
+    id: 'room-hidden',
+    center: [-52, 0, 52],
+    size: { w: 40, d: 40 },
+    openings: { east: true },
+  },
+];
+
+const CORRIDOR_LAYOUT: CorridorSpec[] = [
+  { id: 'corridor-a', center: [0, 0, 26], length: 12, width: 6, axis: 'z' },
+  { id: 'corridor-c', center: [26, 0, 52], length: 12, width: 6, axis: 'x' },
+  { id: 'corridor-hidden', center: [-26, 0, 52], length: 12, width: 6, axis: 'x' },
+];
+
+const WALL_KIT_VARIANTS = [
+  'Wall',
+  'Wall_Overgrown',
+  'Wall_Broken',
+  'Wall_Half',
+  'Wall_Hole',
+  'Wall_Double_Broken',
+  'Wall_Double_Hole',
+  'Wall_ArchRound_Broken',
+  'Wall_ArchRound_Overgrown',
+  'Wall_ArchRound_Overgrown_Broken',
+] as const;
+
+const WINDOW_KIT_VARIANTS = [
+  'Window_Bars',
+  'Window_Bars_Overgrown',
+  'Window_Bars_Double_Overgrown',
+  'Window_Open',
+  'Window_Open_Double',
+] as const;
+
+const DOOR_KIT_VARIANTS = [
+  'Doors_GothicArch_Covered',
+  'Doors_GothicArch_L',
+  'Doors_GothicArch_R',
+  'Doors_RoundArch_Covered',
+  'Doors_RoundArch_L',
+  'Doors_RoundArch_R',
+] as const;
+
+const ARCH_KIT_VARIANTS = [
+  'Arch_Gothic',
+  'Arch_Gothic_RoundColumn',
+  'Arch_Round',
+  'Arch_Round_RoundColumn',
+  'Wall_ArchGothic',
+  'Wall_ArchRound',
+] as const;
+
+const COLUMN_KIT_VARIANTS = [
+  'Column_Round',
+  'Column_Round_Short',
+  'Column_Square',
+  'Column_BridgeSupport',
+] as const;
+
+const SUPPORT_KIT_VARIANTS = ['Support_Left', 'Support_Right', 'Support_Center', 'Support_Tall'] as const;
+const FLAG_KIT_VARIANTS = ['Flag_Wall', 'Flag_Wall2', 'Flag_GothicArch', 'Flag_RoundArch'] as const;
+
+function hashText(value: string) {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
 
 function buildWallSegments(
   id: string,
@@ -280,42 +379,11 @@ export default function DungeonWorld() {
     nodes: Record<string, Object3D>;
   };
   const pieces = useMemo(() => {
-    const rooms: RoomSpec[] = [
-      {
-        id: 'room-a',
-        center: [0, 0, 0],
-        size: { w: 40, d: 40 },
-        openings: { north: true },
-      },
-      {
-        id: 'room-b',
-        center: [0, 0, 52],
-        size: { w: 40, d: 40 },
-        openings: { south: true, east: true, west: true },
-      },
-      {
-        id: 'room-c',
-        center: [52, 0, 52],
-        size: { w: 40, d: 40 },
-        openings: { west: true },
-      },
-      {
-        id: 'room-hidden',
-        center: [-52, 0, 52],
-        size: { w: 40, d: 40 },
-        openings: { east: true },
-      },
-    ];
-
-    const corridorA = buildCorridor('corridor-a', [0, 0, 26], 12, 6, 'z');
-    const corridorC = buildCorridor('corridor-c', [26, 0, 52], 12, 6, 'x');
-    const corridorHidden = buildCorridor('corridor-hidden', [-26, 0, 52], 12, 6, 'x');
-
     return [
-      ...rooms.flatMap(buildRoom),
-      ...corridorA,
-      ...corridorC,
-      ...corridorHidden,
+      ...ROOM_LAYOUT.flatMap(buildRoom),
+      ...CORRIDOR_LAYOUT.flatMap((corridor) =>
+        buildCorridor(corridor.id, corridor.center, corridor.length, corridor.width, corridor.axis),
+      ),
     ];
   }, []);
 
@@ -448,21 +516,16 @@ export default function DungeonWorld() {
       return tiles;
     };
 
-    const rooms: RoomSpec[] = [
-      { id: 'room-a', center: [0, 0, 0], size: { w: 40, d: 40 }, openings: { north: true } },
-      { id: 'room-b', center: [0, 0, 52], size: { w: 40, d: 40 }, openings: { south: true, east: true, west: true } },
-      { id: 'room-c', center: [52, 0, 52], size: { w: 40, d: 40 }, openings: { west: true } },
-      { id: 'room-hidden', center: [-52, 0, 52], size: { w: 40, d: 40 }, openings: { east: true } },
-    ];
-    const corridors = [
-      { id: 'corridor-a', center: [0, 0, 26] as Vec3, size: { w: 6, d: 12 } },
-      { id: 'corridor-c', center: [26, 0, 52] as Vec3, size: { w: 12, d: 6 } },
-      { id: 'corridor-hidden', center: [-26, 0, 52] as Vec3, size: { w: 12, d: 6 } },
-    ];
-
     return [
-      ...rooms.flatMap((room) => buildArea(room.center, room.size, 'room', room.id)),
-      ...corridors.flatMap((corr) => buildArea(corr.center, corr.size, 'corridor', corr.id)),
+      ...ROOM_LAYOUT.flatMap((room) => buildArea(room.center, room.size, 'room', room.id)),
+      ...CORRIDOR_LAYOUT.flatMap((corridor) =>
+        buildArea(
+          corridor.center,
+          corridor.axis === 'z' ? { w: corridor.width, d: corridor.length } : { w: corridor.length, d: corridor.width },
+          'corridor',
+          corridor.id,
+        ),
+      ),
     ];
   }, [nodes]);
 
@@ -476,6 +539,222 @@ export default function DungeonWorld() {
     setDungeonVisualLiftTiles(surfaceTiles);
     return () => clearDungeonVisualLiftTiles();
   }, [floorPattern]);
+
+  const wallDecor = useMemo(() => {
+    if (!nodes) return [];
+
+    type DecorPlacement = {
+      id: string;
+      name: string;
+      position: Vec3;
+      rotationY: number;
+      scale: number;
+    };
+
+    type NodeMetrics = {
+      baseY: number;
+      spanX: number;
+      spanZ: number;
+    };
+
+    const available = (names: readonly string[]) => names.filter((name) => Boolean(nodes[name]));
+    const wallPool = available(WALL_KIT_VARIANTS);
+    const windowPool = available(WINDOW_KIT_VARIANTS);
+    const doorPool = available(DOOR_KIT_VARIANTS);
+    const archPool = available(ARCH_KIT_VARIANTS);
+    const columnPool = available(COLUMN_KIT_VARIANTS);
+    const supportPool = available(SUPPORT_KIT_VARIANTS);
+    const flagPool = available(FLAG_KIT_VARIANTS);
+
+    const metricCache = new Map<string, NodeMetrics>();
+    const getMetrics = (name: string): NodeMetrics => {
+      if (metricCache.has(name)) return metricCache.get(name)!;
+      const source = nodes[name];
+      if (!source) {
+        const fallback = { baseY: 0, spanX: 4, spanZ: 1 };
+        metricCache.set(name, fallback);
+        return fallback;
+      }
+      const probe = source.clone(true);
+      probe.position.set(0, 0, 0);
+      probe.rotation.set(-Math.PI / 2, 0, 0);
+      probe.updateMatrixWorld(true);
+      const box = new Box3().setFromObject(probe);
+      const size = new Vector3();
+      box.getSize(size);
+      const metrics = {
+        baseY: -box.min.y + 0.01,
+        spanX: Math.max(1, size.x || 1),
+        spanZ: Math.max(1, size.z || 1),
+      };
+      metricCache.set(name, metrics);
+      return metrics;
+    };
+
+    const cursor = {
+      door: 0,
+      arch: 0,
+      column: 0,
+      window: 0,
+      support: 0,
+      flag: 0,
+    };
+    const nextFrom = (pool: string[], key: keyof typeof cursor) => {
+      if (!pool.length) return null;
+      const name = pool[cursor[key] % pool.length];
+      cursor[key] += 1;
+      return name;
+    };
+
+    const placements: DecorPlacement[] = [];
+    let placementCounter = 0;
+    const addPlacement = (
+      name: string | null,
+      position: Vec3,
+      rotationY: number,
+      scale = 1,
+      yOffset = 0,
+      idPrefix = 'decor',
+    ) => {
+      if (!name || !nodes[name]) return;
+      const metrics = getMetrics(name);
+      placements.push({
+        id: `${idPrefix}-${placementCounter++}`,
+        name,
+        position: [position[0], metrics.baseY + yOffset, position[2]],
+        rotationY,
+        scale,
+      });
+    };
+
+    const placeDoorwaySet = (position: Vec3, rotationY: number) => {
+      const door = nextFrom(doorPool, 'door');
+      const arch = nextFrom(archPool, 'arch');
+      const columnLeft = nextFrom(columnPool, 'column');
+      const columnRight = nextFrom(columnPool, 'column');
+      const support = nextFrom(supportPool, 'support');
+      addPlacement(door, position, rotationY, 1, 0, 'door');
+      addPlacement(arch, position, rotationY, 1, 0, 'arch');
+      addPlacement(support, position, rotationY, 1, 0, 'support');
+      const sideOffset = DOOR_WIDTH * 0.45;
+      const tangentX = Math.cos(rotationY);
+      const tangentZ = -Math.sin(rotationY);
+      addPlacement(
+        columnLeft,
+        [position[0] - tangentX * sideOffset, position[1], position[2] - tangentZ * sideOffset],
+        rotationY,
+        1,
+        0,
+        'column',
+      );
+      addPlacement(
+        columnRight,
+        [position[0] + tangentX * sideOffset, position[1], position[2] + tangentZ * sideOffset],
+        rotationY,
+        1,
+        0,
+        'column',
+      );
+    };
+
+    const sideRotation = (side: keyof WallOpening) => {
+      if (side === 'north') return 0;
+      if (side === 'south') return Math.PI;
+      if (side === 'east') return -Math.PI / 2;
+      return Math.PI / 2;
+    };
+
+    const wallPieces = pieces.filter((piece) => piece.id.includes('-wall'));
+    const baseSpan = Math.max(3.2, getMetrics(wallPool[0] ?? 'Wall').spanX);
+    wallPieces.forEach((piece) => {
+      const axis: 'x' | 'z' = piece.size[0] >= piece.size[2] ? 'x' : 'z';
+      const length = axis === 'x' ? piece.size[0] : piece.size[2];
+      const slots = Math.max(1, Math.round(length / baseSpan));
+      const spacing = length / slots;
+      const rotationY = axis === 'x' ? 0 : Math.PI / 2;
+
+      for (let i = 0; i < slots; i += 1) {
+        const offset = -length / 2 + spacing * (i + 0.5);
+        const x = piece.position[0] + (axis === 'x' ? offset : 0);
+        const z = piece.position[2] + (axis === 'z' ? offset : 0);
+        const seed = hashText(`${piece.id}:${i}`);
+        let nodeName = wallPool.length ? wallPool[seed % wallPool.length] : null;
+
+        if (windowPool.length && slots >= 3 && i === Math.floor(slots / 2) && !piece.id.includes('corridor')) {
+          nodeName = nextFrom(windowPool, 'window');
+        }
+        if (supportPool.length && piece.id.includes('corridor') && i % 4 === 1) {
+          nodeName = nextFrom(supportPool, 'support');
+        }
+
+        addPlacement(nodeName, [x, 0, z], rotationY, 1, 0, 'wall');
+
+        if (flagPool.length && !piece.id.includes('corridor') && i === slots - 1 && slots > 2) {
+          addPlacement(nextFrom(flagPool, 'flag'), [x, 0, z], rotationY, 1, 1.6, 'flag');
+        }
+      }
+    });
+
+    ROOM_LAYOUT.forEach((room) => {
+      const [cx, cy, cz] = room.center;
+      const halfW = room.size.w / 2;
+      const halfD = room.size.d / 2;
+      const openings = room.openings ?? {};
+
+      const sideCenter = (side: keyof WallOpening): Vec3 => {
+        if (side === 'north') return [cx, cy, cz + halfD];
+        if (side === 'south') return [cx, cy, cz - halfD];
+        if (side === 'east') return [cx + halfW, cy, cz];
+        return [cx - halfW, cy, cz];
+      };
+
+      const closedWindowOffsets: Record<keyof WallOpening, Vec3[]> = {
+        north: [
+          [cx - room.size.w * 0.28, cy, cz + halfD],
+          [cx + room.size.w * 0.28, cy, cz + halfD],
+        ],
+        south: [
+          [cx - room.size.w * 0.28, cy, cz - halfD],
+          [cx + room.size.w * 0.28, cy, cz - halfD],
+        ],
+        east: [
+          [cx + halfW, cy, cz - room.size.d * 0.28],
+          [cx + halfW, cy, cz + room.size.d * 0.28],
+        ],
+        west: [
+          [cx - halfW, cy, cz - room.size.d * 0.28],
+          [cx - halfW, cy, cz + room.size.d * 0.28],
+        ],
+      };
+
+      (['north', 'south', 'east', 'west'] as const).forEach((side) => {
+        const rotationY = sideRotation(side);
+        if (openings[side]) {
+          placeDoorwaySet(sideCenter(side), rotationY);
+        } else {
+          const windowA = nextFrom(windowPool, 'window');
+          const windowB = nextFrom(windowPool, 'window');
+          const [posA, posB] = closedWindowOffsets[side];
+          addPlacement(windowA, posA, rotationY, 1, 0, 'window');
+          addPlacement(windowB, posB, rotationY, 1, 0, 'window');
+          addPlacement(nextFrom(flagPool, 'flag'), sideCenter(side), rotationY, 1, 1.4, 'flag');
+        }
+      });
+    });
+
+    CORRIDOR_LAYOUT.forEach((corridor) => {
+      const [cx, cy, cz] = corridor.center;
+      if (corridor.axis === 'z') {
+        placeDoorwaySet([cx, cy, cz + corridor.length / 2], 0);
+        placeDoorwaySet([cx, cy, cz - corridor.length / 2], Math.PI);
+      } else {
+        placeDoorwaySet([cx + corridor.length / 2, cy, cz], -Math.PI / 2);
+        placeDoorwaySet([cx - corridor.length / 2, cy, cz], Math.PI / 2);
+      }
+    });
+
+    return placements;
+  }, [nodes, pieces]);
 
   return (
     <group name="dungeon-world">
@@ -527,6 +806,24 @@ export default function DungeonWorld() {
             return <primitive key={`tile-${tile.id}`} object={placed} />;
           })
         : null}
+
+      {wallDecor.map((decor) => {
+        const node = nodes?.[decor.name];
+        if (!node) return null;
+        const placed = node.clone(true);
+        placed.traverse((child) => {
+          const mesh = child as Object3D & { isMesh?: boolean; castShadow?: boolean; receiveShadow?: boolean };
+          if (mesh.isMesh) {
+            mesh.castShadow = false;
+            mesh.receiveShadow = true;
+          }
+        });
+        placed.position.set(decor.position[0], decor.position[1], decor.position[2]);
+        placed.rotation.set(-Math.PI / 2, decor.rotationY, 0);
+        placed.scale.setScalar(decor.scale);
+        placed.updateMatrixWorld(true);
+        return <primitive key={`decor-${decor.id}`} object={placed} />;
+      })}
 
       <RigidBody type="fixed" colliders={false} name="dungeon-colliders">
         {pieces.map((piece) => (
