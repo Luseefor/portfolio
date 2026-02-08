@@ -552,14 +552,15 @@ export default function DungeonWorld() {
       rotationX: number;
       rotationY: number;
       scale: number;
+      anchor: Vec3;
     };
 
     type NodeMetrics = {
-      baseY: number;
       rotationX: number;
       width: number;
       depth: number;
       height: number;
+      anchor: Vec3;
     };
 
     const available = (names: readonly string[]) => names.filter((name) => Boolean(nodes[name]));
@@ -591,7 +592,13 @@ export default function DungeonWorld() {
       if (metricCache.has(name)) return metricCache.get(name)!;
       const source = nodes[name];
       if (!source) {
-        const fallback = { baseY: 0, rotationX: -Math.PI / 2, width: 4, depth: 1, height: 3 };
+        const fallback = {
+          rotationX: -Math.PI / 2,
+          width: 4,
+          depth: 1,
+          height: 3,
+          anchor: [0, 0, 0] as Vec3,
+        };
         metricCache.set(name, fallback);
         return fallback;
       }
@@ -618,12 +625,14 @@ export default function DungeonWorld() {
       const box = bestBox ?? new Box3();
       const size = new Vector3();
       box.getSize(size);
+      const center = new Vector3();
+      box.getCenter(center);
       const metrics = {
-        baseY: -box.min.y + 0.01,
         rotationX: bestRotationX,
         width: Math.max(0.1, Math.max(size.x || 0.1, size.z || 0.1)),
         depth: Math.max(0.1, Math.min(size.x || 0.1, size.z || 0.1)),
         height: Math.max(0.1, size.y || 0.1),
+        anchor: [-center.x, -box.min.y + 0.01, -center.z] as Vec3,
       };
       metricCache.set(name, metrics);
       return metrics;
@@ -718,10 +727,11 @@ export default function DungeonWorld() {
       placements.push({
         id: `${options.idPrefix ?? 'decor'}-${placementCounter++}`,
         name,
-        position: [position[0], position[1] + metrics.baseY * scale + (options.yOffset ?? 0), position[2]],
+        position: [position[0], position[1] + (options.yOffset ?? 0), position[2]],
         rotationX: metrics.rotationX,
         rotationY,
         scale,
+        anchor: metrics.anchor,
       });
     };
 
@@ -1009,11 +1019,18 @@ export default function DungeonWorld() {
             mesh.receiveShadow = true;
           }
         });
-        placed.position.set(decor.position[0], decor.position[1], decor.position[2]);
-        placed.rotation.set(decor.rotationX, decor.rotationY, 0);
-        placed.scale.setScalar(decor.scale);
+        placed.position.set(decor.anchor[0], decor.anchor[1], decor.anchor[2]);
         placed.updateMatrixWorld(true);
-        return <primitive key={`decor-${decor.id}`} object={placed} />;
+        return (
+          <group
+            key={`decor-${decor.id}`}
+            position={decor.position}
+            rotation={[decor.rotationX, decor.rotationY, 0]}
+            scale={[decor.scale, decor.scale, decor.scale]}
+          >
+            <primitive object={placed} />
+          </group>
+        );
       })}
 
       <RigidBody type="fixed" colliders={false} name="dungeon-colliders">
