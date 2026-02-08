@@ -203,7 +203,6 @@ const COLUMN_KIT_VARIANTS = [
 const SUPPORT_KIT_VARIANTS = ['Support_Left', 'Support_Right', 'Support_Center', 'Support_Tall'] as const;
 const FLAG_KIT_VARIANTS = ['Flag_Wall', 'Flag_Wall2', 'Flag_GothicArch', 'Flag_RoundArch'] as const;
 const PROP_NAME_HINTS = /(Torch|Candles|Crate|Barrel|Debris|Rubble|Pile|Bones|Urn|Chest|Table|Bench|Statue|Cart)/i;
-const WALL_LAYER_COUNT = 3;
 const WALL_SEGMENT_OVERLAP = 0.08;
 
 function hashText(value: string) {
@@ -630,7 +629,7 @@ export default function DungeonWorld() {
       return metrics;
     };
 
-    const referenceName =
+    const mainWallName =
       (nodes.Wall ? 'Wall' : null) ??
       wallPool[0] ??
       wallAccentPool[0] ??
@@ -639,9 +638,32 @@ export default function DungeonWorld() {
       archPool[0] ??
       columnPool[0] ??
       null;
-    if (!referenceName) return [];
-    const referenceMetrics = getMetrics(referenceName);
-    const baseScale = Math.max(0.25, WALL_HEIGHT / Math.max(0.1, referenceMetrics.height * WALL_LAYER_COUNT));
+    if (!mainWallName) return [];
+    const referenceMetrics = getMetrics(mainWallName);
+
+    const floorReferenceName =
+      (nodes[FLOOR_TILES.primary] ? FLOOR_TILES.primary : null) ??
+      (nodes.Floor_Standard ? 'Floor_Standard' : null) ??
+      (nodes.Floor_Squares ? 'Floor_Squares' : null);
+    const floorFootprint = (() => {
+      if (!floorReferenceName) return 3;
+      const node = nodes[floorReferenceName];
+      if (!node) return 3;
+      const clone = node.clone(true);
+      clone.position.set(0, 0, 0);
+      clone.rotation.set(-Math.PI / 2, 0, 0);
+      clone.updateMatrixWorld(true);
+      const box = new Box3().setFromObject(clone);
+      const size = new Vector3();
+      box.getSize(size);
+      return Math.max(0.5, Math.max(size.x || 0.5, size.z || 0.5));
+    })();
+
+    const targetWallWidth = floorFootprint;
+    const targetWallHeight = floorFootprint * 2.6;
+    const widthScale = targetWallWidth / Math.max(0.1, referenceMetrics.width);
+    const heightScale = targetWallHeight / Math.max(0.1, referenceMetrics.height);
+    const baseScale = Math.max(widthScale, heightScale);
     const wallModuleWidth = Math.max(0.1, referenceMetrics.width * baseScale);
     const wallModuleHeight = Math.max(0.1, referenceMetrics.height * baseScale);
     const wallStep = Math.max(0.1, wallModuleWidth * (1 - WALL_SEGMENT_OVERLAP));
@@ -744,7 +766,7 @@ export default function DungeonWorld() {
           const windowSlotA = Math.floor(slots * 0.33);
           const windowSlotB = Math.floor(slots * 0.66);
 
-          let nodeName: string | null = pickFrom(wallPool, `${piece.id}-wall-${row}-${slot}`);
+          let nodeName: string | null = mainWallName;
           if (edgeSlot && row === 0 && columnPool.length && slots > 2) {
             nodeName = pickFrom(columnPool, `${piece.id}-column-${slot}`);
           } else if (
@@ -754,7 +776,7 @@ export default function DungeonWorld() {
             (slot === windowSlotA || slot === windowSlotB)
           ) {
             nodeName = pickFrom(windowPool, `${piece.id}-window-${slot}`);
-          } else if (wallAccentPool.length && seed % 7 === 0) {
+          } else if (wallAccentPool.length && seed % 11 === 0) {
             nodeName = pickFrom(wallAccentPool, `${piece.id}-accent-${row}-${slot}`);
           }
 
@@ -763,13 +785,6 @@ export default function DungeonWorld() {
             idPrefix: 'wall',
           });
 
-          if (topRow && flagPool.length && slot === Math.floor(slots / 2) && seed % 5 === 0) {
-            const flag = pickFrom(flagPool, `${piece.id}-flag-${slot}`);
-            addPlacement(flag, [x, rowBase + 1.4, z], rotationY, {
-              scale: baseScale,
-              idPrefix: 'flag',
-            });
-          }
         }
       }
     });
