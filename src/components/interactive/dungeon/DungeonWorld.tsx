@@ -203,6 +203,8 @@ const COLUMN_KIT_VARIANTS = [
 const SUPPORT_KIT_VARIANTS = ['Support_Left', 'Support_Right', 'Support_Center', 'Support_Tall'] as const;
 const FLAG_KIT_VARIANTS = ['Flag_Wall', 'Flag_Wall2', 'Flag_GothicArch', 'Flag_RoundArch'] as const;
 const PROP_NAME_HINTS = /(Torch|Candles|Crate|Barrel|Debris|Rubble|Pile|Bones|Urn|Chest|Table|Bench|Statue|Cart)/i;
+const WALL_LAYER_COUNT = 3;
+const WALL_SEGMENT_OVERLAP = 0.08;
 
 function hashText(value: string) {
   let hash = 2166136261;
@@ -629,6 +631,7 @@ export default function DungeonWorld() {
     };
 
     const referenceName =
+      (nodes.Wall ? 'Wall' : null) ??
       wallPool[0] ??
       wallAccentPool[0] ??
       windowPool[0] ??
@@ -638,27 +641,10 @@ export default function DungeonWorld() {
       null;
     if (!referenceName) return [];
     const referenceMetrics = getMetrics(referenceName);
-    const targetPanelWidth = 4.2;
-    const targetPanelHeight = 3.2;
-    const baseScale = Math.min(
-      20,
-      Math.max(
-        0.3,
-        Math.max(
-          targetPanelWidth / Math.max(0.1, referenceMetrics.width),
-          targetPanelHeight / Math.max(0.1, referenceMetrics.height),
-        ),
-      ),
-    );
-
-    const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-    const scaleFor = (name: string | null, targetWidth: number, targetHeight: number, fallback = baseScale) => {
-      if (!name) return fallback;
-      const metrics = getMetrics(name);
-      const widthScale = targetWidth / Math.max(0.1, metrics.width);
-      const heightScale = targetHeight / Math.max(0.1, metrics.height);
-      return clamp(Math.min(widthScale, heightScale), baseScale * 0.45, baseScale * 2.4);
-    };
+    const baseScale = Math.max(0.25, WALL_HEIGHT / Math.max(0.1, referenceMetrics.height * WALL_LAYER_COUNT));
+    const wallModuleWidth = Math.max(0.1, referenceMetrics.width * baseScale);
+    const wallModuleHeight = Math.max(0.1, referenceMetrics.height * baseScale);
+    const wallStep = Math.max(0.1, wallModuleWidth * (1 - WALL_SEGMENT_OVERLAP));
     const pickFrom = (pool: string[], key: string) => (pool.length ? pool[hashText(key) % pool.length] : null);
 
     const placements: DecorPlacement[] = [];
@@ -699,12 +685,6 @@ export default function DungeonWorld() {
       return match ? (match[1] as keyof WallOpening) : null;
     };
 
-    const doorwayScale = (name: string | null, targetWidth: number) => {
-      if (!name) return baseScale;
-      const metrics = getMetrics(name);
-      return clamp(targetWidth / Math.max(0.1, metrics.width), baseScale * 0.7, baseScale * 1.5);
-    };
-
     const placeDoorwaySet = (id: string, position: Vec3, side: keyof WallOpening) => {
       const rotationY = sideRotation(side);
       const door = pickFrom(doorPool, `${id}-door`);
@@ -713,15 +693,15 @@ export default function DungeonWorld() {
       const columnRight = pickFrom(columnPool, `${id}-column-right`);
       const lintel = pickFrom(supportPool.length ? supportPool : archPool, `${id}-lintel`);
       addPlacement(door, position, rotationY, {
-        scale: doorwayScale(door, DOOR_WIDTH * 0.92),
+        scale: baseScale,
         idPrefix: 'door',
       });
       addPlacement(arch, position, rotationY, {
-        scale: scaleFor(arch, DOOR_WIDTH, WALL_HEIGHT * 0.5, doorwayScale(arch, DOOR_WIDTH)),
+        scale: baseScale,
         idPrefix: 'arch',
       });
       addPlacement(lintel, [position[0], position[1] + WALL_HEIGHT - 2.8, position[2]], rotationY, {
-        scale: scaleFor(lintel, DOOR_WIDTH * 0.95, 1.8, baseScale * 0.55),
+        scale: baseScale,
         idPrefix: 'lintel',
       });
       const sideOffset = DOOR_WIDTH * 0.45;
@@ -731,35 +711,33 @@ export default function DungeonWorld() {
         columnLeft,
         [position[0] - tangentX * sideOffset, position[1], position[2] - tangentZ * sideOffset],
         rotationY,
-        { scale: scaleFor(columnLeft, 1.2, WALL_HEIGHT * 0.48, baseScale), idPrefix: 'column' },
+        { scale: baseScale, idPrefix: 'column' },
       );
       addPlacement(
         columnRight,
         [position[0] + tangentX * sideOffset, position[1], position[2] + tangentZ * sideOffset],
         rotationY,
-        { scale: scaleFor(columnRight, 1.2, WALL_HEIGHT * 0.48, baseScale), idPrefix: 'column' },
+        { scale: baseScale, idPrefix: 'column' },
       );
     };
 
     const wallPieces = pieces.filter((piece) => piece.material === wallMaterial);
-    const panelSpan = Math.max(2.8, referenceMetrics.width * baseScale * 0.95);
-    const panelHeight = Math.max(2.4, referenceMetrics.height * baseScale * 0.95);
     wallPieces.forEach((piece) => {
       const axis: 'x' | 'z' = piece.size[0] >= piece.size[2] ? 'x' : 'z';
       const length = axis === 'x' ? piece.size[0] : piece.size[2];
-      const slots = Math.max(1, Math.round(length / panelSpan));
-      const rows = Math.max(1, Math.round(piece.size[1] / panelHeight));
-      const spacing = length / slots;
-      const rowHeight = piece.size[1] / rows;
+      const slots = Math.max(1, Math.ceil((length + wallStep * 0.5) / wallStep));
+      const rows = Math.max(1, Math.ceil(piece.size[1] / (wallModuleHeight * 0.95)));
+      const occupiedLength = wallModuleWidth + (slots - 1) * wallStep;
+      const startOffset = -occupiedLength / 2 + wallModuleWidth / 2;
       const side = getSideFromId(piece.id);
       const rotationY = side ? sideRotation(side) : axis === 'x' ? 0 : Math.PI / 2;
 
       for (let row = 0; row < rows; row += 1) {
         for (let slot = 0; slot < slots; slot += 1) {
-          const offset = -length / 2 + spacing * (slot + 0.5);
+          const offset = startOffset + slot * wallStep;
           const x = piece.position[0] + (axis === 'x' ? offset : 0);
           const z = piece.position[2] + (axis === 'z' ? offset : 0);
-          const rowBase = piece.position[1] - piece.size[1] / 2 + row * rowHeight;
+          const rowBase = piece.position[1] - piece.size[1] / 2 + row * wallModuleHeight * 0.96;
           const seed = hashText(`${piece.id}:${row}:${slot}`);
           const edgeSlot = slot === 0 || slot === slots - 1;
           const topRow = row === rows - 1;
@@ -780,16 +758,15 @@ export default function DungeonWorld() {
             nodeName = pickFrom(wallAccentPool, `${piece.id}-accent-${row}-${slot}`);
           }
 
-          const panelScale = scaleFor(nodeName, spacing * 0.96, rowHeight * 0.94, baseScale);
           addPlacement(nodeName, [x, rowBase, z], rotationY, {
-            scale: panelScale,
+            scale: baseScale,
             idPrefix: 'wall',
           });
 
           if (topRow && flagPool.length && slot === Math.floor(slots / 2) && seed % 5 === 0) {
             const flag = pickFrom(flagPool, `${piece.id}-flag-${slot}`);
             addPlacement(flag, [x, rowBase + 1.4, z], rotationY, {
-              scale: scaleFor(flag, spacing * 0.7, rowHeight * 0.85, baseScale * 0.7),
+              scale: baseScale,
               idPrefix: 'flag',
             });
           }
@@ -838,16 +815,16 @@ export default function DungeonWorld() {
           const windowA = pickFrom(windowPool, `${room.id}-${side}-window-a`);
           const windowB = pickFrom(windowPool, `${room.id}-${side}-window-b`);
           addPlacement(windowA, posA, rotationY, {
-            scale: scaleFor(windowA, 3.6, WALL_HEIGHT * 0.42, baseScale),
+            scale: baseScale,
             idPrefix: 'window',
           });
           addPlacement(windowB, posB, rotationY, {
-            scale: scaleFor(windowB, 3.6, WALL_HEIGHT * 0.42, baseScale),
+            scale: baseScale,
             idPrefix: 'window',
           });
           const flag = pickFrom(flagPool, `${room.id}-${side}-flag`);
           addPlacement(flag, sideCenter(side), rotationY, {
-            scale: scaleFor(flag, 2.6, WALL_HEIGHT * 0.3, baseScale * 0.8),
+            scale: baseScale,
             yOffset: 1.2,
             idPrefix: 'flag',
           });
@@ -856,7 +833,7 @@ export default function DungeonWorld() {
             sconce,
             [sideCenter(side)[0], sideCenter(side)[1] + 2.4, sideCenter(side)[2]],
             rotationY,
-            { scale: scaleFor(sconce, 1.0, 1.8, baseScale * 0.55), idPrefix: 'sconce' },
+            { scale: baseScale, idPrefix: 'sconce' },
           );
         }
       });
@@ -872,7 +849,7 @@ export default function DungeonWorld() {
       cornerColumns.forEach((position, index) => {
         const cornerColumn = pickFrom(columnPool, `${room.id}-corner-${index}`);
         addPlacement(cornerColumn, position, (index * Math.PI) / 2, {
-          scale: scaleFor(cornerColumn, 1.4, WALL_HEIGHT * 0.5, baseScale),
+          scale: baseScale,
           idPrefix: 'corner',
         });
       });
@@ -890,7 +867,7 @@ export default function DungeonWorld() {
           position,
           index % 2 === 0 ? 0 : Math.PI / 2,
           {
-            scale: scaleFor(ceilingNode, 6.2, 2.2, baseScale * 0.6),
+            scale: baseScale,
             idPrefix: 'ceiling',
           },
         );
@@ -905,7 +882,7 @@ export default function DungeonWorld() {
       propAnchors.forEach((anchor, index) => {
         const prop = pickFrom(propPool, `${room.id}-prop-${index}`);
         addPlacement(prop, anchor, ((hashText(`${room.id}-prop-rot-${index}`) % 4) * Math.PI) / 2, {
-          scale: scaleFor(prop, 2.4, 1.9, clamp(baseScale * 0.55, 0.4, baseScale)),
+          scale: baseScale,
           idPrefix: 'prop',
         });
       });
@@ -928,7 +905,7 @@ export default function DungeonWorld() {
         const z = corridor.axis === 'z' ? cz - corridor.length / 2 + t * corridor.length : cz;
         const corridorCeiling = pickFrom(supportPool.length ? supportPool : archPool, `${corridor.id}-ceiling-${i}`);
         addPlacement(corridorCeiling, [x, cy + WALL_HEIGHT - 0.7, z], 0, {
-          scale: scaleFor(corridorCeiling, corridor.width * 0.9, 1.6, baseScale * 0.5),
+          scale: baseScale,
           idPrefix: 'ceiling',
         });
       }
