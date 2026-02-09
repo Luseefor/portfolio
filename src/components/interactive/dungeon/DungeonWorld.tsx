@@ -485,6 +485,21 @@ export default function DungeonWorld() {
     return () => clearDungeonVisualLiftTiles();
   }, [floorPattern]);
 
+  const floorOverlayObjects = useMemo(() => {
+    if (!FLOOR_OVERLAY || !nodes) return [];
+    return floorPattern
+      .map((tile) => {
+        const node = nodes[tile.name];
+        if (!node) return null;
+        const placed = node.clone(true);
+        placed.position.set(tile.position[0], tile.position[1], tile.position[2]);
+        placed.rotation.set(-Math.PI / 2, 0, 0);
+        placed.updateMatrixWorld(true);
+        return { id: tile.id, object: placed };
+      })
+      .filter(Boolean) as { id: string; object: Object3D }[];
+  }, [floorPattern, nodes]);
+
   const wallDecor = useMemo(() => {
     if (!nodes) return [];
 
@@ -495,6 +510,7 @@ export default function DungeonWorld() {
       rotationX: number;
       rotationY: number;
       scale: number;
+      scaleY: number;
       anchor: Vec3;
     };
 
@@ -556,8 +572,6 @@ export default function DungeonWorld() {
     const wallSpan = bestMetrics.footprint * wallScale;
     const wallRowHeight = bestMetrics.height * wallScale;
     const wallStep = Math.max(0.1, wallSpan * (1 - WALL_SEGMENT_OVERLAP));
-    const rowStep = Math.max(0.1, wallRowHeight * (1 - WALL_VERTICAL_OVERLAP));
-
     const placements: DecorPlacement[] = [];
     let placementCounter = 0;
     const wallPieces = pieces.filter((piece) => piece.material === wallMaterial);
@@ -565,33 +579,56 @@ export default function DungeonWorld() {
       const axis: 'x' | 'z' = piece.size[0] >= piece.size[2] ? 'x' : 'z';
       const length = axis === 'x' ? piece.size[0] : piece.size[2];
       const slots = Math.max(1, Math.ceil((length + wallStep * 0.5) / wallStep));
-      const rows = Math.max(1, Math.ceil((piece.size[1] + rowStep * 0.25) / rowStep));
       const occupiedLength = wallSpan + (slots - 1) * wallStep;
       const startOffset = -occupiedLength / 2 + wallSpan / 2;
       const rotationY = axis === 'x' ? 0 : Math.PI / 2;
       const baseY = piece.position[1] - piece.size[1] / 2;
+      const scaleY = Math.max(1, (piece.size[1] / Math.max(0.1, wallRowHeight)) * (1 + WALL_VERTICAL_OVERLAP));
 
-      for (let row = 0; row < rows; row += 1) {
-        for (let slot = 0; slot < slots; slot += 1) {
-          const offset = startOffset + slot * wallStep;
-          const x = piece.position[0] + (axis === 'x' ? offset : 0);
-          const z = piece.position[2] + (axis === 'z' ? offset : 0);
-          const y = baseY + row * rowStep;
-          placements.push({
-            id: `wall-${placementCounter++}`,
-            name: wallNodeName,
-            position: [x, y, z],
-            rotationX: bestMetrics.rotationX,
-            rotationY,
-            scale: wallScale,
-            anchor: bestMetrics.anchor,
-          });
-        }
+      for (let slot = 0; slot < slots; slot += 1) {
+        const offset = startOffset + slot * wallStep;
+        const x = piece.position[0] + (axis === 'x' ? offset : 0);
+        const z = piece.position[2] + (axis === 'z' ? offset : 0);
+        placements.push({
+          id: `wall-${placementCounter++}`,
+          name: wallNodeName,
+          position: [x, baseY, z],
+          rotationX: bestMetrics.rotationX,
+          rotationY,
+          scale: wallScale,
+          scaleY,
+          anchor: bestMetrics.anchor,
+        });
       }
     });
 
     return placements;
   }, [nodes, pieces]);
+
+  const wallDecorObjects = useMemo(() => {
+    return wallDecor
+      .map((decor) => {
+        const node = nodes?.[decor.name];
+        if (!node) return null;
+        const placed = node.clone(true);
+        placed.position.set(decor.anchor[0], decor.anchor[1], decor.anchor[2]);
+        placed.traverse((child) => {
+          const mesh = child as Object3D & { isMesh?: boolean; castShadow?: boolean; receiveShadow?: boolean };
+          if (mesh.isMesh) {
+            mesh.castShadow = false;
+            mesh.receiveShadow = true;
+          }
+        });
+        return {
+          id: decor.id,
+          object: placed,
+          position: decor.position,
+          rotation: [decor.rotationX, decor.rotationY, 0] as Vec3,
+          scale: [decor.scale, decor.scaleY, decor.scale] as Vec3,
+        };
+      })
+      .filter(Boolean) as { id: string; object: Object3D; position: Vec3; rotation: Vec3; scale: Vec3 }[];
+  }, [nodes, wallDecor]);
 
   return (
     <group name="dungeon-world">
@@ -632,38 +669,17 @@ export default function DungeonWorld() {
         <boxGeometry args={UNDERFLOOR_SIZE} />
       </mesh>
 
-      {FLOOR_OVERLAY
-        ? floorPattern.map((tile) => {
-            const node = nodes?.[tile.name];
-            if (!node) return null;
-            const placed = node.clone(true);
-            placed.position.set(tile.position[0], tile.position[1], tile.position[2]);
-            placed.rotation.set(-Math.PI / 2, 0, 0);
-            placed.updateMatrixWorld(true);
-            return <primitive key={`tile-${tile.id}`} object={placed} />;
-          })
-        : null}
+      {FLOOR_OVERLAY ? floorOverlayObjects.map((tile) => <primitive key={`tile-${tile.id}`} object={tile.object} />) : null}
 
-      {wallDecor.map((decor) => {
-        const node = nodes?.[decor.name];
-        if (!node) return null;
-        const placed = node.clone(true);
-        placed.position.set(decor.anchor[0], decor.anchor[1], decor.anchor[2]);
-        placed.traverse((child) => {
-          const mesh = child as Object3D & { isMesh?: boolean; castShadow?: boolean; receiveShadow?: boolean };
-          if (mesh.isMesh) {
-            mesh.castShadow = false;
-            mesh.receiveShadow = true;
-          }
-        });
+      {wallDecorObjects.map((decor) => {
         return (
           <group
             key={`decor-${decor.id}`}
             position={decor.position}
-            rotation={[decor.rotationX, decor.rotationY, 0]}
-            scale={[decor.scale, decor.scale, decor.scale]}
+            rotation={decor.rotation}
+            scale={decor.scale}
           >
-            <primitive object={placed} />
+            <primitive object={decor.object} />
           </group>
         );
       })}
