@@ -552,7 +552,6 @@ export default function DungeonWorld() {
       rotationX: number;
       rotationY: number;
       scale: number;
-      anchor: Vec3;
     };
 
     type NodeMetrics = {
@@ -560,10 +559,11 @@ export default function DungeonWorld() {
       width: number;
       depth: number;
       height: number;
-      anchor: Vec3;
     };
 
     const available = (names: readonly string[]) => names.filter((name) => Boolean(nodes[name]));
+    const wallBasePool = available(['Wall', 'Wall_Overgrown', 'Wall_Broken']);
+    const wallFeaturePool = available(['Wall_Hole', 'Window_Bars', 'Window_Bars_Overgrown', 'Window_Open']);
     const wallPool = available(WALL_KIT_VARIANTS).filter(
       (name) =>
         !name.includes('Half') &&
@@ -597,7 +597,6 @@ export default function DungeonWorld() {
           width: 4,
           depth: 1,
           height: 3,
-          anchor: [0, 0, 0] as Vec3,
         };
         metricCache.set(name, fallback);
         return fallback;
@@ -625,21 +624,19 @@ export default function DungeonWorld() {
       const box = bestBox ?? new Box3();
       const size = new Vector3();
       box.getSize(size);
-      const center = new Vector3();
-      box.getCenter(center);
       const metrics = {
         rotationX: bestRotationX,
         width: Math.max(0.1, Math.max(size.x || 0.1, size.z || 0.1)),
         depth: Math.max(0.1, Math.min(size.x || 0.1, size.z || 0.1)),
         height: Math.max(0.1, size.y || 0.1),
-        anchor: [-center.x, -box.min.y + 0.01, -center.z] as Vec3,
       };
       metricCache.set(name, metrics);
       return metrics;
     };
 
-    const fallbackWallName =
+    const mainWallName =
       (nodes.Wall ? 'Wall' : null) ??
+      wallBasePool[0] ??
       wallPool[0] ??
       wallAccentPool[0] ??
       windowPool[0] ??
@@ -647,26 +644,7 @@ export default function DungeonWorld() {
       archPool[0] ??
       columnPool[0] ??
       null;
-    if (!fallbackWallName) return [];
-    const wallMetricSamples = wallPool
-      .map((name) => ({ name, metrics: getMetrics(name) }))
-      .filter(({ metrics }) => metrics.width > 0.2 && metrics.height > 0.2);
-    const median = (values: number[]) => {
-      if (!values.length) return 1;
-      const sorted = [...values].sort((a, b) => a - b);
-      return sorted[Math.floor(sorted.length / 2)];
-    };
-    const medianWallWidth = median(wallMetricSamples.map((sample) => sample.metrics.width));
-    const medianWallHeight = median(wallMetricSamples.map((sample) => sample.metrics.height));
-    const representativeWall = wallMetricSamples.reduce<{ name: string; score: number } | null>((best, sample) => {
-      const score =
-        Math.abs(sample.metrics.width - medianWallWidth) + Math.abs(sample.metrics.height - medianWallHeight);
-      if (!best || score < best.score) {
-        return { name: sample.name, score };
-      }
-      return best;
-    }, null);
-    const mainWallName = representativeWall?.name ?? fallbackWallName;
+    if (!mainWallName) return [];
     const referenceMetrics = getMetrics(mainWallName);
 
     const floorReferenceName =
@@ -722,16 +700,14 @@ export default function DungeonWorld() {
       options: PlacementOptions = {},
     ) => {
       if (!name || !nodes[name]) return;
-      const metrics = getMetrics(name);
       const scale = options.scale ?? baseScale;
       placements.push({
         id: `${options.idPrefix ?? 'decor'}-${placementCounter++}`,
         name,
         position: [position[0], position[1] + (options.yOffset ?? 0), position[2]],
-        rotationX: metrics.rotationX,
+        rotationX: getMetrics(name).rotationX,
         rotationY,
         scale,
-        anchor: metrics.anchor,
       });
     };
 
@@ -800,8 +776,12 @@ export default function DungeonWorld() {
           const x = piece.position[0] + (axis === 'x' ? offset : 0);
           const z = piece.position[2] + (axis === 'z' ? offset : 0);
           const rowBase = piece.position[1] - piece.size[1] / 2 + row * wallModuleHeight * 0.96;
-          let nodeName: string | null = mainWallName;
-          if (wallAccentPool.length && hashText(`${piece.id}:${row}:${slot}`) % 14 === 0) {
+          const featureRow = Math.max(1, rows - 2);
+          const rowSeed = hashText(`${piece.id}:${row}:${slot}`);
+          let nodeName: string | null = pickFrom(wallBasePool, `${piece.id}-base-${row}-${slot}`) ?? mainWallName;
+          if (row === featureRow && !piece.id.includes('corridor') && wallFeaturePool.length && slot % 5 === 2) {
+            nodeName = pickFrom(wallFeaturePool, `${piece.id}-feature-${row}-${slot}`);
+          } else if (wallAccentPool.length && rowSeed % 17 === 0) {
             nodeName = pickFrom(wallAccentPool, `${piece.id}-accent-${row}-${slot}`);
           }
           const desiredWidth = wallModuleWidth * (1 + WALL_SEGMENT_OVERLAP * 0.5);
@@ -1019,18 +999,20 @@ export default function DungeonWorld() {
             mesh.receiveShadow = true;
           }
         });
-        placed.position.set(decor.anchor[0], decor.anchor[1], decor.anchor[2]);
+        placed.position.set(0, 0, 0);
+        placed.rotation.set(decor.rotationX, decor.rotationY, 0);
+        placed.scale.setScalar(decor.scale);
         placed.updateMatrixWorld(true);
-        return (
-          <group
-            key={`decor-${decor.id}`}
-            position={decor.position}
-            rotation={[decor.rotationX, decor.rotationY, 0]}
-            scale={[decor.scale, decor.scale, decor.scale]}
-          >
-            <primitive object={placed} />
-          </group>
+        const box = new Box3().setFromObject(placed);
+        const center = new Vector3();
+        box.getCenter(center);
+        placed.position.set(
+          decor.position[0] - center.x,
+          decor.position[1] - box.min.y + 0.01,
+          decor.position[2] - center.z,
         );
+        placed.updateMatrixWorld(true);
+        return <primitive key={`decor-${decor.id}`} object={placed} />;
       })}
 
       <RigidBody type="fixed" colliders={false} name="dungeon-colliders">
