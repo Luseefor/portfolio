@@ -196,6 +196,7 @@ const SUPPORT_KIT_VARIANTS = ['Support_Left', 'Support_Right', 'Support_Center',
 const FLAG_KIT_VARIANTS = ['Flag_Wall', 'Flag_Wall2', 'Flag_GothicArch', 'Flag_RoundArch'] as const;
 const PROP_NAME_HINTS = /(Torch|Candles|Crate|Barrel|Debris|Rubble|Pile|Bones|Urn|Chest|Table|Bench|Statue|Cart)/i;
 const WALL_SEGMENT_OVERLAP = 0.08;
+const ENABLE_WALL_DRESSING = false;
 
 function hashText(value: string) {
   let hash = 2166136261;
@@ -554,7 +555,7 @@ export default function DungeonWorld() {
     };
 
     const available = (names: readonly string[]) => names.filter((name) => Boolean(nodes[name]));
-    const wallBasePool = available(['Wall', 'Wall_Overgrown', 'Wall_Broken']);
+    const wallBasePool = available(['Wall']);
     const wallPool = available(WALL_KIT_VARIANTS).filter(
       (name) =>
         !name.includes('Half') &&
@@ -562,7 +563,7 @@ export default function DungeonWorld() {
         !name.includes('Double_Hole') &&
         !name.includes('Double_Broken'),
     );
-    const wallAccentPool = available(['Wall_Overgrown', 'Wall_Broken']);
+    const wallAccentPool: string[] = [];
     const coveredDoorPool = available(DOOR_KIT_VARIANTS).filter((name) => name.includes('Covered'));
     const doorPool = coveredDoorPool.length ? coveredDoorPool : available(DOOR_KIT_VARIANTS);
     const archPool = available(ARCH_KIT_VARIANTS);
@@ -764,11 +765,7 @@ export default function DungeonWorld() {
           const x = piece.position[0] + (axis === 'x' ? offset : 0);
           const z = piece.position[2] + (axis === 'z' ? offset : 0);
           const rowBase = piece.position[1] - piece.size[1] / 2 + row * wallModuleHeight * 0.96;
-          const rowSeed = hashText(`${piece.id}:${row}:${slot}`);
-          let nodeName: string | null = pickFrom(wallBasePool, `${piece.id}-base-${row}-${slot}`) ?? mainWallName;
-          if (wallAccentPool.length && rowSeed % 17 === 0) {
-            nodeName = pickFrom(wallAccentPool, `${piece.id}-accent-${row}-${slot}`);
-          }
+          const nodeName: string | null = pickFrom(wallBasePool, `${piece.id}-base-${row}-${slot}`) ?? mainWallName;
           const desiredWidth = wallModuleWidth * (1 + WALL_SEGMENT_OVERLAP * 0.5);
           const desiredHeight = wallModuleHeight * 1.02;
           addPlacement(nodeName, [x, rowBase, z], rotationY, {
@@ -779,145 +776,147 @@ export default function DungeonWorld() {
       }
     });
 
-    ROOM_LAYOUT.forEach((room) => {
-      const [cx, cy, cz] = room.center;
-      const halfW = room.size.w / 2;
-      const halfD = room.size.d / 2;
-      const openings = room.openings ?? {};
+    if (ENABLE_WALL_DRESSING) {
+      ROOM_LAYOUT.forEach((room) => {
+        const [cx, cy, cz] = room.center;
+        const halfW = room.size.w / 2;
+        const halfD = room.size.d / 2;
+        const openings = room.openings ?? {};
 
-      const sideCenter = (side: keyof WallOpening): Vec3 => {
-        if (side === 'north') return [cx, cy, cz + halfD];
-        if (side === 'south') return [cx, cy, cz - halfD];
-        if (side === 'east') return [cx + halfW, cy, cz];
-        return [cx - halfW, cy, cz];
-      };
+        const sideCenter = (side: keyof WallOpening): Vec3 => {
+          if (side === 'north') return [cx, cy, cz + halfD];
+          if (side === 'south') return [cx, cy, cz - halfD];
+          if (side === 'east') return [cx + halfW, cy, cz];
+          return [cx - halfW, cy, cz];
+        };
 
-      const closedWallOffsets: Record<keyof WallOpening, Vec3[]> = {
-        north: [
-          [cx - room.size.w * 0.28, cy, cz + halfD],
-          [cx + room.size.w * 0.28, cy, cz + halfD],
-        ],
-        south: [
-          [cx - room.size.w * 0.28, cy, cz - halfD],
-          [cx + room.size.w * 0.28, cy, cz - halfD],
-        ],
-        east: [
-          [cx + halfW, cy, cz - room.size.d * 0.28],
-          [cx + halfW, cy, cz + room.size.d * 0.28],
-        ],
-        west: [
-          [cx - halfW, cy, cz - room.size.d * 0.28],
-          [cx - halfW, cy, cz + room.size.d * 0.28],
-        ],
-      };
+        const closedWallOffsets: Record<keyof WallOpening, Vec3[]> = {
+          north: [
+            [cx - room.size.w * 0.28, cy, cz + halfD],
+            [cx + room.size.w * 0.28, cy, cz + halfD],
+          ],
+          south: [
+            [cx - room.size.w * 0.28, cy, cz - halfD],
+            [cx + room.size.w * 0.28, cy, cz - halfD],
+          ],
+          east: [
+            [cx + halfW, cy, cz - room.size.d * 0.28],
+            [cx + halfW, cy, cz + room.size.d * 0.28],
+          ],
+          west: [
+            [cx - halfW, cy, cz - room.size.d * 0.28],
+            [cx - halfW, cy, cz + room.size.d * 0.28],
+          ],
+        };
 
-      (['north', 'south', 'east', 'west'] as const).forEach((side) => {
-        if (openings[side]) {
-          placeDoorwaySet(`${room.id}-${side}`, sideCenter(side), side);
-        } else {
-          const rotationY = sideRotation(side);
-          const [posA, posB] = closedWallOffsets[side];
-          const braceA = pickFrom(supportPool.length ? supportPool : wallBasePool, `${room.id}-${side}-brace-a`);
-          const braceB = pickFrom(supportPool.length ? supportPool : wallBasePool, `${room.id}-${side}-brace-b`);
-          addPlacement(braceA, posA, rotationY, {
-            scale: scaleForNode(braceA, targetWallWidth * 0.95, targetWallHeight * 0.95, 'contain'),
-            idPrefix: 'brace',
+        (['north', 'south', 'east', 'west'] as const).forEach((side) => {
+          if (openings[side]) {
+            placeDoorwaySet(`${room.id}-${side}`, sideCenter(side), side);
+          } else {
+            const rotationY = sideRotation(side);
+            const [posA, posB] = closedWallOffsets[side];
+            const braceA = pickFrom(supportPool.length ? supportPool : wallBasePool, `${room.id}-${side}-brace-a`);
+            const braceB = pickFrom(supportPool.length ? supportPool : wallBasePool, `${room.id}-${side}-brace-b`);
+            addPlacement(braceA, posA, rotationY, {
+              scale: scaleForNode(braceA, targetWallWidth * 0.95, targetWallHeight * 0.95, 'contain'),
+              idPrefix: 'brace',
+            });
+            addPlacement(braceB, posB, rotationY, {
+              scale: scaleForNode(braceB, targetWallWidth * 0.95, targetWallHeight * 0.95, 'contain'),
+              idPrefix: 'brace',
+            });
+            const flag = pickFrom(flagPool, `${room.id}-${side}-flag`);
+            addPlacement(flag, sideCenter(side), rotationY, {
+              scale: scaleForNode(flag, targetWallWidth * 0.9, targetWallHeight * 0.9, 'contain'),
+              yOffset: 1.2,
+              idPrefix: 'flag',
+            });
+            const sconce = pickFrom(sconcePool, `${room.id}-${side}-sconce`);
+            addPlacement(
+              sconce,
+              [sideCenter(side)[0], sideCenter(side)[1] + 2.4, sideCenter(side)[2]],
+              rotationY,
+              {
+                scale: scaleForNode(sconce, targetWallWidth * 0.45, targetWallHeight * 0.55, 'contain'),
+                idPrefix: 'sconce',
+              },
+            );
+          }
+        });
+
+        const cornerOffsetX = room.size.w * 0.34;
+        const cornerOffsetZ = room.size.d * 0.34;
+        const cornerColumns: Vec3[] = [
+          [cx - cornerOffsetX, cy, cz - cornerOffsetZ],
+          [cx + cornerOffsetX, cy, cz - cornerOffsetZ],
+          [cx - cornerOffsetX, cy, cz + cornerOffsetZ],
+          [cx + cornerOffsetX, cy, cz + cornerOffsetZ],
+        ];
+        cornerColumns.forEach((position, index) => {
+          const cornerColumn = pickFrom(columnPool, `${room.id}-corner-${index}`);
+          addPlacement(cornerColumn, position, (index * Math.PI) / 2, {
+            scale: scaleForNode(cornerColumn, targetWallWidth * 0.5, targetWallHeight, 'cover'),
+            idPrefix: 'corner',
           });
-          addPlacement(braceB, posB, rotationY, {
-            scale: scaleForNode(braceB, targetWallWidth * 0.95, targetWallHeight * 0.95, 'contain'),
-            idPrefix: 'brace',
-          });
-          const flag = pickFrom(flagPool, `${room.id}-${side}-flag`);
-          addPlacement(flag, sideCenter(side), rotationY, {
-            scale: scaleForNode(flag, targetWallWidth * 0.9, targetWallHeight * 0.9, 'contain'),
-            yOffset: 1.2,
-            idPrefix: 'flag',
-          });
-          const sconce = pickFrom(sconcePool, `${room.id}-${side}-sconce`);
+        });
+
+        const ceilingPositions: Vec3[] = [
+          [cx, cy + WALL_HEIGHT - 0.7, cz - room.size.d * 0.25],
+          [cx, cy + WALL_HEIGHT - 0.7, cz + room.size.d * 0.25],
+          [cx - room.size.w * 0.25, cy + WALL_HEIGHT - 0.7, cz],
+          [cx + room.size.w * 0.25, cy + WALL_HEIGHT - 0.7, cz],
+        ];
+        ceilingPositions.forEach((position, index) => {
+          const ceilingNode = pickFrom(supportPool.length ? supportPool : archPool, `${room.id}-ceiling-${index}`);
           addPlacement(
-            sconce,
-            [sideCenter(side)[0], sideCenter(side)[1] + 2.4, sideCenter(side)[2]],
-            rotationY,
+            ceilingNode,
+            position,
+            index % 2 === 0 ? 0 : Math.PI / 2,
             {
-              scale: scaleForNode(sconce, targetWallWidth * 0.45, targetWallHeight * 0.55, 'contain'),
-              idPrefix: 'sconce',
+              scale: scaleForNode(ceilingNode, targetWallWidth * 2.2, targetWallHeight * 0.5, 'contain'),
+              idPrefix: 'ceiling',
             },
           );
+        });
+
+        const propAnchors: Vec3[] = [
+          [cx - room.size.w * 0.25, cy, cz - room.size.d * 0.15],
+          [cx + room.size.w * 0.25, cy, cz - room.size.d * 0.15],
+          [cx - room.size.w * 0.25, cy, cz + room.size.d * 0.15],
+          [cx + room.size.w * 0.25, cy, cz + room.size.d * 0.15],
+        ];
+        propAnchors.forEach((anchor, index) => {
+          const prop = pickFrom(propPool, `${room.id}-prop-${index}`);
+          addPlacement(prop, anchor, ((hashText(`${room.id}-prop-rot-${index}`) % 4) * Math.PI) / 2, {
+            scale: scaleForNode(prop, targetWallWidth * 0.8, targetWallHeight * 0.6, 'contain'),
+            idPrefix: 'prop',
+          });
+        });
+      });
+
+      CORRIDOR_LAYOUT.forEach((corridor) => {
+        const [cx, cy, cz] = corridor.center;
+        if (corridor.axis === 'z') {
+          placeDoorwaySet(`${corridor.id}-north`, [cx, cy, cz + corridor.length / 2], 'north');
+          placeDoorwaySet(`${corridor.id}-south`, [cx, cy, cz - corridor.length / 2], 'south');
+        } else {
+          placeDoorwaySet(`${corridor.id}-east`, [cx + corridor.length / 2, cy, cz], 'east');
+          placeDoorwaySet(`${corridor.id}-west`, [cx - corridor.length / 2, cy, cz], 'west');
+        }
+
+        const runCount = Math.max(2, Math.round(corridor.length / 4));
+        for (let i = 0; i < runCount; i += 1) {
+          const t = runCount === 1 ? 0.5 : i / (runCount - 1);
+          const x = corridor.axis === 'x' ? cx - corridor.length / 2 + t * corridor.length : cx;
+          const z = corridor.axis === 'z' ? cz - corridor.length / 2 + t * corridor.length : cz;
+          const corridorCeiling = pickFrom(supportPool.length ? supportPool : archPool, `${corridor.id}-ceiling-${i}`);
+          addPlacement(corridorCeiling, [x, cy + WALL_HEIGHT - 0.7, z], 0, {
+            scale: scaleForNode(corridorCeiling, targetWallWidth * 1.8, targetWallHeight * 0.45, 'contain'),
+            idPrefix: 'ceiling',
+          });
         }
       });
-
-      const cornerOffsetX = room.size.w * 0.34;
-      const cornerOffsetZ = room.size.d * 0.34;
-      const cornerColumns: Vec3[] = [
-        [cx - cornerOffsetX, cy, cz - cornerOffsetZ],
-        [cx + cornerOffsetX, cy, cz - cornerOffsetZ],
-        [cx - cornerOffsetX, cy, cz + cornerOffsetZ],
-        [cx + cornerOffsetX, cy, cz + cornerOffsetZ],
-      ];
-      cornerColumns.forEach((position, index) => {
-        const cornerColumn = pickFrom(columnPool, `${room.id}-corner-${index}`);
-        addPlacement(cornerColumn, position, (index * Math.PI) / 2, {
-          scale: scaleForNode(cornerColumn, targetWallWidth * 0.5, targetWallHeight, 'cover'),
-          idPrefix: 'corner',
-        });
-      });
-
-      const ceilingPositions: Vec3[] = [
-        [cx, cy + WALL_HEIGHT - 0.7, cz - room.size.d * 0.25],
-        [cx, cy + WALL_HEIGHT - 0.7, cz + room.size.d * 0.25],
-        [cx - room.size.w * 0.25, cy + WALL_HEIGHT - 0.7, cz],
-        [cx + room.size.w * 0.25, cy + WALL_HEIGHT - 0.7, cz],
-      ];
-      ceilingPositions.forEach((position, index) => {
-        const ceilingNode = pickFrom(supportPool.length ? supportPool : archPool, `${room.id}-ceiling-${index}`);
-        addPlacement(
-          ceilingNode,
-          position,
-          index % 2 === 0 ? 0 : Math.PI / 2,
-          {
-            scale: scaleForNode(ceilingNode, targetWallWidth * 2.2, targetWallHeight * 0.5, 'contain'),
-            idPrefix: 'ceiling',
-          },
-        );
-      });
-
-      const propAnchors: Vec3[] = [
-        [cx - room.size.w * 0.25, cy, cz - room.size.d * 0.15],
-        [cx + room.size.w * 0.25, cy, cz - room.size.d * 0.15],
-        [cx - room.size.w * 0.25, cy, cz + room.size.d * 0.15],
-        [cx + room.size.w * 0.25, cy, cz + room.size.d * 0.15],
-      ];
-      propAnchors.forEach((anchor, index) => {
-        const prop = pickFrom(propPool, `${room.id}-prop-${index}`);
-        addPlacement(prop, anchor, ((hashText(`${room.id}-prop-rot-${index}`) % 4) * Math.PI) / 2, {
-          scale: scaleForNode(prop, targetWallWidth * 0.8, targetWallHeight * 0.6, 'contain'),
-          idPrefix: 'prop',
-        });
-      });
-    });
-
-    CORRIDOR_LAYOUT.forEach((corridor) => {
-      const [cx, cy, cz] = corridor.center;
-      if (corridor.axis === 'z') {
-        placeDoorwaySet(`${corridor.id}-north`, [cx, cy, cz + corridor.length / 2], 'north');
-        placeDoorwaySet(`${corridor.id}-south`, [cx, cy, cz - corridor.length / 2], 'south');
-      } else {
-        placeDoorwaySet(`${corridor.id}-east`, [cx + corridor.length / 2, cy, cz], 'east');
-        placeDoorwaySet(`${corridor.id}-west`, [cx - corridor.length / 2, cy, cz], 'west');
-      }
-
-      const runCount = Math.max(2, Math.round(corridor.length / 4));
-      for (let i = 0; i < runCount; i += 1) {
-        const t = runCount === 1 ? 0.5 : i / (runCount - 1);
-        const x = corridor.axis === 'x' ? cx - corridor.length / 2 + t * corridor.length : cx;
-        const z = corridor.axis === 'z' ? cz - corridor.length / 2 + t * corridor.length : cz;
-        const corridorCeiling = pickFrom(supportPool.length ? supportPool : archPool, `${corridor.id}-ceiling-${i}`);
-        addPlacement(corridorCeiling, [x, cy + WALL_HEIGHT - 0.7, z], 0, {
-          scale: scaleForNode(corridorCeiling, targetWallWidth * 1.8, targetWallHeight * 0.45, 'contain'),
-          idPrefix: 'ceiling',
-        });
-      }
-    });
+    }
 
     return placements;
   }, [nodes, pieces]);
@@ -987,6 +986,15 @@ export default function DungeonWorld() {
         placed.position.set(decor.position[0], decor.position[1], decor.position[2]);
         placed.rotation.set(decor.rotationX, decor.rotationY, 0);
         placed.scale.setScalar(decor.scale);
+        placed.updateMatrixWorld(true);
+        const box = new Box3().setFromObject(placed);
+        const center = new Vector3();
+        box.getCenter(center);
+        placed.position.set(
+          decor.position[0] - center.x,
+          decor.position[1] - box.min.y + 0.01,
+          decor.position[2] - center.z,
+        );
         placed.updateMatrixWorld(true);
         return <primitive key={`decor-${decor.id}`} object={placed} />;
       })}
