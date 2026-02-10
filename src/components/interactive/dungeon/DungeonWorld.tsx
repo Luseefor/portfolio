@@ -5,6 +5,7 @@ import { Box3, MeshStandardMaterial, Vector3, type Object3D } from 'three';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { useGLTF } from '@react-three/drei';
 import { clearDungeonVisualLiftTiles, setDungeonVisualLiftTiles } from '@/lib/dungeonVisualLift';
+import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
 
 type Vec3 = [number, number, number];
 
@@ -42,6 +43,9 @@ const WALL_CORE_THICKNESS = 0.18;
 const WALL_CORE_LENGTH_OVERLAP = 0.22;
 const WALL_CORE_HEIGHT_OVERLAP = 0.28;
 const WALL_CORE_Y_SINK = 0.1;
+const OUTER_BORDER_THICKNESS = 1.2;
+const OUTER_BORDER_HEIGHT = 16;
+const OUTER_BORDER_SINK = 0.4;
 
 type BoxPiece = {
   id: string;
@@ -677,6 +681,38 @@ export default function DungeonWorld() {
       });
   }, [pieces]);
 
+  const outerBorderPieces = useMemo(() => {
+    const width = DUNGEON_BOUNDS.maxX - DUNGEON_BOUNDS.minX;
+    const depth = DUNGEON_BOUNDS.maxZ - DUNGEON_BOUNDS.minZ;
+    const halfThickness = OUTER_BORDER_THICKNESS / 2;
+    const y = OUTER_BORDER_HEIGHT / 2 - OUTER_BORDER_SINK;
+    const centerX = (DUNGEON_BOUNDS.minX + DUNGEON_BOUNDS.maxX) / 2;
+    const centerZ = (DUNGEON_BOUNDS.minZ + DUNGEON_BOUNDS.maxZ) / 2;
+
+    return [
+      {
+        id: 'outer-east',
+        size: [OUTER_BORDER_THICKNESS, OUTER_BORDER_HEIGHT, depth + OUTER_BORDER_THICKNESS * 2] as Vec3,
+        position: [DUNGEON_BOUNDS.maxX + halfThickness, y, centerZ] as Vec3,
+      },
+      {
+        id: 'outer-west',
+        size: [OUTER_BORDER_THICKNESS, OUTER_BORDER_HEIGHT, depth + OUTER_BORDER_THICKNESS * 2] as Vec3,
+        position: [DUNGEON_BOUNDS.minX - halfThickness, y, centerZ] as Vec3,
+      },
+      {
+        id: 'outer-north',
+        size: [width + OUTER_BORDER_THICKNESS * 2, OUTER_BORDER_HEIGHT, OUTER_BORDER_THICKNESS] as Vec3,
+        position: [centerX, y, DUNGEON_BOUNDS.maxZ + halfThickness] as Vec3,
+      },
+      {
+        id: 'outer-south',
+        size: [width + OUTER_BORDER_THICKNESS * 2, OUTER_BORDER_HEIGHT, OUTER_BORDER_THICKNESS] as Vec3,
+        position: [centerX, y, DUNGEON_BOUNDS.minZ - halfThickness] as Vec3,
+      },
+    ];
+  }, []);
+
   return (
     <group name="dungeon-world">
       {pieces.map((piece) => (
@@ -728,6 +764,18 @@ export default function DungeonWorld() {
         </mesh>
       ))}
 
+      {outerBorderPieces.map((wall) => (
+        <mesh
+          key={wall.id}
+          position={wall.position}
+          castShadow={false}
+          receiveShadow
+          material={wallCoreMaterial}
+        >
+          <boxGeometry args={wall.size} />
+        </mesh>
+      ))}
+
       {FLOOR_OVERLAY ? floorOverlayObjects.map((tile) => <primitive key={`tile-${tile.id}`} object={tile.object} />) : null}
 
       {wallDecorObjects.map((decor) => {
@@ -751,12 +799,14 @@ export default function DungeonWorld() {
             position={piece.position}
           />
         ))}
+        {outerBorderPieces.map((wall) => (
+          <CuboidCollider
+            key={`border-collider-${wall.id}`}
+            args={[wall.size[0] / 2, wall.size[1] / 2, wall.size[2] / 2]}
+            position={wall.position}
+          />
+        ))}
         <CuboidCollider args={[180, 1, 180]} position={[0, -4, 0]} />
-        {/* Outer bounds to keep camera/player inside */}
-        <CuboidCollider args={[1, 12, 110]} position={[85, 5, 0]} />
-        <CuboidCollider args={[1, 12, 110]} position={[-85, 5, 0]} />
-        <CuboidCollider args={[110, 12, 1]} position={[0, 5, 85]} />
-        <CuboidCollider args={[110, 12, 1]} position={[0, 5, -85]} />
       </RigidBody>
     </group>
   );
