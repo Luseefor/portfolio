@@ -31,7 +31,7 @@ type CorridorSpec = {
   axis: 'x' | 'z';
 };
 
-const WALL_HEIGHT = 10.5;
+const WALL_HEIGHT = 21;
 const WALL_THICKNESS = 0.8;
 const FLOOR_THICKNESS = 0.45;
 const CEILING_THICKNESS = 0.35;
@@ -39,12 +39,8 @@ const DOOR_WIDTH = 6;
 const FLOOR_TILE_OVERLAP = 0.015;
 const UNDERFLOOR_SIZE: Vec3 = [220, 0.2, 220];
 const UNDERFLOOR_Y = -0.2;
-const WALL_CORE_THICKNESS = 0.18;
-const WALL_CORE_LENGTH_OVERLAP = 0.22;
-const WALL_CORE_HEIGHT_OVERLAP = 0.28;
-const WALL_CORE_Y_SINK = 0.1;
 const OUTER_BORDER_THICKNESS = 1.2;
-const OUTER_BORDER_HEIGHT = 16;
+const OUTER_BORDER_HEIGHT = WALL_HEIGHT + 2;
 const OUTER_BORDER_SINK = 0.4;
 
 type BoxPiece = {
@@ -74,11 +70,6 @@ const underfloorMaterial = new MeshStandardMaterial({
   color: '#6a6456',
   roughness: 0.97,
   metalness: 0.01,
-});
-const wallCoreMaterial = new MeshStandardMaterial({
-  color: '#4b4d43',
-  roughness: 0.96,
-  metalness: 0.02,
 });
 
 const FLOOR_NODES = [
@@ -687,7 +678,7 @@ export default function DungeonWorld() {
         const scaleXZRaw = wallSpan / Math.max(0.1, profile.footprint);
         const scaleRaw = (piece.size[1] / Math.max(0.1, profile.height)) * (1 + WALL_VERTICAL_OVERLAP);
         const scale = Math.min(1.3, Math.max(0.72, scaleXZRaw));
-        const scaleY = Math.min(1.8, Math.max(0.85, scaleRaw));
+        const scaleY = Math.max(0.85, scaleRaw);
         placements.push({
           id: `wall-${placementCounter++}`,
           name: profile.name,
@@ -728,35 +719,6 @@ export default function DungeonWorld() {
       })
       .filter(Boolean) as { id: string; object: Object3D; position: Vec3; rotation: Vec3; scale: Vec3 }[];
   }, [nodes, wallDecor]);
-
-  const wallCorePieces = useMemo(() => {
-    return pieces
-      .filter((piece) => piece.material === wallMaterial)
-      .map((piece) => {
-        const alongX = piece.size[0] >= piece.size[2];
-        const coreSize: Vec3 = alongX
-          ? [
-              piece.size[0] + WALL_CORE_LENGTH_OVERLAP,
-              piece.size[1] + WALL_CORE_HEIGHT_OVERLAP,
-              WALL_CORE_THICKNESS,
-            ]
-          : [
-              WALL_CORE_THICKNESS,
-              piece.size[1] + WALL_CORE_HEIGHT_OVERLAP,
-              piece.size[2] + WALL_CORE_LENGTH_OVERLAP,
-            ];
-        const corePosition: Vec3 = [
-          piece.position[0],
-          piece.position[1] - WALL_CORE_Y_SINK,
-          piece.position[2],
-        ];
-        return {
-          id: piece.id,
-          size: coreSize,
-          position: corePosition,
-        };
-      });
-  }, [pieces]);
 
   const outerBorderPieces = useMemo(() => {
     const width = DUNGEON_BOUNDS.maxX - DUNGEON_BOUNDS.minX;
@@ -829,25 +791,13 @@ export default function DungeonWorld() {
         <boxGeometry args={UNDERFLOOR_SIZE} />
       </mesh>
 
-      {wallCorePieces.map((core) => (
-        <mesh
-          key={`wall-core-${core.id}`}
-          position={core.position}
-          castShadow={false}
-          receiveShadow
-          material={wallCoreMaterial}
-        >
-          <boxGeometry args={core.size} />
-        </mesh>
-      ))}
-
       {outerBorderPieces.map((wall) => (
         <mesh
           key={wall.id}
           position={wall.position}
           castShadow={false}
           receiveShadow
-          material={wallCoreMaterial}
+          material={wallMaterial}
         >
           <boxGeometry args={wall.size} />
         </mesh>
