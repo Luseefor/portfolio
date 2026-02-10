@@ -14,6 +14,7 @@ import {
   CAMERA_FOLLOW,
   CAMERA_COLLISION,
 } from '@/constants/camera';
+import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
 import { applyMouseDelta, clampCameraDistance, computeCameraDesired, computeSmoothingFactor } from './math/cameraMath';
 
 const targetPosition = new Vector3();
@@ -27,18 +28,19 @@ const FLOOR_PROBE_HEIGHT = 2.4;
 const FLOOR_PROBE_DISTANCE = 10;
 const CAMERA_FLOOR_CLEARANCE = 0.45;
 const CAMERA_MIN_Y = 0.35;
-const CAMERA_BORDER_PADDING = 1.2;
-const MAP_MIN_X = -84;
-const MAP_MAX_X = 84;
-const MAP_MIN_Z = -84;
-const MAP_MAX_Z = 84;
 
 function clampMapX(value: number) {
-  return Math.min(MAP_MAX_X - CAMERA_BORDER_PADDING, Math.max(MAP_MIN_X + CAMERA_BORDER_PADDING, value));
+  return Math.min(
+    DUNGEON_BOUNDS.maxX - DUNGEON_BOUNDS.cameraPadding,
+    Math.max(DUNGEON_BOUNDS.minX + DUNGEON_BOUNDS.cameraPadding, value),
+  );
 }
 
 function clampMapZ(value: number) {
-  return Math.min(MAP_MAX_Z - CAMERA_BORDER_PADDING, Math.max(MAP_MIN_Z + CAMERA_BORDER_PADDING, value));
+  return Math.min(
+    DUNGEON_BOUNDS.maxZ - DUNGEON_BOUNDS.cameraPadding,
+    Math.max(DUNGEON_BOUNDS.minZ + DUNGEON_BOUNDS.cameraPadding, value),
+  );
 }
 
 export default function CameraRig({

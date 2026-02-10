@@ -8,6 +8,7 @@ import { Suspense } from 'react';
 import PlayerCharacter, { type PlayerAnimation } from './PlayerCharacter';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import { getDungeonVisualLiftAt } from '@/lib/dungeonVisualLift';
+import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
 
 const WALK_SPEED = 2.4;
 const RUN_SPEED = 6.2;
@@ -25,6 +26,20 @@ const right = new Vector3();
 const up = new Vector3(0, 1, 0);
 const moveDir = new Vector3();
 const rotation = new Quaternion();
+
+function clampPlayerX(value: number) {
+  return Math.min(
+    DUNGEON_BOUNDS.maxX - DUNGEON_BOUNDS.playerPadding,
+    Math.max(DUNGEON_BOUNDS.minX + DUNGEON_BOUNDS.playerPadding, value),
+  );
+}
+
+function clampPlayerZ(value: number) {
+  return Math.min(
+    DUNGEON_BOUNDS.maxZ - DUNGEON_BOUNDS.playerPadding,
+    Math.max(DUNGEON_BOUNDS.minZ + DUNGEON_BOUNDS.playerPadding, value),
+  );
+}
 
 export default function PlayerController({
   bodyRef,
@@ -234,6 +249,23 @@ export default function PlayerController({
 
     if (rollTimer.current > 0) {
       rollTimer.current = Math.max(0, rollTimer.current - delta);
+    }
+
+    // Hard physics border: player body cannot leave dungeon map bounds.
+    const postStep = body.translation();
+    const clampedX = clampPlayerX(postStep.x);
+    const clampedZ = clampPlayerZ(postStep.z);
+    if (Math.abs(clampedX - postStep.x) > 0.001 || Math.abs(clampedZ - postStep.z) > 0.001) {
+      body.setTranslation({ x: clampedX, y: postStep.y, z: clampedZ }, true);
+      const currentVel = body.linvel();
+      body.setLinvel(
+        {
+          x: clampedX !== postStep.x ? 0 : currentVel.x,
+          y: currentVel.y,
+          z: clampedZ !== postStep.z ? 0 : currentVel.z,
+        },
+        true,
+      );
     }
 
     const speed = Math.hypot(smoothX, smoothZ);
