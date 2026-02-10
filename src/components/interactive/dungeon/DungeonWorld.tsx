@@ -160,9 +160,10 @@ const CORRIDOR_LAYOUT: CorridorSpec[] = [
   { id: 'corridor-hidden', center: [-26, 0, 52], length: 12, width: 6, axis: 'x' },
 ];
 
-const WALL_SEGMENT_OVERLAP = 0.08;
-const WALL_VERTICAL_OVERLAP = 0.06;
 const WALL_BASE_SINK = 0.14;
+const WALL_DECOR_OVERLAP = 0.04;
+const WALL_DECOR_MAX_ROWS = 2;
+const WALL_DECOR_MAX_PLACEMENTS = 420;
 const WALL_VARIANT_POOL = [
   'Wall',
   'Wall_Overgrown',
@@ -618,72 +619,66 @@ export default function DungeonWorld() {
       .filter((profile) => {
         const ratio = profile!.footprint / baseProfile.footprint;
         const heightRatio = profile!.height / baseProfile.height;
-        return ratio >= 0.55 && ratio <= 1.7 && heightRatio >= 0.5 && heightRatio <= 1.8;
+        return ratio >= 0.72 && ratio <= 1.45 && heightRatio >= 0.7 && heightRatio <= 1.4;
       }) as WallProfile[];
     if (!wallProfiles.length) wallProfiles.push(baseProfile);
 
     const archProfiles = wallProfiles.filter((profile) => profile.name.includes('Arch'));
-    const weatheredProfiles = wallProfiles.filter(
-      (profile) =>
-        profile.name.includes('Broken') ||
-        profile.name.includes('Overgrown') ||
-        profile.name.includes('Double'),
-    );
     const fillProfiles = wallProfiles.filter(
       (profile) =>
         !profile.name.includes('Half') &&
         !profile.name.includes('Hole') &&
         !profile.name.includes('Arch'),
     );
-    const solidProfiles = fillProfiles.filter(
+    const durableProfiles = fillProfiles.filter(
       (profile) =>
         !profile.name.includes('Broken') &&
-        !profile.name.includes('Overgrown') &&
         !profile.name.includes('Double'),
     );
 
-    const wallScale = 1;
-    const wallSpan = baseProfile.footprint * wallScale;
-    const wallStep = Math.max(0.1, wallSpan * (1 - WALL_SEGMENT_OVERLAP));
-    const wallRowStep = Math.max(0.1, baseProfile.height * (1 - WALL_VERTICAL_OVERLAP));
+    const wallSpan = baseProfile.footprint;
+    const wallStep = Math.max(0.1, wallSpan * (1 - WALL_DECOR_OVERLAP));
     const placements: DecorPlacement[] = [];
     let placementCounter = 0;
     const wallPieces = pieces.filter((piece) => piece.material === wallMaterial);
     wallPieces.forEach((piece) => {
+      if (placementCounter >= WALL_DECOR_MAX_PLACEMENTS) return;
       const axis: 'x' | 'z' = piece.size[0] >= piece.size[2] ? 'x' : 'z';
       const length = axis === 'x' ? piece.size[0] : piece.size[2];
       const slots = Math.max(1, Math.ceil((length + wallStep * 0.5) / wallStep));
-      const rows = Math.max(1, Math.ceil((piece.size[1] + wallRowStep * 0.25) / wallRowStep));
+      const naturalRows = Math.max(1, Math.round(piece.size[1] / Math.max(0.1, baseProfile.height)));
+      const rows = Math.max(1, Math.min(WALL_DECOR_MAX_ROWS, naturalRows));
       const occupiedLength = wallSpan + (slots - 1) * wallStep;
       const startOffset = -occupiedLength / 2 + wallSpan / 2;
       const rotationY = axis === 'x' ? 0 : Math.PI / 2;
-      const baseY = piece.position[1] - piece.size[1] / 2 - WALL_BASE_SINK;
+      const pieceBottomY = piece.position[1] - piece.size[1] / 2;
 
+      let breakAll = false;
       for (let row = 0; row < rows; row += 1) {
+        if (breakAll) break;
         for (let slot = 0; slot < slots; slot += 1) {
+          if (placementCounter >= WALL_DECOR_MAX_PLACEMENTS) {
+            breakAll = true;
+            break;
+          }
           const offset = startOffset + slot * wallStep;
           const x = piece.position[0] + (axis === 'x' ? offset : 0);
           const z = piece.position[2] + (axis === 'z' ? offset : 0);
-          const y = baseY + row * wallRowStep;
+          const y = pieceBottomY - WALL_BASE_SINK + row * baseProfile.height * 0.98;
           const hash = hashText(`${piece.id}:${row}:${slot}`);
           const roll = hash % 100;
-          const rowT = rows <= 1 ? 0 : row / (rows - 1);
 
           let profile = baseProfile;
-          if (rowT > 0.7 && weatheredProfiles.length > 0 && roll < 55) {
-            profile = weatheredProfiles[hash % weatheredProfiles.length];
-          } else if (roll < 22 && weatheredProfiles.length > 0) {
-            profile = weatheredProfiles[hash % weatheredProfiles.length];
-          } else if (solidProfiles.length > 0) {
-            profile = solidProfiles[hash % solidProfiles.length];
+          if (roll < 18 && fillProfiles.length > 0) {
+            profile = fillProfiles[hash % fillProfiles.length];
+          } else if (durableProfiles.length > 0) {
+            profile = durableProfiles[hash % durableProfiles.length];
           } else if (fillProfiles.length > 0) {
             profile = fillProfiles[hash % fillProfiles.length];
           }
 
-          const scaleXZRaw = wallSpan / Math.max(0.1, profile.footprint);
-          const scale = Math.min(1.28, Math.max(0.7, scaleXZRaw));
-          const remainingHeight = Math.max(0.1, piece.size[1] - row * wallRowStep);
-          const scaleY = Math.min(1.16, Math.max(0.8, remainingHeight / Math.max(0.1, profile.height)));
+          const scale = Math.min(1.15, Math.max(0.9, wallSpan / Math.max(0.1, profile.footprint)));
+          const scaleY = Math.min(1.12, Math.max(0.9, baseProfile.height / Math.max(0.1, profile.height)));
 
           placements.push({
             id: `wall-${placementCounter++}`,
@@ -691,7 +686,7 @@ export default function DungeonWorld() {
             position: [x, y, z],
             rotationX: profile.rotationX,
             rotationY,
-            scale: wallScale * scale,
+            scale,
             scaleY,
             anchor: profile.anchor,
           });
@@ -699,7 +694,7 @@ export default function DungeonWorld() {
       }
     });
 
-    if (archProfiles.length > 0) {
+    if (archProfiles.length > 0 && placementCounter < WALL_DECOR_MAX_PLACEMENTS) {
       const archTargetHeight = Math.min(8, WALL_HEIGHT * 0.42);
       const archBaseY = -WALL_BASE_SINK;
       const pushArch = (
@@ -708,8 +703,9 @@ export default function DungeonWorld() {
         z: number,
         rotationY: number,
       ) => {
+        if (placementCounter >= WALL_DECOR_MAX_PLACEMENTS) return;
         const profile = archProfiles[hashText(seed) % archProfiles.length];
-        const scale = Math.min(1.26, Math.max(0.84, (DOOR_WIDTH / Math.max(0.1, profile.footprint)) * 0.9));
+        const scale = Math.min(1.15, Math.max(0.92, (DOOR_WIDTH / Math.max(0.1, profile.footprint)) * 0.9));
         const scaleY = Math.min(1.6, Math.max(0.9, archTargetHeight / Math.max(0.1, profile.height)));
         placements.push({
           id: `arch-${seed}-${placementCounter++}`,
