@@ -28,6 +28,8 @@ const FLOOR_PROBE_HEIGHT = 2.4;
 const FLOOR_PROBE_DISTANCE = 10;
 const CAMERA_FLOOR_CLEARANCE = 0.45;
 const CAMERA_MIN_Y = 0.35;
+const CAMERA_WALL_BUFFER = 0.8;
+const CAMERA_MIN_COLLISION_DISTANCE = 0.7;
 
 function clampMapX(value: number) {
   return Math.min(
@@ -186,10 +188,10 @@ export default function CameraRig({
         { x: rayDirection.x, y: rayDirection.y, z: rayDirection.z },
       );
       const hit = world.castRay(ray, rayDistance, true);
-      if (hit && hit.toi > 0.25) {
+      if (hit) {
         const safeDistance = Math.max(
-          CAMERA_COLLISION.minCameraDistance,
-          hit.toi - CAMERA_COLLISION.minDistanceFromWall,
+          Math.max(CAMERA_COLLISION.minCameraDistance, CAMERA_MIN_COLLISION_DISTANCE),
+          hit.toi - Math.max(CAMERA_COLLISION.minDistanceFromWall, CAMERA_WALL_BUFFER),
         );
         desiredPosition.copy(smoothedTargetPosition).add(rayDirection.multiplyScalar(safeDistance));
         desiredPosition.x = clampMapX(desiredPosition.x);
