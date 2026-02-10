@@ -37,6 +37,10 @@ const FLOOR_THICKNESS = 0.45;
 const CEILING_THICKNESS = 0.35;
 const DOOR_WIDTH = 6;
 const FLOOR_TILE_OVERLAP = 0.015;
+const FLOOR_MIN_STEP = 1.2;
+const FLOOR_MAX_STEP = 6;
+const FLOOR_MAX_TILES = 14000;
+const FLOOR_MAX_RENDER_OBJECTS = 14000;
 const UNDERFLOOR_SIZE: Vec3 = [220, 0.2, 220];
 const UNDERFLOOR_Y = -0.2;
 const OUTER_BORDER_THICKNESS = 1.2;
@@ -164,7 +168,7 @@ const WALL_SEGMENT_OVERLAP = 0.08;
 const WALL_VERTICAL_OVERLAP = 0.06;
 const WALL_BASE_SINK = 0.14;
 const WALL_MAX_ROWS = 4;
-const WALL_MAX_PLACEMENTS = 900;
+const WALL_MAX_PLACEMENTS = 540;
 const WALL_VARIANT_POOL = [
   'Wall',
   'Wall_Overgrown',
@@ -176,6 +180,7 @@ const WALL_VARIANT_POOL = [
   'Wall_ArchRound',
   'Wall_ArchGothic',
 ] as const;
+const DUNGEON_RUINS_GLB_URL = '/models/dungeon/structure/Modular%20Ruins%20Pack.glb';
 
 function hashText(value: string) {
   let hash = 2166136261;
@@ -357,7 +362,7 @@ function buildCorridor(id: string, center: Vec3, length: number, width: number, 
 }
 
 export default function DungeonWorld() {
-  const { nodes } = useGLTF('/models/dungeon/structure/Modular Ruins Pack.glb') as {
+  const { nodes } = useGLTF(DUNGEON_RUINS_GLB_URL) as {
     nodes: Record<string, Object3D>;
   };
   const pieces = useMemo(() => {
@@ -408,7 +413,7 @@ export default function DungeonWorld() {
 
     const baseFootprint = getTileFootprint(FLOOR_TILES.primary);
     if (baseFootprint <= 0) return [];
-    const baseStep = baseFootprint;
+    const baseStep = Math.min(FLOOR_MAX_STEP, Math.max(FLOOR_MIN_STEP, baseFootprint));
     const step = baseStep * (1 - FLOOR_TILE_OVERLAP);
 
     const isCompatibleFootprint = (name: string) => {
@@ -498,7 +503,7 @@ export default function DungeonWorld() {
       return tiles;
     };
 
-    return [
+    const allTiles = [
       ...ROOM_LAYOUT.flatMap((room) => buildArea(room.center, room.size, 'room', room.id)),
       ...CORRIDOR_LAYOUT.flatMap((corridor) =>
         buildArea(
@@ -509,6 +514,14 @@ export default function DungeonWorld() {
         ),
       ),
     ];
+    if (allTiles.length > FLOOR_MAX_TILES) {
+      console.warn('Dungeon floor overlay too dense, truncating tile count', {
+        total: allTiles.length,
+        max: FLOOR_MAX_TILES,
+      });
+      return allTiles.slice(0, FLOOR_MAX_TILES);
+    }
+    return allTiles;
   }, [nodes]);
 
   useEffect(() => {
@@ -525,6 +538,7 @@ export default function DungeonWorld() {
   const floorOverlayObjects = useMemo(() => {
     if (!FLOOR_OVERLAY || !nodes) return [];
     return floorPattern
+      .slice(0, FLOOR_MAX_RENDER_OBJECTS)
       .map((tile) => {
         const node = nodes[tile.name];
         if (!node) return null;
@@ -918,3 +932,5 @@ export default function DungeonWorld() {
     </group>
   );
 }
+
+useGLTF.preload(DUNGEON_RUINS_GLB_URL);
