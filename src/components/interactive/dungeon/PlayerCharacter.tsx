@@ -4,17 +4,52 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useAnimations, useGLTF } from '@react-three/drei';
 import { Mesh, type Group } from 'three';
 
-export type PlayerAnimation = 'idle' | 'walk' | 'run';
+export type PlayerAnimation = 'idle' | 'walk' | 'run' | 'jump';
+
+const CLIP_PATTERNS: Record<PlayerAnimation, RegExp[]> = {
+  idle: [/idle/i, /breath/i, /stand/i],
+  walk: [/walk/i, /walkforward/i, /walk_fwd/i],
+  run: [/run/i, /sprint/i, /jog/i],
+  jump: [/roll/i, /jump/i, /leap/i],
+};
 
 function pickClipName(names: string[], state: PlayerAnimation) {
   const lowered = names.map((name) => name.toLowerCase());
-  const idleIndex = lowered.findIndex((name) => name.includes('idle'));
-  const walkIndex = lowered.findIndex((name) => name.includes('walk'));
-  const runIndex = lowered.findIndex((name) => name.includes('run'));
+  const isAttackIdle = (name: string) => name.includes('attack') && name.includes('idle');
 
-  if (state === 'run' && runIndex >= 0) return names[runIndex];
-  if (state === 'walk' && walkIndex >= 0) return names[walkIndex];
-  if (idleIndex >= 0) return names[idleIndex];
+  const findByPatterns = (patterns: RegExp[], avoidAttackIdle = false) => {
+    const match = (name: string) =>
+      patterns.some((pattern) => pattern.test(name)) &&
+      (!avoidAttackIdle || !isAttackIdle(name));
+
+    const armatureIdx = lowered.findIndex(
+      (name) => name.includes('characterarmature|') && match(name),
+    );
+    if (armatureIdx >= 0) return names[armatureIdx];
+
+    const idx = lowered.findIndex(match);
+    return idx >= 0 ? names[idx] : null;
+  };
+
+  if (state === 'jump') {
+    const jumpClip = findByPatterns(CLIP_PATTERNS.jump);
+    if (jumpClip) return jumpClip;
+  }
+  if (state === 'run') {
+    const runClip = findByPatterns(CLIP_PATTERNS.run);
+    if (runClip) return runClip;
+  }
+  if (state === 'walk') {
+    const walkClip = findByPatterns(CLIP_PATTERNS.walk);
+    if (walkClip) return walkClip;
+  }
+
+  const idleClip = findByPatterns(CLIP_PATTERNS.idle, true);
+  if (idleClip) return idleClip;
+
+  const attackIdle = findByPatterns([/attack.*idle/i]);
+  if (attackIdle) return attackIdle;
+
   return names[0];
 }
 
@@ -28,9 +63,17 @@ export default function PlayerCharacter({ animation = 'idle' }: { animation?: Pl
   useEffect(() => {
     const action = clipName ? actions[clipName] : undefined;
     if (!action) return;
-    action.reset().fadeIn(0.2).play();
+    Object.values(actions).forEach((other) => {
+      if (other && other !== action) {
+        other.fadeOut(0.15);
+      }
+    });
+    action.reset().fadeIn(0.15).play();
+    if (animation === 'run') action.timeScale = 1.25;
+    else if (animation === 'walk') action.timeScale = 1.05;
+    else action.timeScale = 1.0;
     return () => {
-      action.fadeOut(0.2);
+      action.fadeOut(0.15);
     };
   }, [actions, clipName]);
 

@@ -34,20 +34,20 @@ export default function LiquidGlassButton({
       whileTap={{ scale: 0.95 }}
       className={`
                 relative overflow-hidden rounded-full px-8 py-3.5
-                font-medium text-sm tracking-wide text-white
+                font-medium text-sm tracking-wide
                 transition-all duration-300
                 group
                 ${className}
             `}
       style={{
         // Base Glass Style
-        background: 'rgba(255, 255, 255, 0.05)',
+        background: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.9)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         boxShadow: `
                     0 4px 24px -1px rgba(0, 0, 0, 0.2),
-                    0 0 0 1px rgba(255, 255, 255, 0.1),
-                    inset 0 0 12px rgba(255, 255, 255, 0.05),
+                    0 0 0 1px ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(15, 23, 42, 0.08)'},
+                    inset 0 0 12px ${isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.04)'},
                     0 0 20px ${themeColor}20
                 `,
       }}
@@ -56,21 +56,37 @@ export default function LiquidGlassButton({
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-out"
         style={{
-          background: `linear-gradient(120deg, transparent 30%, ${themeColor}40 50%, transparent 70%)`,
+          backgroundImage: `linear-gradient(120deg, transparent 30%, ${themeColor}40 50%, transparent 70%)`,
           backgroundSize: '200% 100%',
           animation: 'shimmer 2s infinite linear',
         }}
       />
 
       {/* Glossy Top Highlight */}
-      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-      <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-30" />
+      <div
+        className={`absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent to-transparent ${
+          isDark ? 'via-white/40 opacity-50' : 'via-black/10 opacity-70'
+        }`}
+      />
+      <div
+        className={`absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent to-transparent ${
+          isDark ? 'via-white/10 opacity-30' : 'via-black/5 opacity-50'
+        }`}
+      />
 
       {/* Reflection Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-20 pointer-events-none" />
+      <div
+        className={`absolute inset-0 pointer-events-none ${
+          isDark ? 'bg-gradient-to-b from-white/10 to-transparent opacity-20' : 'bg-gradient-to-b from-white/60 to-transparent opacity-70'
+        }`}
+      />
 
       {/* Content Layer */}
-      <span className="relative z-10 flex items-center justify-center gap-2 group-hover:text-white transition-colors text-shadow-sm">
+      <span
+        className={`relative z-10 flex items-center justify-center gap-2 transition-colors ${
+          isDark ? 'text-white group-hover:text-white text-shadow-sm' : 'text-slate-900 group-hover:text-slate-900'
+        }`}
+      >
         {icon && (
           <span className="opacity-80 group-hover:opacity-100 transition-opacity">{icon}</span>
         )}

@@ -3,11 +3,12 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Sparkles, Cpu, Activity } from 'lucide-react';
+import { Bot, X, Activity } from 'lucide-react';
 import ChatView from './chat-view/ChatView';
 import AuthView from './auth-view/AuthView';
 
 import { useStore } from '@/utils/store';
+import { getThemeColor, hexToRgba } from '@/utils/themes';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -18,6 +19,16 @@ export default function AIAgent() {
   const router = useRouter();
   const isChatOpen = useStore((state) => state.isChatOpen);
   const setChatOpen = useStore((state) => state.setChatOpen);
+  const { currentTheme, isDark } = useStore();
+
+  const themeColor = getThemeColor(currentTheme, isDark);
+  const accent08 = hexToRgba(themeColor, 0.08);
+  const accent10 = hexToRgba(themeColor, 0.1);
+  const accent15 = hexToRgba(themeColor, 0.15);
+  const accent20 = hexToRgba(themeColor, 0.2);
+  const accent30 = hexToRgba(themeColor, 0.3);
+  const accent40 = hexToRgba(themeColor, 0.4);
+  const accent60 = hexToRgba(themeColor, 0.6);
 
   const [view, setView] = useState<'auth' | 'chat'>('auth');
   const [messages, setMessages] = useState<Message[]>([
@@ -122,7 +133,21 @@ export default function AIAgent() {
   };
 
   return (
-    <div className="z-[100] font-mono">
+    <div
+      className="fixed inset-0 z-[1000] font-mono pointer-events-none"
+      style={
+        {
+          '--ai-accent': themeColor,
+          '--ai-accent-08': accent08,
+          '--ai-accent-10': accent10,
+          '--ai-accent-15': accent15,
+          '--ai-accent-20': accent20,
+          '--ai-accent-30': accent30,
+          '--ai-accent-40': accent40,
+          '--ai-accent-60': accent60,
+        } as React.CSSProperties
+      }
+    >
       <AnimatePresence>
         {isChatOpen && (
           <>
@@ -132,7 +157,9 @@ export default function AIAgent() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setChatOpen(false)}
-              className="fixed inset-0 z-[90] bg-black/20 backdrop-blur-sm dark:bg-black/50"
+              className={`fixed inset-0 z-[90] backdrop-blur-sm pointer-events-auto ${
+                isDark ? 'bg-black/50' : 'bg-black/20'
+              }`}
             />
 
             {/* Sidebar */}
@@ -141,38 +168,53 @@ export default function AIAgent() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-0 z-[100] h-screen w-full border-r border-black/10 bg-gradient-to-b from-white/95 to-white/90 shadow-2xl backdrop-blur-xl dark:border-emerald-500/10 dark:from-[#050707]/95 dark:to-[#030404]/95 md:w-[450px] relative"
+              className={`fixed left-0 top-0 z-[100] h-screen w-full border-r shadow-2xl backdrop-blur-xl md:w-[450px] relative pointer-events-auto ${
+                isDark
+                  ? 'text-white border-[var(--ai-accent-15)] bg-gradient-to-b from-[#050707]/95 to-[#030404]/95'
+                  : 'text-slate-900 border-black/10 bg-gradient-to-b from-white/95 to-white/90'
+              }`}
+              style={{
+                backgroundColor: isDark ? 'rgba(5, 7, 7, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+              }}
             >
               <div className="pointer-events-none absolute inset-0">
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/20 to-transparent" />
-                <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-emerald-500/5 to-transparent" />
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--ai-accent-20)] to-transparent" />
+                <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-[var(--ai-accent-10)] to-transparent" />
               </div>
               {/* Header */}
               <div className="absolute top-0 z-10 flex w-full items-center justify-between p-6">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10">
-                    <Bot size={16} className="text-emerald-400" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--ai-accent-30)] bg-[var(--ai-accent-10)]">
+                    <Bot size={16} style={{ color: themeColor }} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white font-terminal">
+                    <span
+                      className={`text-[10px] font-black uppercase tracking-[0.2em] font-terminal ${
+                        isDark ? 'text-white' : 'text-slate-900'
+                      }`}
+                    >
                       Luseefor.SYS
                     </span>
-                    <span className="text-[8px] font-bold uppercase tracking-widest text-emerald-400/70">
+                    <span
+                      className="text-[8px] font-bold uppercase tracking-widest"
+                      style={{ color: accent60 }}
+                    >
                       Dashboard
                     </span>
                   </div>
                 </div>
-                <div className="hidden items-center gap-3 text-[8px] font-terminal uppercase tracking-[0.35em] text-emerald-400/60 md:flex">
+                <div className="hidden items-center gap-3 text-[8px] font-terminal uppercase tracking-[0.35em] md:flex">
                   <Activity size={12} className="animate-pulse" />
-                  Active
+                  <span style={{ color: accent60 }}>Active</span>
                 </div>
                 <button
                   onClick={() => setChatOpen(false)}
-                  className="group rounded-full border border-emerald-500/20 bg-emerald-500/5 p-2 transition-colors hover:border-emerald-400/40 hover:bg-emerald-400/10"
+                  className="group rounded-full border border-[var(--ai-accent-20)] bg-[var(--ai-accent-10)] p-2 transition-colors hover:border-[var(--ai-accent-40)] hover:bg-[var(--ai-accent-20)]"
                 >
                   <X
                     size={16}
-                    className="text-emerald-200/70 transition-transform group-hover:rotate-90 group-hover:text-emerald-200"
+                    className="transition-transform group-hover:rotate-90"
+                    style={{ color: accent60 }}
                   />
                 </button>
               </div>
@@ -188,7 +230,7 @@ export default function AIAgent() {
                       exit={{ opacity: 0, x: -20 }}
                       className="h-full px-6"
                     >
-                      <AuthView onStart={() => setView('chat')} />
+                      <AuthView onStart={() => setView('chat')} isDark={isDark} />
                     </motion.div>
                   ) : (
                     <motion.div
@@ -203,6 +245,7 @@ export default function AIAgent() {
                         setInput={setInput}
                         onSend={handleSend}
                         isLoading={isLoading}
+                        isDark={isDark}
                       />
                     </motion.div>
                   )}

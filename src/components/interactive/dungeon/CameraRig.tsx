@@ -1,231 +1,239 @@
 'use client';
 
+import { useEffect, useRef, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, type MutableRefObject, type RefObject } from 'react';
 import { useRapier, type RapierRigidBody } from '@react-three/rapier';
-import { Vector3, type Group } from 'three';
-import { useSettings } from '@/lib/settings';
+import { Vector3 } from 'three';
 import { useDungeonInput } from '@/lib/dungeonInput';
+import { getDungeonVisualLiftAt } from '@/lib/dungeonVisualLift';
 import {
   CAMERA_DISTANCE,
   CAMERA_OFFSET,
-  CAMERA_FOLLOW,
-  CAMERA_SENSITIVITY,
   CAMERA_PITCH,
+  CAMERA_SENSITIVITY,
+  CAMERA_FOLLOW,
   CAMERA_COLLISION,
 } from '@/constants/camera';
-import {
-  applyMouseDelta,
-  clampCameraDistance,
-  computeCameraDesired,
-  computeSmoothingFactor,
-  getCameraParentWarnings,
-} from './math/cameraMath';
+import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
+import { applyMouseDelta, clampCameraDistance, computeCameraDesired, computeSmoothingFactor } from './math/cameraMath';
 
 const targetPosition = new Vector3();
+const smoothedTargetPosition = new Vector3();
+const lookAtPosition = new Vector3();
+const smoothedLookAtPosition = new Vector3();
 const desiredPosition = new Vector3();
-const forward = new Vector3();
-const right = new Vector3();
 const rayDirection = new Vector3();
-const moveVector = new Vector3();
+const TARGET_FOLLOW_SMOOTHING = 0.005;
+const FLOOR_PROBE_HEIGHT = 2.4;
+const FLOOR_PROBE_DISTANCE = 10;
+const CAMERA_FLOOR_CLEARANCE = 0.45;
+const CAMERA_MIN_Y = 0.35;
+const CAMERA_WALL_BUFFER = 0.8;
+const CAMERA_MIN_COLLISION_DISTANCE = 0.7;
+
+function clampMapX(value: number) {
+  return Math.min(
+    DUNGEON_BOUNDS.maxX - DUNGEON_BOUNDS.cameraPadding,
+    Math.max(DUNGEON_BOUNDS.minX + DUNGEON_BOUNDS.cameraPadding, value),
+  );
+}
+
+function clampMapZ(value: number) {
+  return Math.min(
+    DUNGEON_BOUNDS.maxZ - DUNGEON_BOUNDS.cameraPadding,
+    Math.max(DUNGEON_BOUNDS.minZ + DUNGEON_BOUNDS.cameraPadding, value),
+  );
+}
 
 export default function CameraRig({
-  target,
+  targetBody,
   yawRef,
   pitchRef,
-  targetBody,
 }: {
-  target: RefObject<Group | null>;
+  targetBody?: MutableRefObject<RapierRigidBody | null>;
   yawRef?: MutableRefObject<number>;
   pitchRef?: MutableRefObject<number>;
-  targetBody?: MutableRefObject<RapierRigidBody | null>;
 }) {
   const { camera } = useThree();
-  const { scene } = useThree();
   const { rapier, world } = useRapier();
-  const mouseSensitivity = useSettings((state) => state.mouseSensitivity);
   const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
-  const freeCam = useDungeonInput((state) => state.freeCam);
-  const keys = useDungeonInput((state) => state.keys);
   const mouseDown = useDungeonInput((state) => state.mouseDown);
-  const up = useMemo(() => new Vector3(0, 1, 0), []);
   const internalYaw = useRef(0);
   const internalPitch = useRef(CAMERA_PITCH.initial);
-  const distanceRef = useRef<number>(CAMERA_DISTANCE.default);
-  const devWarningTimer = useRef(0);
-  const devErrorTimer = useRef(0);
-  const isDev = process.env.NODE_ENV !== 'production';
+  const distanceRef = useRef(CAMERA_DISTANCE.default);
+  const lastClientRef = useRef<{ x: number; y: number } | null>(null);
+  const initializedRef = useRef(false);
+  const lastFloorYRef = useRef(CAMERA_MIN_Y);
 
-  const yawValue = yawRef ?? internalYaw;
-  const pitchValue = pitchRef ?? internalPitch;
+  const yaw = yawRef ?? internalYaw;
+  const pitch = pitchRef ?? internalPitch;
 
   useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      if (!isPointerLocked && !mouseDown) return;
+    lastClientRef.current = null;
+  }, [isPointerLocked]);
+
+  useEffect(() => {
+    const applyDelta = (deltaX: number, deltaY: number) => {
+      if (deltaX === 0 && deltaY === 0) return;
       const next = applyMouseDelta(
-        yawValue.current,
-        pitchValue.current,
-        event.movementX,
-        event.movementY,
-        {
-          yaw: CAMERA_SENSITIVITY.yaw * mouseSensitivity,
-          pitch: CAMERA_SENSITIVITY.pitch * mouseSensitivity,
-        },
+        yaw.current,
+        pitch.current,
+        deltaX,
+        deltaY,
+        CAMERA_SENSITIVITY,
         CAMERA_PITCH,
       );
-      yawValue.current = next.yaw;
-      pitchValue.current = next.pitch;
+      yaw.current = next.yaw;
+      pitch.current = next.pitch;
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isPointerLocked && !mouseDown) return;
+      const rawX =
+        event.movementX ||
+        (event as MouseEvent & { mozMovementX?: number }).mozMovementX ||
+        (event as MouseEvent & { webkitMovementX?: number }).webkitMovementX ||
+        0;
+      const rawY =
+        event.movementY ||
+        (event as MouseEvent & { mozMovementY?: number }).mozMovementY ||
+        (event as MouseEvent & { webkitMovementY?: number }).webkitMovementY ||
+        0;
+
+      if (rawX === 0 && rawY === 0 && isPointerLocked) {
+        if (lastClientRef.current) {
+          applyDelta(event.clientX - lastClientRef.current.x, event.clientY - lastClientRef.current.y);
+        }
+        lastClientRef.current = { x: event.clientX, y: event.clientY };
+        return;
+      }
+
+      lastClientRef.current = { x: event.clientX, y: event.clientY };
+      applyDelta(rawX, rawY);
+    };
+
+    const handlePointerRawUpdate = (event: PointerEvent) => {
+      if (!isPointerLocked && !mouseDown) return;
+      applyDelta(event.movementX || 0, event.movementY || 0);
     };
 
     const handleWheel = (event: WheelEvent) => {
+      const hasTrackpad = typeof navigator !== 'undefined' && (navigator.maxTouchPoints ?? 0) > 0;
+      const hasDelta = Math.abs(event.deltaX) + Math.abs(event.deltaY) > 0.01;
+      const useWheelLook = isPointerLocked && hasTrackpad && hasDelta && !event.metaKey && !event.ctrlKey;
+
+      if (useWheelLook) {
+        event.preventDefault();
+        applyDelta(event.deltaX * 0.6, event.deltaY * 0.6);
+        return;
+      }
+
       const next = distanceRef.current + Math.sign(event.deltaY) * CAMERA_DISTANCE.scrollStep;
       distanceRef.current = clampCameraDistance(next);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('wheel', handleWheel, { passive: true });
-
+    document.addEventListener('pointerrawupdate', handlePointerRawUpdate);
+    window.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('pointerrawupdate', handlePointerRawUpdate);
       window.removeEventListener('wheel', handleWheel);
     };
-  }, [isPointerLocked, mouseDown, mouseSensitivity, pitchValue, yawValue]);
+  }, [isPointerLocked, mouseDown, pitch, yaw]);
 
   useFrame((_, delta) => {
-    if (isDev) {
-      devWarningTimer.current += delta;
-      devErrorTimer.current += delta;
-    }
+    const body = targetBody?.current;
+    if (!body) return;
 
-    const yaw = yawValue.current;
-    const pitch = pitchValue.current;
-
-    if (isDev && (!Number.isFinite(yaw) || !Number.isFinite(pitch))) {
-      if (devErrorTimer.current > 0.5) {
-        console.error('[CameraRig] Non-finite yaw/pitch detected.', { yaw, pitch });
-        devErrorTimer.current = 0;
-      }
-      return;
-    }
-
-    forward.set(Math.sin(yaw), Math.sin(pitch), Math.cos(yaw)).normalize();
-    right.set(forward.z, 0, -forward.x).normalize();
-
-    if (freeCam) {
-      const speed = (keys.run ? 9 : 4) * (delta > 0 ? delta : 0);
-      moveVector.set(0, 0, 0);
-      if (keys.forward) moveVector.add(forward);
-      if (keys.backward) moveVector.sub(forward);
-      if (keys.left) moveVector.sub(right);
-      if (keys.right) moveVector.add(right);
-      if (moveVector.lengthSq() > 0) {
-        moveVector.normalize().multiplyScalar(speed);
-        camera.position.add(moveVector);
-      }
-      camera.lookAt(
-        camera.position.x + forward.x,
-        camera.position.y + forward.y,
-        camera.position.z + forward.z,
+    const position = body.translation();
+    targetPosition.set(position.x, position.y, position.z);
+    if (!initializedRef.current) {
+      smoothedTargetPosition.copy(targetPosition);
+      lookAtPosition.set(
+        targetPosition.x,
+        targetPosition.y + CAMERA_OFFSET.lookAtHeight,
+        targetPosition.z,
       );
-      return;
-    }
-
-    const targetBodyRef = targetBody?.current ?? null;
-    if (targetBodyRef) {
-      const position = targetBodyRef.translation();
-      if (
-        isDev &&
-        (!Number.isFinite(position.x) ||
-          !Number.isFinite(position.y) ||
-          !Number.isFinite(position.z))
-      ) {
-        if (devErrorTimer.current > 0.5) {
-          console.error('[CameraRig] Non-finite player position detected.', position);
-          devErrorTimer.current = 0;
-        }
-        return;
-      }
-      targetPosition.set(position.x, position.y, position.z);
+      smoothedLookAtPosition.copy(lookAtPosition);
+      initializedRef.current = true;
     } else {
-      const targetGroup = target.current;
-      if (!targetGroup) return;
-      targetGroup.getWorldPosition(targetPosition);
+      const targetLerp = computeSmoothingFactor(delta, TARGET_FOLLOW_SMOOTHING);
+      smoothedTargetPosition.lerp(targetPosition, targetLerp);
+      lookAtPosition.set(
+        targetPosition.x,
+        targetPosition.y + CAMERA_OFFSET.lookAtHeight,
+        targetPosition.z,
+      );
+      smoothedLookAtPosition.lerp(lookAtPosition, targetLerp);
     }
-
-    const distance = distanceRef.current;
 
     const desired = computeCameraDesired(
-      { x: targetPosition.x, y: targetPosition.y, z: targetPosition.z },
-      yaw,
-      pitch,
-      distance,
+      { x: smoothedTargetPosition.x, y: smoothedTargetPosition.y, z: smoothedTargetPosition.z },
+      yaw.current,
+      pitch.current,
+      distanceRef.current,
       CAMERA_OFFSET,
     );
     desiredPosition.set(desired.x, desired.y, desired.z);
+    desiredPosition.x = clampMapX(desiredPosition.x);
+    desiredPosition.z = clampMapZ(desiredPosition.z);
 
-    rayDirection.copy(desiredPosition).sub(targetPosition);
+    rayDirection.copy(desiredPosition).sub(smoothedTargetPosition);
     const rayDistance = rayDirection.length();
-    if (!Number.isFinite(rayDistance) || rayDistance < 1e-4) {
-      return;
-    }
-    rayDirection.normalize();
-
-    const ray = new rapier.Ray(
-      { x: targetPosition.x, y: targetPosition.y, z: targetPosition.z },
-      { x: rayDirection.x, y: rayDirection.y, z: rayDirection.z },
-    );
-    const hit = world.castRay(ray, rayDistance, true);
-    let cameraTarget = desiredPosition;
-    if (hit) {
-      const safeDistance = Math.max(
-        CAMERA_COLLISION.minCameraDistance,
-        (hit as any).toi - CAMERA_COLLISION.minDistanceFromWall,
+    if (rayDistance > 0.01) {
+      rayDirection.normalize();
+      const ray = new rapier.Ray(
+        { x: smoothedTargetPosition.x, y: smoothedTargetPosition.y, z: smoothedTargetPosition.z },
+        { x: rayDirection.x, y: rayDirection.y, z: rayDirection.z },
       );
-      cameraTarget = targetPosition.clone().add(rayDirection.multiplyScalar(safeDistance));
-    }
-
-    if (
-      !Number.isFinite(cameraTarget.x) ||
-      !Number.isFinite(cameraTarget.y) ||
-      !Number.isFinite(cameraTarget.z)
-    ) {
-      return;
-    }
-    const lerpFactor = computeSmoothingFactor(delta, CAMERA_FOLLOW.smoothing);
-    camera.position.lerp(cameraTarget, lerpFactor);
-    if (
-      isDev &&
-      (!Number.isFinite(camera.position.x) ||
-        !Number.isFinite(camera.position.y) ||
-        !Number.isFinite(camera.position.z))
-    ) {
-      if (devErrorTimer.current > 0.5) {
-        console.error('[CameraRig] Non-finite camera position detected.', camera.position);
-        devErrorTimer.current = 0;
-      }
-      return;
-    }
-    camera.lookAt(
-      targetPosition.x,
-      targetPosition.y + CAMERA_OFFSET.lookAtHeight,
-      targetPosition.z,
-    );
-
-    if (isDev && devWarningTimer.current > 0.75) {
-      devWarningTimer.current = 0;
-      if (isPointerLocked && document.pointerLockElement === null) {
-        console.warn(
-          '[CameraRig] Pointer lock state mismatch: expected locked but element is null.',
+      const hit = world.castRay(ray, rayDistance, true);
+      if (hit) {
+        const safeDistance = Math.max(
+          Math.max(CAMERA_COLLISION.minCameraDistance, CAMERA_MIN_COLLISION_DISTANCE),
+          hit.toi - Math.max(CAMERA_COLLISION.minDistanceFromWall, CAMERA_WALL_BUFFER),
         );
-      }
-      const warnings = getCameraParentWarnings(camera.parent, scene);
-      if (warnings.invalidParent) {
-        console.warn('[CameraRig] Camera parent is not the scene root.');
-      }
-      if (warnings.nonUnitScale) {
-        console.warn('[CameraRig] Camera parent has non-unit scale.');
+        desiredPosition.copy(smoothedTargetPosition).add(rayDirection.multiplyScalar(safeDistance));
+        desiredPosition.x = clampMapX(desiredPosition.x);
+        desiredPosition.z = clampMapZ(desiredPosition.z);
       }
     }
+
+    const probeOriginY = smoothedTargetPosition.y + FLOOR_PROBE_HEIGHT;
+    const probeFloorAt = (x: number, z: number) => {
+      const floorProbe = new rapier.Ray({ x, y: probeOriginY, z }, { x: 0, y: -1, z: 0 });
+      const floorHit = world.castRay(floorProbe, FLOOR_PROBE_DISTANCE, true);
+      if (!floorHit) return null;
+      return probeOriginY - floorHit.toi;
+    };
+
+    const floorAtDesired = probeFloorAt(desiredPosition.x, desiredPosition.z);
+    const floorAtTarget = probeFloorAt(smoothedTargetPosition.x, smoothedTargetPosition.z);
+    const fallbackFloor = Math.max(lastFloorYRef.current, smoothedTargetPosition.y);
+    const floorY =
+      floorAtDesired != null && floorAtTarget != null
+        ? Math.max(floorAtDesired, floorAtTarget)
+        : floorAtDesired ?? floorAtTarget ?? fallbackFloor;
+    lastFloorYRef.current = floorY;
+
+    const visualLift = Math.max(
+      getDungeonVisualLiftAt(desiredPosition.x, desiredPosition.z),
+      getDungeonVisualLiftAt(smoothedTargetPosition.x, smoothedTargetPosition.z),
+    );
+    const minAllowedY = Math.max(CAMERA_MIN_Y, floorY + visualLift + CAMERA_FLOOR_CLEARANCE);
+    if (desiredPosition.y < minAllowedY) {
+      desiredPosition.y = minAllowedY;
+    }
+
+    const lerpFactor = computeSmoothingFactor(delta, CAMERA_FOLLOW.smoothing);
+    camera.position.lerp(desiredPosition, lerpFactor);
+    if (camera.position.y < minAllowedY) {
+      camera.position.lerp(desiredPosition, 1);
+    }
+    const clampedX = clampMapX(camera.position.x);
+    const clampedZ = clampMapZ(camera.position.z);
+    camera.position.set(clampedX, camera.position.y, clampedZ);
+    camera.lookAt(smoothedLookAtPosition);
   });
 
   return null;

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Github, Linkedin, Instagram, Mail } from 'lucide-react';
 import { useStore } from '@/utils/store';
-import { getThemeColor } from '@/utils/themes';
+import { getThemeColor, hexToRgba } from '@/utils/themes';
 import dynamic from 'next/dynamic';
 
 const FuturisticCard = dynamic(() => import('./FuturisticCard'), { ssr: false });
@@ -26,6 +26,7 @@ export default function ContactSection() {
     () => getThemeColor(currentTheme, isDark),
     [currentTheme, isDark],
   );
+  const themeFade = hexToRgba(themeColor, isDark ? 0.35 : 0.7);
   const [status, setStatus] = useState('Transmit Signal');
 
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
@@ -86,23 +87,29 @@ export default function ContactSection() {
             </span>
           </div>
           <h2
-            className="font-black text-white mb-6 md:mb-8 uppercase tracking-tighter leading-none"
-            style={{ fontSize: 'clamp(2rem, 8vw, 5rem)' }}
+            className={`font-black mb-6 md:mb-8 uppercase tracking-tighter leading-none ${
+              isDark ? 'text-white' : 'text-slate-900'
+            }`}
+            style={{ fontSize: 'clamp(2.25rem, 6.5vw, 4.75rem)' }}
           >
             Get in{' '}
             <span
               className="text-transparent bg-clip-text"
-              style={{ backgroundImage: `linear-gradient(to right, ${themeColor}, white)` }}
+              style={{ backgroundImage: `linear-gradient(90deg, ${themeColor}, ${themeFade})` }}
             >
               Touch
             </span>
           </h2>
-          <p className="text-slate-200 text-base sm:text-lg md:text-xl max-w-2xl mx-auto leading-relaxed font-light">
+          <p
+            className={`text-base sm:text-lg md:text-xl max-w-2xl mx-auto leading-relaxed font-light ${
+              isDark ? 'text-slate-200' : 'text-slate-600'
+            }`}
+          >
             Ready to upgrade your digital infrastructure? establishing direct uplink...
           </p>
         </div>
 
-        <FuturisticCard themeColor={themeColor} className="p-8 md:p-12 text-left">
+        <FuturisticCard themeColor={themeColor} isDark={isDark} className="p-8 md:p-12 text-left">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -116,10 +123,18 @@ export default function ContactSection() {
                   onChange={handleChange}
                   required
                   placeholder="Your Full Name"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-opacity-50 transition-all font-mono text-sm"
-                  style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                  className={`w-full rounded-lg px-4 py-3 focus:outline-none focus:border-opacity-50 transition-all font-mono text-sm ${
+                    isDark
+                      ? 'bg-white/5 border border-white/10 text-white placeholder:text-slate-600'
+                      : 'bg-white border border-black/10 text-slate-900 placeholder:text-slate-400'
+                  }`}
+                  style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.12)' }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = themeColor)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+                  onBlur={(e) =>
+                    (e.currentTarget.style.borderColor = isDark
+                      ? 'rgba(255,255,255,0.1)'
+                      : 'rgba(15,23,42,0.12)')
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -133,10 +148,18 @@ export default function ContactSection() {
                   onChange={handleChange}
                   required
                   placeholder="you@example.com"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-opacity-50 transition-all font-mono text-sm"
-                  style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                  className={`w-full rounded-lg px-4 py-3 focus:outline-none focus:border-opacity-50 transition-all font-mono text-sm ${
+                    isDark
+                      ? 'bg-white/5 border border-white/10 text-white placeholder:text-slate-600'
+                      : 'bg-white border border-black/10 text-slate-900 placeholder:text-slate-400'
+                  }`}
+                  style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.12)' }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = themeColor)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+                  onBlur={(e) =>
+                    (e.currentTarget.style.borderColor = isDark
+                      ? 'rgba(255,255,255,0.1)'
+                      : 'rgba(15,23,42,0.12)')
+                  }
                 />
               </div>
             </div>
@@ -152,10 +175,18 @@ export default function ContactSection() {
                 required
                 rows={4}
                 placeholder="Describe your project connection..."
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-opacity-50 transition-all font-mono text-sm resize-none"
-                style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                className={`w-full rounded-lg px-4 py-3 focus:outline-none focus:border-opacity-50 transition-all font-mono text-sm resize-none ${
+                  isDark
+                    ? 'bg-white/5 border border-white/10 text-white placeholder:text-slate-600'
+                    : 'bg-white border border-black/10 text-slate-900 placeholder:text-slate-400'
+                }`}
+                style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.12)' }}
                 onFocus={(e) => (e.currentTarget.style.borderColor = themeColor)}
-                onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+                onBlur={(e) =>
+                  (e.currentTarget.style.borderColor = isDark
+                    ? 'rgba(255,255,255,0.1)'
+                    : 'rgba(15,23,42,0.12)')
+                }
               />
             </div>
 
@@ -174,7 +205,9 @@ export default function ContactSection() {
               target="_blank"
               rel="noopener noreferrer"
               whileHover={{ y: -5, color: themeColor }}
-              className="text-slate-500 hover:text-white transition-colors p-2"
+              className={`transition-colors p-2 ${
+                isDark ? 'text-slate-500 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+              }`}
             >
               <item.icon size={24} />
             </motion.a>
@@ -182,7 +215,7 @@ export default function ContactSection() {
         </div>
 
         {/* Copyright */}
-        <div className="mt-12 text-slate-600 text-xs font-mono uppercase tracking-widest">
+        <div className={`mt-12 text-xs font-mono uppercase tracking-widest ${isDark ? 'text-slate-600' : 'text-slate-500'}`}>
           <p>
             &copy; {new Date().getFullYear()} Rijan Ghimire.{' '}
             <span className="hidden md:inline">All rights reserved.</span>

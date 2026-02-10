@@ -12,11 +12,11 @@ import { MathUtils } from 'three';
 // ========================================
 export const CAMERA_DISTANCE = {
   /** Default camera distance from player */
-  default: 2.2,
+  default: 4.8,
   /** Minimum zoom distance */
-  min: 1.6,
+  min: 2.5,
   /** Maximum zoom distance */
-  max: 3.4,
+  max: 6.5,
   /** Zoom step per scroll wheel tick */
   scrollStep: 0.4,
 } as const;
@@ -26,13 +26,13 @@ export const CAMERA_DISTANCE = {
 // ========================================
 export const CAMERA_OFFSET = {
   /** Height above player pivot (eye level offset) */
-  height: 1.8,
+  height: 2.6,
   /** Horizontal offset for over-shoulder view (0 = centered) */
   side: 0.6,
   /** Additional backward bias to keep the head in frame */
   back: 0.2,
   /** Look-at height offset (where camera points at on player) */
-  lookAtHeight: 1.25,
+  lookAtHeight: 1.6,
 } as const;
 
 // ========================================
