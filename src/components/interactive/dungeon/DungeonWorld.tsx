@@ -170,6 +170,26 @@ const CORRIDOR_LAYOUT: CorridorSpec[] = [
 const WALL_SEGMENT_OVERLAP = 0.08;
 const WALL_VERTICAL_OVERLAP = 0.06;
 const WALL_BASE_SINK = 0.14;
+const WALL_VARIANT_POOL = [
+  'Wall',
+  'Wall_Overgrown',
+  'Wall_Broken',
+  'Wall_Double_Broken',
+  'Wall_ArchRound_Broken',
+  'Wall_ArchRound_Overgrown',
+  'Wall_ArchRound_Overgrown_Broken',
+  'Wall_ArchRound',
+  'Wall_ArchGothic',
+] as const;
+
+function hashText(value: string) {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
 
 function buildWallSegments(
   id: string,
@@ -536,14 +556,55 @@ export default function DungeonWorld() {
       anchor: Vec3;
     };
 
-    type WallMetrics = {
+    type WallProfile = {
+      name: string;
       rotationX: number;
       footprint: number;
       height: number;
       anchor: Vec3;
     };
 
-    const wallNodeName =
+    const getWallProfile = (name: string): WallProfile | null => {
+      const source = nodes[name];
+      if (!source) return null;
+      const probe = source.clone(true);
+      const candidateRotations = [0, -Math.PI / 2];
+      let best: WallProfile = {
+        name,
+        rotationX: 0,
+        footprint: 0.1,
+        height: 0.1,
+        anchor: [0, 0, 0],
+      };
+      let bestHeight = -Infinity;
+      for (let i = 0; i < candidateRotations.length; i += 1) {
+        const rotationX = candidateRotations[i];
+        probe.position.set(0, 0, 0);
+        probe.rotation.set(rotationX, 0, 0);
+        probe.scale.set(1, 1, 1);
+        probe.updateMatrixWorld(true);
+        const box = new Box3().setFromObject(probe);
+        const size = new Vector3();
+        const center = new Vector3();
+        box.getSize(size);
+        box.getCenter(center);
+        const footprint = Math.max(size.x || 0.1, size.z || 0.1);
+        const height = Math.max(size.y || 0.1, 0.1);
+        if (height > bestHeight) {
+          bestHeight = height;
+          best = {
+            name,
+            rotationX,
+            footprint: Math.max(footprint, 0.1),
+            height,
+            anchor: [-center.x, -box.min.y, -center.z],
+          };
+        }
+      }
+      return best;
+    };
+
+    const baseWallName =
       (nodes.Wall ? 'Wall' : null) ??
       Object.keys(nodes).find(
         (name) =>
@@ -554,45 +615,37 @@ export default function DungeonWorld() {
           !name.includes('Overgrown'),
       ) ??
       null;
-    if (!wallNodeName) return [];
+    if (!baseWallName) return [];
+    const baseProfile = getWallProfile(baseWallName);
+    if (!baseProfile) return [];
 
-    const source = nodes[wallNodeName];
-    const probe = source.clone(true);
-    const candidateRotations = [0, -Math.PI / 2];
-    let bestMetrics: WallMetrics = {
-      rotationX: 0,
-      footprint: 2,
-      height: 2,
-      anchor: [0, 0, 0],
-    };
-    let bestHeight = -Infinity;
-    for (let i = 0; i < candidateRotations.length; i += 1) {
-      const rotationX = candidateRotations[i];
-      probe.position.set(0, 0, 0);
-      probe.rotation.set(rotationX, 0, 0);
-      probe.scale.set(1, 1, 1);
-      probe.updateMatrixWorld(true);
-      const box = new Box3().setFromObject(probe);
-      const size = new Vector3();
-      const center = new Vector3();
-      box.getSize(size);
-      box.getCenter(center);
-      const footprint = Math.max(size.x || 0.1, size.z || 0.1);
-      const height = Math.max(size.y || 0.1, 0.1);
-      if (height > bestHeight) {
-        bestHeight = height;
-        bestMetrics = {
-          rotationX,
-          footprint: Math.max(footprint, 0.1),
-          height,
-          anchor: [-center.x, -box.min.y, -center.z],
-        };
-      }
-    }
+    const wallProfiles = WALL_VARIANT_POOL
+      .map((name) => getWallProfile(name))
+      .filter(Boolean)
+      .filter((profile) => {
+        const ratio = profile!.footprint / baseProfile.footprint;
+        const heightRatio = profile!.height / baseProfile.height;
+        return ratio >= 0.55 && ratio <= 1.7 && heightRatio >= 0.5 && heightRatio <= 1.8;
+      }) as WallProfile[];
+    if (!wallProfiles.length) wallProfiles.push(baseProfile);
+
+    const archProfiles = wallProfiles.filter((profile) => profile.name.includes('Arch'));
+    const weatheredProfiles = wallProfiles.filter(
+      (profile) =>
+        profile.name.includes('Broken') ||
+        profile.name.includes('Overgrown') ||
+        profile.name.includes('Double'),
+    );
+    const solidProfiles = wallProfiles.filter(
+      (profile) =>
+        !profile.name.includes('Broken') &&
+        !profile.name.includes('Overgrown') &&
+        !profile.name.includes('Double') &&
+        !profile.name.includes('Arch'),
+    );
 
     const wallScale = 1;
-    const wallSpan = bestMetrics.footprint * wallScale;
-    const wallRowHeight = bestMetrics.height * wallScale;
+    const wallSpan = baseProfile.footprint * wallScale;
     const wallStep = Math.max(0.1, wallSpan * (1 - WALL_SEGMENT_OVERLAP));
     const placements: DecorPlacement[] = [];
     let placementCounter = 0;
@@ -605,21 +658,45 @@ export default function DungeonWorld() {
       const startOffset = -occupiedLength / 2 + wallSpan / 2;
       const rotationY = axis === 'x' ? 0 : Math.PI / 2;
       const baseY = piece.position[1] - piece.size[1] / 2 - WALL_BASE_SINK;
-      const scaleY = Math.max(1, (piece.size[1] / Math.max(0.1, wallRowHeight)) * (1 + WALL_VERTICAL_OVERLAP));
+      const hasOpeningSegment =
+        piece.id.includes('-left') ||
+        piece.id.includes('-right') ||
+        piece.id.includes('-near') ||
+        piece.id.includes('-far');
 
       for (let slot = 0; slot < slots; slot += 1) {
         const offset = startOffset + slot * wallStep;
         const x = piece.position[0] + (axis === 'x' ? offset : 0);
         const z = piece.position[2] + (axis === 'z' ? offset : 0);
+        const hash = hashText(`${piece.id}:${slot}`);
+
+        let profile = baseProfile;
+        if (hasOpeningSegment && archProfiles.length > 0 && slot === Math.floor(slots / 2)) {
+          profile = archProfiles[hash % archProfiles.length];
+        } else {
+          const roll = hash % 100;
+          if (roll < 24 && weatheredProfiles.length > 0) {
+            profile = weatheredProfiles[hash % weatheredProfiles.length];
+          } else if (roll < 34 && archProfiles.length > 0) {
+            profile = archProfiles[hash % archProfiles.length];
+          } else if (solidProfiles.length > 0) {
+            profile = solidProfiles[hash % solidProfiles.length];
+          }
+        }
+
+        const scaleXZRaw = wallSpan / Math.max(0.1, profile.footprint);
+        const scaleRaw = (piece.size[1] / Math.max(0.1, profile.height)) * (1 + WALL_VERTICAL_OVERLAP);
+        const scale = Math.min(1.3, Math.max(0.72, scaleXZRaw));
+        const scaleY = Math.min(1.8, Math.max(0.85, scaleRaw));
         placements.push({
           id: `wall-${placementCounter++}`,
-          name: wallNodeName,
+          name: profile.name,
           position: [x, baseY, z],
-          rotationX: bestMetrics.rotationX,
+          rotationX: profile.rotationX,
           rotationY,
-          scale: wallScale,
+          scale: wallScale * scale,
           scaleY,
-          anchor: bestMetrics.anchor,
+          anchor: profile.anchor,
         });
       }
     });
