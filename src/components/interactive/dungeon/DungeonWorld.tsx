@@ -163,6 +163,8 @@ const CORRIDOR_LAYOUT: CorridorSpec[] = [
 const WALL_SEGMENT_OVERLAP = 0.08;
 const WALL_VERTICAL_OVERLAP = 0.06;
 const WALL_BASE_SINK = 0.14;
+const WALL_MAX_ROWS = 4;
+const WALL_MAX_PLACEMENTS = 900;
 const WALL_VARIANT_POOL = [
   'Wall',
   'Wall_Overgrown',
@@ -611,6 +613,14 @@ export default function DungeonWorld() {
     if (!baseWallName) return [];
     const baseProfile = getWallProfile(baseWallName);
     if (!baseProfile) return [];
+    if (baseProfile.footprint < 0.25 || baseProfile.height < 0.25) {
+      console.warn('Dungeon wall profile too small, skipping decorative wall pass', {
+        footprint: baseProfile.footprint,
+        height: baseProfile.height,
+        baseWallName,
+      });
+      return [];
+    }
 
     const wallProfiles = WALL_VARIANT_POOL
       .map((name) => getWallProfile(name))
@@ -650,17 +660,24 @@ export default function DungeonWorld() {
     let placementCounter = 0;
     const wallPieces = pieces.filter((piece) => piece.material === wallMaterial);
     wallPieces.forEach((piece) => {
+      if (placementCounter >= WALL_MAX_PLACEMENTS) return;
       const axis: 'x' | 'z' = piece.size[0] >= piece.size[2] ? 'x' : 'z';
       const length = axis === 'x' ? piece.size[0] : piece.size[2];
       const slots = Math.max(1, Math.ceil((length + wallStep * 0.5) / wallStep));
-      const rows = Math.max(1, Math.ceil((piece.size[1] + wallRowStep * 0.25) / wallRowStep));
+      const rows = Math.max(1, Math.min(WALL_MAX_ROWS, Math.ceil((piece.size[1] + wallRowStep * 0.25) / wallRowStep)));
       const occupiedLength = wallSpan + (slots - 1) * wallStep;
       const startOffset = -occupiedLength / 2 + wallSpan / 2;
       const rotationY = axis === 'x' ? 0 : Math.PI / 2;
       const baseY = piece.position[1] - piece.size[1] / 2 - WALL_BASE_SINK;
 
+      let breakAll = false;
       for (let row = 0; row < rows; row += 1) {
+        if (breakAll) break;
         for (let slot = 0; slot < slots; slot += 1) {
+          if (placementCounter >= WALL_MAX_PLACEMENTS) {
+            breakAll = true;
+            break;
+          }
           const offset = startOffset + slot * wallStep;
           const x = piece.position[0] + (axis === 'x' ? offset : 0);
           const z = piece.position[2] + (axis === 'z' ? offset : 0);
@@ -699,7 +716,7 @@ export default function DungeonWorld() {
       }
     });
 
-    if (archProfiles.length > 0) {
+    if (archProfiles.length > 0 && placementCounter < WALL_MAX_PLACEMENTS) {
       const archTargetHeight = Math.min(8, WALL_HEIGHT * 0.42);
       const archBaseY = -WALL_BASE_SINK;
       const pushArch = (
@@ -708,6 +725,7 @@ export default function DungeonWorld() {
         z: number,
         rotationY: number,
       ) => {
+        if (placementCounter >= WALL_MAX_PLACEMENTS) return;
         const profile = archProfiles[hashText(seed) % archProfiles.length];
         const scale = Math.min(1.26, Math.max(0.84, (DOOR_WIDTH / Math.max(0.1, profile.footprint)) * 0.9));
         const scaleY = Math.min(1.6, Math.max(0.9, archTargetHeight / Math.max(0.1, profile.height)));
