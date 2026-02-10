@@ -38,6 +38,10 @@ const DOOR_WIDTH = 6;
 const FLOOR_TILE_OVERLAP = 0.015;
 const UNDERFLOOR_SIZE: Vec3 = [220, 0.2, 220];
 const UNDERFLOOR_Y = -0.2;
+const WALL_CORE_THICKNESS = 0.18;
+const WALL_CORE_LENGTH_OVERLAP = 0.22;
+const WALL_CORE_HEIGHT_OVERLAP = 0.28;
+const WALL_CORE_Y_SINK = 0.1;
 
 type BoxPiece = {
   id: string;
@@ -66,6 +70,11 @@ const underfloorMaterial = new MeshStandardMaterial({
   color: '#6a6456',
   roughness: 0.97,
   metalness: 0.01,
+});
+const wallCoreMaterial = new MeshStandardMaterial({
+  color: '#4b4d43',
+  roughness: 0.96,
+  metalness: 0.02,
 });
 
 const FLOOR_NODES = [
@@ -156,6 +165,7 @@ const CORRIDOR_LAYOUT: CorridorSpec[] = [
 
 const WALL_SEGMENT_OVERLAP = 0.08;
 const WALL_VERTICAL_OVERLAP = 0.06;
+const WALL_BASE_SINK = 0.14;
 
 function buildWallSegments(
   id: string,
@@ -563,7 +573,7 @@ export default function DungeonWorld() {
           rotationX,
           footprint: Math.max(footprint, 0.1),
           height,
-          anchor: [-center.x, -box.min.y + 0.01, -center.z],
+          anchor: [-center.x, -box.min.y, -center.z],
         };
       }
     }
@@ -582,7 +592,7 @@ export default function DungeonWorld() {
       const occupiedLength = wallSpan + (slots - 1) * wallStep;
       const startOffset = -occupiedLength / 2 + wallSpan / 2;
       const rotationY = axis === 'x' ? 0 : Math.PI / 2;
-      const baseY = piece.position[1] - piece.size[1] / 2;
+      const baseY = piece.position[1] - piece.size[1] / 2 - WALL_BASE_SINK;
       const scaleY = Math.max(1, (piece.size[1] / Math.max(0.1, wallRowHeight)) * (1 + WALL_VERTICAL_OVERLAP));
 
       for (let slot = 0; slot < slots; slot += 1) {
@@ -630,6 +640,35 @@ export default function DungeonWorld() {
       .filter(Boolean) as { id: string; object: Object3D; position: Vec3; rotation: Vec3; scale: Vec3 }[];
   }, [nodes, wallDecor]);
 
+  const wallCorePieces = useMemo(() => {
+    return pieces
+      .filter((piece) => piece.material === wallMaterial)
+      .map((piece) => {
+        const alongX = piece.size[0] >= piece.size[2];
+        const coreSize: Vec3 = alongX
+          ? [
+              piece.size[0] + WALL_CORE_LENGTH_OVERLAP,
+              piece.size[1] + WALL_CORE_HEIGHT_OVERLAP,
+              WALL_CORE_THICKNESS,
+            ]
+          : [
+              WALL_CORE_THICKNESS,
+              piece.size[1] + WALL_CORE_HEIGHT_OVERLAP,
+              piece.size[2] + WALL_CORE_LENGTH_OVERLAP,
+            ];
+        const corePosition: Vec3 = [
+          piece.position[0],
+          piece.position[1] - WALL_CORE_Y_SINK,
+          piece.position[2],
+        ];
+        return {
+          id: piece.id,
+          size: coreSize,
+          position: corePosition,
+        };
+      });
+  }, [pieces]);
+
   return (
     <group name="dungeon-world">
       {pieces.map((piece) => (
@@ -668,6 +707,18 @@ export default function DungeonWorld() {
       <mesh position={[0, UNDERFLOOR_Y, 0]} castShadow={false} receiveShadow material={underfloorMaterial}>
         <boxGeometry args={UNDERFLOOR_SIZE} />
       </mesh>
+
+      {wallCorePieces.map((core) => (
+        <mesh
+          key={`wall-core-${core.id}`}
+          position={core.position}
+          castShadow={false}
+          receiveShadow
+          material={wallCoreMaterial}
+        >
+          <boxGeometry args={core.size} />
+        </mesh>
+      ))}
 
       {FLOOR_OVERLAY ? floorOverlayObjects.map((tile) => <primitive key={`tile-${tile.id}`} object={tile.object} />) : null}
 
