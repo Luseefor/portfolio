@@ -27,6 +27,11 @@ const FLOOR_PROBE_HEIGHT = 2.4;
 const FLOOR_PROBE_DISTANCE = 10;
 const CAMERA_FLOOR_CLEARANCE = 0.45;
 const CAMERA_MIN_Y = 0.35;
+const CAMERA_BORDER_PADDING = 1.2;
+const MAP_MIN_X = -84;
+const MAP_MAX_X = 84;
+const MAP_MIN_Z = -84;
+const MAP_MAX_Z = 84;
 
 export default function CameraRig({
   targetBody,
@@ -204,12 +209,23 @@ export default function CameraRig({
     if (desiredPosition.y < minAllowedY) {
       desiredPosition.y = minAllowedY;
     }
+    desiredPosition.x = Math.min(MAP_MAX_X - CAMERA_BORDER_PADDING, Math.max(MAP_MIN_X + CAMERA_BORDER_PADDING, desiredPosition.x));
+    desiredPosition.z = Math.min(MAP_MAX_Z - CAMERA_BORDER_PADDING, Math.max(MAP_MIN_Z + CAMERA_BORDER_PADDING, desiredPosition.z));
 
     const lerpFactor = computeSmoothingFactor(delta, CAMERA_FOLLOW.smoothing);
     camera.position.lerp(desiredPosition, lerpFactor);
     if (camera.position.y < minAllowedY) {
       camera.position.lerp(desiredPosition, 1);
     }
+    const clampedX = Math.min(
+      MAP_MAX_X - CAMERA_BORDER_PADDING,
+      Math.max(MAP_MIN_X + CAMERA_BORDER_PADDING, camera.position.x),
+    );
+    const clampedZ = Math.min(
+      MAP_MAX_Z - CAMERA_BORDER_PADDING,
+      Math.max(MAP_MIN_Z + CAMERA_BORDER_PADDING, camera.position.z),
+    );
+    camera.position.set(clampedX, camera.position.y, clampedZ);
     camera.lookAt(smoothedLookAtPosition);
   });
 
