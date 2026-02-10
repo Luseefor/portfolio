@@ -33,6 +33,14 @@ const MAP_MAX_X = 84;
 const MAP_MIN_Z = -84;
 const MAP_MAX_Z = 84;
 
+function clampMapX(value: number) {
+  return Math.min(MAP_MAX_X - CAMERA_BORDER_PADDING, Math.max(MAP_MIN_X + CAMERA_BORDER_PADDING, value));
+}
+
+function clampMapZ(value: number) {
+  return Math.min(MAP_MAX_Z - CAMERA_BORDER_PADDING, Math.max(MAP_MIN_Z + CAMERA_BORDER_PADDING, value));
+}
+
 export default function CameraRig({
   targetBody,
   yawRef,
@@ -164,6 +172,8 @@ export default function CameraRig({
       CAMERA_OFFSET,
     );
     desiredPosition.set(desired.x, desired.y, desired.z);
+    desiredPosition.x = clampMapX(desiredPosition.x);
+    desiredPosition.z = clampMapZ(desiredPosition.z);
 
     rayDirection.copy(desiredPosition).sub(smoothedTargetPosition);
     const rayDistance = rayDirection.length();
@@ -180,6 +190,8 @@ export default function CameraRig({
           hit.toi - CAMERA_COLLISION.minDistanceFromWall,
         );
         desiredPosition.copy(smoothedTargetPosition).add(rayDirection.multiplyScalar(safeDistance));
+        desiredPosition.x = clampMapX(desiredPosition.x);
+        desiredPosition.z = clampMapZ(desiredPosition.z);
       }
     }
 
@@ -193,38 +205,29 @@ export default function CameraRig({
 
     const floorAtDesired = probeFloorAt(desiredPosition.x, desiredPosition.z);
     const floorAtTarget = probeFloorAt(smoothedTargetPosition.x, smoothedTargetPosition.z);
+    const fallbackFloor = Math.max(lastFloorYRef.current, smoothedTargetPosition.y);
     const floorY =
       floorAtDesired != null && floorAtTarget != null
         ? Math.max(floorAtDesired, floorAtTarget)
-        : floorAtDesired ?? floorAtTarget ?? lastFloorYRef.current;
+        : floorAtDesired ?? floorAtTarget ?? fallbackFloor;
     lastFloorYRef.current = floorY;
 
     const visualLift = Math.max(
       getDungeonVisualLiftAt(desiredPosition.x, desiredPosition.z),
       getDungeonVisualLiftAt(smoothedTargetPosition.x, smoothedTargetPosition.z),
     );
-    let minAllowedY = Math.max(CAMERA_MIN_Y, floorY + visualLift + CAMERA_FLOOR_CLEARANCE);
-    // Ensure we never sink far below the player anchor even if a probe misses.
-    minAllowedY = Math.max(minAllowedY, smoothedTargetPosition.y - 0.15);
+    const minAllowedY = Math.max(CAMERA_MIN_Y, floorY + visualLift + CAMERA_FLOOR_CLEARANCE);
     if (desiredPosition.y < minAllowedY) {
       desiredPosition.y = minAllowedY;
     }
-    desiredPosition.x = Math.min(MAP_MAX_X - CAMERA_BORDER_PADDING, Math.max(MAP_MIN_X + CAMERA_BORDER_PADDING, desiredPosition.x));
-    desiredPosition.z = Math.min(MAP_MAX_Z - CAMERA_BORDER_PADDING, Math.max(MAP_MIN_Z + CAMERA_BORDER_PADDING, desiredPosition.z));
 
     const lerpFactor = computeSmoothingFactor(delta, CAMERA_FOLLOW.smoothing);
     camera.position.lerp(desiredPosition, lerpFactor);
     if (camera.position.y < minAllowedY) {
       camera.position.lerp(desiredPosition, 1);
     }
-    const clampedX = Math.min(
-      MAP_MAX_X - CAMERA_BORDER_PADDING,
-      Math.max(MAP_MIN_X + CAMERA_BORDER_PADDING, camera.position.x),
-    );
-    const clampedZ = Math.min(
-      MAP_MAX_Z - CAMERA_BORDER_PADDING,
-      Math.max(MAP_MIN_Z + CAMERA_BORDER_PADDING, camera.position.z),
-    );
+    const clampedX = clampMapX(camera.position.x);
+    const clampedZ = clampMapZ(camera.position.z);
     camera.position.set(clampedX, camera.position.y, clampedZ);
     camera.lookAt(smoothedLookAtPosition);
   });
