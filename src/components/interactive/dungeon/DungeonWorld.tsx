@@ -185,7 +185,11 @@ function buildWallSegments(
         {
           id: `${id}-${side}`,
           size: [size.w, WALL_HEIGHT, WALL_THICKNESS],
-          position: [cx, wallY, cz + (side === 'north' ? halfD : -halfD)],
+          position: [
+            cx,
+            wallY,
+            cz + (side === 'north' ? halfD - WALL_THICKNESS / 2 : -halfD + WALL_THICKNESS / 2),
+          ],
           material: wallMaterial,
         },
       ];
@@ -194,7 +198,11 @@ function buildWallSegments(
       {
         id: `${id}-${side}`,
         size: [WALL_THICKNESS, WALL_HEIGHT, size.d],
-        position: [cx + (side === 'east' ? halfW : -halfW), wallY, cz],
+        position: [
+          cx + (side === 'east' ? halfW - WALL_THICKNESS / 2 : -halfW + WALL_THICKNESS / 2),
+          wallY,
+          cz,
+        ],
         material: wallMaterial,
       },
     ];
@@ -203,7 +211,7 @@ function buildWallSegments(
   const segments: BoxPiece[] = [];
   if (side === 'north' || side === 'south') {
     const segLength = (size.w - DOOR_WIDTH) / 2;
-    const z = cz + (side === 'north' ? halfD : -halfD);
+    const z = cz + (side === 'north' ? halfD - WALL_THICKNESS / 2 : -halfD + WALL_THICKNESS / 2);
     const leftX = cx - (DOOR_WIDTH / 2 + segLength / 2);
     const rightX = cx + (DOOR_WIDTH / 2 + segLength / 2);
     segments.push(
@@ -222,7 +230,7 @@ function buildWallSegments(
     );
   } else {
     const segLength = (size.d - DOOR_WIDTH) / 2;
-    const x = cx + (side === 'east' ? halfW : -halfW);
+    const x = cx + (side === 'east' ? halfW - WALL_THICKNESS / 2 : -halfW + WALL_THICKNESS / 2);
     const nearZ = cz - (DOOR_WIDTH / 2 + segLength / 2);
     const farZ = cz + (DOOR_WIDTH / 2 + segLength / 2);
     segments.push(
@@ -293,7 +301,7 @@ function buildCorridor(id: string, center: Vec3, length: number, width: number, 
   const wallSize: Vec3 = axis === 'z'
     ? [WALL_THICKNESS, WALL_HEIGHT, length]
     : [length, WALL_HEIGHT, WALL_THICKNESS];
-  const offset = axis === 'z' ? width / 2 : width / 2;
+  const offset = width / 2 - WALL_THICKNESS / 2;
   if (axis === 'z') {
     pieces.push(
       {
