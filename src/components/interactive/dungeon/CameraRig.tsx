@@ -60,7 +60,7 @@ export default function CameraRig({
   const mouseDown = useDungeonInput((state) => state.mouseDown);
   const internalYaw = useRef(0);
   const internalPitch = useRef(CAMERA_PITCH.initial);
-  const distanceRef = useRef<number>(CAMERA_DISTANCE.default);
+  const distanceRef = useRef(CAMERA_DISTANCE.default);
   const lastClientRef = useRef<{ x: number; y: number } | null>(null);
   const initializedRef = useRef(false);
   const lastFloorYRef = useRef(CAMERA_MIN_Y);
@@ -112,10 +112,9 @@ export default function CameraRig({
       applyDelta(rawX, rawY);
     };
 
-    const handlePointerRawUpdate = (event: Event) => {
+    const handlePointerRawUpdate = (event: PointerEvent) => {
       if (!isPointerLocked && !mouseDown) return;
-      const pointerEvent = event as PointerEvent;
-      applyDelta(pointerEvent.movementX || 0, pointerEvent.movementY || 0);
+      applyDelta(event.movementX || 0, event.movementY || 0);
     };
 
     const handleWheel = (event: WheelEvent) => {
@@ -192,7 +191,7 @@ export default function CameraRig({
       if (hit) {
         const safeDistance = Math.max(
           Math.max(CAMERA_COLLISION.minCameraDistance, CAMERA_MIN_COLLISION_DISTANCE),
-          hit.timeOfImpact - Math.max(CAMERA_COLLISION.minDistanceFromWall, CAMERA_WALL_BUFFER),
+          hit.toi - Math.max(CAMERA_COLLISION.minDistanceFromWall, CAMERA_WALL_BUFFER),
         );
         desiredPosition.copy(smoothedTargetPosition).add(rayDirection.multiplyScalar(safeDistance));
         desiredPosition.x = clampMapX(desiredPosition.x);
@@ -205,7 +204,7 @@ export default function CameraRig({
       const floorProbe = new rapier.Ray({ x, y: probeOriginY, z }, { x: 0, y: -1, z: 0 });
       const floorHit = world.castRay(floorProbe, FLOOR_PROBE_DISTANCE, true);
       if (!floorHit) return null;
-      return probeOriginY - floorHit.timeOfImpact;
+      return probeOriginY - floorHit.toi;
     };
 
     const floorAtDesired = probeFloorAt(desiredPosition.x, desiredPosition.z);

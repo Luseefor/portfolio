@@ -11,7 +11,6 @@ import DungeonWorld from './DungeonWorld';
 
 const FOG_COLOR = new Color('#0b0f14');
 const DEV_FULLBRIGHT = process.env.NODE_ENV !== 'production';
-const ENABLE_DUNGEON_AMBIENCE = false;
 
 export default function DungeonScene() {
   const playerBodyRef = useRef<RapierRigidBody | null>(null);
@@ -64,11 +63,9 @@ export default function DungeonScene() {
       <pointLight position={[18, 3, 18]} intensity={2.0} color="#ffb26b" distance={14} decay={2} />
       <pointLight position={[-18, 3, 18]} intensity={1.4} color="#9bb6ff" distance={12} decay={2} />
 
-      {ENABLE_DUNGEON_AMBIENCE ? (
-        <Suspense fallback={null}>
-          <DungeonAmbience />
-        </Suspense>
-      ) : null}
+      <Suspense fallback={null}>
+        <DungeonAmbience />
+      </Suspense>
 
       <Physics gravity={[0, -24, 0]}>
         <Suspense fallback={null}>
