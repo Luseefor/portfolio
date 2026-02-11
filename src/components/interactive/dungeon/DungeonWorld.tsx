@@ -43,7 +43,7 @@ const FLOOR_MAX_TILES = 14000;
 const FLOOR_MAX_RENDER_OBJECTS = 14000;
 const UNDERFLOOR_SIZE: Vec3 = [220, 0.2, 220];
 const UNDERFLOOR_Y = -0.2;
-const OUTER_BORDER_THICKNESS = 1.2;
+const OUTER_BORDER_THICKNESS = 2.5;
 const OUTER_BORDER_HEIGHT = WALL_HEIGHT + 2;
 const OUTER_BORDER_SINK = 0.4;
 const WALL_COLLIDER_THICKNESS = 1.8;
@@ -124,6 +124,11 @@ const ROOM_TILE_THEMES: Record<
     accent: 'Floor_Diamond',
     filler: 'Floor_Squares',
   },
+  'room-d': {
+    primary: 'Floor_Diamond',
+    accent: 'Floor_Standard',
+    filler: 'Floor_Squares',
+  },
   corridor: {
     primary: 'Floor_Standard',
     accent: 'Floor_Squares',
@@ -133,46 +138,65 @@ const ROOM_TILE_THEMES: Record<
 
 const ROOM_LAYOUT: RoomSpec[] = [
   {
+    // Spawn room — medium
     id: 'room-a',
     center: [0, 0, 0],
-    size: { w: 40, d: 40 },
-    openings: { north: true },
+    size: { w: 36, d: 36 },
+    openings: { north: true, east: true },
   },
   {
+    // Grand hall — large, central hub
     id: 'room-b',
-    center: [0, 0, 52],
-    size: { w: 40, d: 40 },
+    center: [0, 0, 56],
+    size: { w: 50, d: 44 },
     openings: { south: true, east: true, west: true },
   },
   {
+    // Armory — small, east wing
     id: 'room-c',
-    center: [52, 0, 52],
-    size: { w: 40, d: 40 },
+    center: [52, 0, 0],
+    size: { w: 24, d: 28 },
     openings: { west: true },
   },
   {
+    // Crypt — medium-narrow, east
+    id: 'room-d',
+    center: [56, 0, 56],
+    size: { w: 28, d: 36 },
+    openings: { west: true },
+  },
+  {
+    // Hidden alcove — small, west
     id: 'room-hidden',
-    center: [-52, 0, 52],
-    size: { w: 40, d: 40 },
+    center: [-50, 0, 56],
+    size: { w: 22, d: 24 },
     openings: { east: true },
   },
 ];
 
 const CORRIDOR_LAYOUT: CorridorSpec[] = [
-  { id: 'corridor-a', center: [0, 0, 26], length: 12, width: 6, axis: 'z' },
-  { id: 'corridor-c', center: [26, 0, 52], length: 12, width: 6, axis: 'x' },
-  { id: 'corridor-hidden', center: [-26, 0, 52], length: 12, width: 6, axis: 'x' },
+  // Spawn → Grand hall (north)
+  { id: 'corridor-a', center: [0, 0, 28], length: 20, width: 7, axis: 'z' },
+  // Spawn → Armory (east)
+  { id: 'corridor-b', center: [28, 0, 0], length: 20, width: 5, axis: 'x' },
+  // Grand hall → Crypt (east)
+  { id: 'corridor-c', center: [34, 0, 56], length: 22, width: 6, axis: 'x' },
+  // Grand hall → Hidden alcove (west)
+  { id: 'corridor-d', center: [-32, 0, 56], length: 14, width: 5, axis: 'x' },
+  // Grand hall additional north passage
+  { id: 'corridor-e', center: [56, 0, 30], length: 24, width: 6, axis: 'z' },
 ];
 
-const WALL_SEGMENT_OVERLAP = 0.08;
-const WALL_VERTICAL_OVERLAP = 0.06;
-const WALL_BASE_SINK = 0.14;
-const WALL_MAX_ROWS = 4;
-const WALL_MAX_PLACEMENTS = 540;
+const WALL_SEGMENT_OVERLAP = 0.04;
+const WALL_VERTICAL_OVERLAP = 0.04;
+const WALL_BASE_SINK = 0.08;
+const WALL_MAX_ROWS = 12;
+const WALL_MAX_PLACEMENTS = 1200;
 const WALL_VARIANT_POOL = [
   'Wall',
   'Wall_Overgrown',
   'Wall_Broken',
+  'Wall_Hole',
   'Wall_Double_Broken',
   'Wall_ArchRound_Broken',
   'Wall_ArchRound_Overgrown',
@@ -180,6 +204,9 @@ const WALL_VARIANT_POOL = [
   'Wall_ArchRound',
   'Wall_ArchGothic',
 ] as const;
+const PILLAR_INTERVAL = 4;
+const PILLAR_NODE_POOL = ['Column_Square', 'Column_Round'] as const;
+const STANDALONE_ARCH_POOL = ['Arch_Gothic', 'Arch_Round', 'Arch_Gothic_RoundColumn', 'Arch_Round_RoundColumn'] as const;
 const DUNGEON_RUINS_GLB_URL = '/models/dungeon/structure/Modular%20Ruins%20Pack.glb';
 
 function hashText(value: string) {
@@ -526,11 +553,11 @@ export default function DungeonWorld() {
 
   useEffect(() => {
     const surfaceTiles = floorPattern.map((tile) => ({
-        x: tile.position[0],
-        z: tile.position[2],
-        halfSize: tile.halfSize * 0.95,
-        lift: tile.lift,
-      }));
+      x: tile.position[0],
+      z: tile.position[2],
+      halfSize: tile.halfSize * 0.95,
+      lift: tile.lift,
+    }));
     setDungeonVisualLiftTiles(surfaceTiles);
     return () => clearDungeonVisualLiftTiles();
   }, [floorPattern]);
@@ -570,42 +597,57 @@ export default function DungeonWorld() {
       rotationX: number;
       footprint: number;
       height: number;
+      depth: number;
       anchor: Vec3;
     };
 
+    /**
+     * Measure a wall node's dimensions by probing at candidate rotations.
+     * Selects the rotation where the mesh is tallest (Y) and widest (X or Z),
+     * yielding width (footprint), height, and depth. Anchor offsets place the
+     * node so its bottom sits at y=0 and it's centered on X/Z.
+     */
     const getWallProfile = (name: string): WallProfile | null => {
       const source = nodes[name];
       if (!source) return null;
       const probe = source.clone(true);
       const candidateRotations = [0, -Math.PI / 2];
-      let best: WallProfile = {
-        name,
-        rotationX: 0,
-        footprint: 0.1,
-        height: 0.1,
-        anchor: [0, 0, 0],
-      };
-      let bestHeight = -Infinity;
-      for (let i = 0; i < candidateRotations.length; i += 1) {
-        const rotationX = candidateRotations[i];
+      let best: WallProfile | null = null;
+      let bestScore = -Infinity;
+
+      for (const rotationX of candidateRotations) {
         probe.position.set(0, 0, 0);
         probe.rotation.set(rotationX, 0, 0);
-        probe.scale.set(1, 1, 1);
+        // IMPORTANT: Do NOT reset scale — GLB nodes have baked 100x scale
+        // that transforms centimeter-space vertices to world units
         probe.updateMatrixWorld(true);
         const box = new Box3().setFromObject(probe);
         const size = new Vector3();
         const center = new Vector3();
         box.getSize(size);
         box.getCenter(center);
-        const footprint = Math.max(size.x || 0.1, size.z || 0.1);
-        const height = Math.max(size.y || 0.1, 0.1);
-        if (height > bestHeight) {
-          bestHeight = height;
+
+        const sX = Math.max(size.x || 0.01, 0.01);
+        const sY = Math.max(size.y || 0.01, 0.01);
+        const sZ = Math.max(size.z || 0.01, 0.01);
+
+        // For wall-like geometry, height (Y) should be significant
+        // and depth (min of X, Z) should be thin relative to width (max of X, Z)
+        const footprint = Math.max(sX, sZ);
+        const depth = Math.min(sX, sZ);
+        const height = sY;
+
+        // Score: prefer tall orientation with good height-to-depth ratio
+        const score = height * (height / Math.max(depth, 0.01));
+
+        if (score > bestScore) {
+          bestScore = score;
           best = {
             name,
             rotationX,
-            footprint: Math.max(footprint, 0.1),
-            height,
+            footprint: Math.max(footprint, 0.01),
+            height: Math.max(height, 0.01),
+            depth: Math.max(depth, 0.01),
             anchor: [-center.x, -box.min.y, -center.z],
           };
         }
@@ -613,22 +655,23 @@ export default function DungeonWorld() {
       return best;
     };
 
+    // --- Resolve base wall profile ---
     const baseWallName =
       (nodes.Wall ? 'Wall' : null) ??
       Object.keys(nodes).find(
-        (name) =>
-          name.startsWith('Wall') &&
-          !name.includes('Half') &&
-          !name.includes('Hole') &&
-          !name.includes('Broken') &&
-          !name.includes('Overgrown'),
+        (n) =>
+          n.startsWith('Wall') &&
+          !n.includes('Half') &&
+          !n.includes('Hole') &&
+          !n.includes('Broken') &&
+          !n.includes('Overgrown'),
       ) ??
       null;
     if (!baseWallName) return [];
     const baseProfile = getWallProfile(baseWallName);
     if (!baseProfile) return [];
     if (baseProfile.footprint < 0.25 || baseProfile.height < 0.25) {
-      console.warn('Dungeon wall profile too small, skipping decorative wall pass', {
+      console.warn('[DungeonWalls] base wall profile too small', {
         footprint: baseProfile.footprint,
         height: baseProfile.height,
         baseWallName,
@@ -636,85 +679,124 @@ export default function DungeonWorld() {
       return [];
     }
 
+    // --- Build categorised profile pools ---
     const wallProfiles = WALL_VARIANT_POOL
-      .map((name) => getWallProfile(name))
+      .map((n) => getWallProfile(n))
       .filter(Boolean)
-      .filter((profile) => {
-        const ratio = profile!.footprint / baseProfile.footprint;
-        const heightRatio = profile!.height / baseProfile.height;
-        return ratio >= 0.55 && ratio <= 1.7 && heightRatio >= 0.5 && heightRatio <= 1.8;
+      .filter((p) => {
+        const fpRatio = p!.footprint / baseProfile.footprint;
+        const hRatio = p!.height / baseProfile.height;
+        return fpRatio >= 0.45 && fpRatio <= 2.2 && hRatio >= 0.4 && hRatio <= 2.2;
       }) as WallProfile[];
     if (!wallProfiles.length) wallProfiles.push(baseProfile);
 
-    const archProfiles = wallProfiles.filter((profile) => profile.name.includes('Arch'));
+    // Separate into categories for variant selection
+    const solidProfiles = wallProfiles.filter(
+      (p) =>
+        !p.name.includes('Broken') &&
+        !p.name.includes('Overgrown') &&
+        !p.name.includes('Double') &&
+        !p.name.includes('Arch') &&
+        !p.name.includes('Half') &&
+        !p.name.includes('Hole'),
+    );
     const weatheredProfiles = wallProfiles.filter(
-      (profile) =>
-        profile.name.includes('Broken') ||
-        profile.name.includes('Overgrown') ||
-        profile.name.includes('Double'),
+      (p) =>
+        p.name.includes('Broken') ||
+        p.name.includes('Overgrown') ||
+        p.name.includes('Double'),
     );
-    const fillProfiles = wallProfiles.filter(
-      (profile) =>
-        !profile.name.includes('Half') &&
-        !profile.name.includes('Hole') &&
-        !profile.name.includes('Arch'),
+    const detailProfiles = wallProfiles.filter(
+      (p) => p.name.includes('Hole'),
     );
-    const solidProfiles = fillProfiles.filter(
-      (profile) =>
-        !profile.name.includes('Broken') &&
-        !profile.name.includes('Overgrown') &&
-        !profile.name.includes('Double'),
-    );
+    const fillProfiles = [...solidProfiles, ...(solidProfiles.length === 0 ? [baseProfile] : [])];
 
-    const wallScale = 1;
-    const wallSpan = baseProfile.footprint * wallScale;
+    // --- Tiling geometry ---
+    const wallSpan = baseProfile.footprint;
     const wallStep = Math.max(0.1, wallSpan * (1 - WALL_SEGMENT_OVERLAP));
-    const wallRowStep = Math.max(0.1, baseProfile.height * (1 - WALL_VERTICAL_OVERLAP));
+    const wallRowHeight = baseProfile.height;
+    const wallRowStep = Math.max(0.1, wallRowHeight * (1 - WALL_VERTICAL_OVERLAP));
+
     const placements: DecorPlacement[] = [];
     let placementCounter = 0;
+
+    /**
+     * Select a wall variant profile based on row position and deterministic hash.
+     * Bottom rows: mostly solid. Middle: mix. Top rows: more weathered/broken.
+     */
+    const pickVariant = (seed: string, rowT: number): WallProfile => {
+      const hash = hashText(seed);
+      const roll = hash % 100;
+
+      if (rowT <= 0.2) {
+        // Bottom rows: 85% solid, 10% detail, 5% weathered
+        if (roll < 85 && fillProfiles.length > 0) return fillProfiles[hash % fillProfiles.length];
+        if (roll < 95 && detailProfiles.length > 0) return detailProfiles[hash % detailProfiles.length];
+        if (weatheredProfiles.length > 0) return weatheredProfiles[hash % weatheredProfiles.length];
+      } else if (rowT <= 0.6) {
+        // Middle rows: 60% solid, 15% detail, 25% weathered
+        if (roll < 60 && fillProfiles.length > 0) return fillProfiles[hash % fillProfiles.length];
+        if (roll < 75 && detailProfiles.length > 0) return detailProfiles[hash % detailProfiles.length];
+        if (weatheredProfiles.length > 0) return weatheredProfiles[hash % weatheredProfiles.length];
+      } else {
+        // Top rows: 35% solid, 10% detail, 55% weathered
+        if (roll < 55 && weatheredProfiles.length > 0) return weatheredProfiles[hash % weatheredProfiles.length];
+        if (roll < 65 && detailProfiles.length > 0) return detailProfiles[hash % detailProfiles.length];
+        if (fillProfiles.length > 0) return fillProfiles[hash % fillProfiles.length];
+      }
+      return baseProfile;
+    };
+
+    // --- Tile walls onto box geometry ---
     const wallPieces = pieces.filter((piece) => piece.material === wallMaterial);
+
     wallPieces.forEach((piece) => {
       if (placementCounter >= WALL_MAX_PLACEMENTS) return;
+
       const axis: 'x' | 'z' = piece.size[0] >= piece.size[2] ? 'x' : 'z';
       const length = axis === 'x' ? piece.size[0] : piece.size[2];
-      const slots = Math.max(1, Math.ceil((length + wallStep * 0.5) / wallStep));
-      const rows = Math.max(1, Math.min(WALL_MAX_ROWS, Math.ceil((piece.size[1] + wallRowStep * 0.25) / wallRowStep)));
-      const occupiedLength = wallSpan + (slots - 1) * wallStep;
-      const startOffset = -occupiedLength / 2 + wallSpan / 2;
+      const wallHeight = piece.size[1];
+
+      // Horizontal slots: cover the full wall length
+      const slots = Math.max(1, Math.round(length / wallStep));
+      const occupiedLength = slots * wallStep;
+      const startOffset = -occupiedLength / 2 + wallStep / 2;
+
+      // Vertical rows: fill wall height
+      const rows = Math.max(1, Math.min(WALL_MAX_ROWS, Math.ceil(wallHeight / wallRowStep)));
+
       const rotationY = axis === 'x' ? 0 : Math.PI / 2;
-      const baseY = piece.position[1] - piece.size[1] / 2 - WALL_BASE_SINK;
+      const baseY = piece.position[1] - wallHeight / 2 - WALL_BASE_SINK;
 
       let breakAll = false;
       for (let row = 0; row < rows; row += 1) {
         if (breakAll) break;
+        const rowT = rows <= 1 ? 0 : row / (rows - 1);
+        const y = baseY + row * wallRowStep;
+
+        // Top row: compute scaleY to exactly fill remaining height
+        const remainingHeight = Math.max(0.1, wallHeight - row * wallRowStep);
+        const isTopRow = row === rows - 1 && rows > 1;
+
         for (let slot = 0; slot < slots; slot += 1) {
           if (placementCounter >= WALL_MAX_PLACEMENTS) {
             breakAll = true;
             break;
           }
+
+          // Index-based position: no cumulative float drift
           const offset = startOffset + slot * wallStep;
           const x = piece.position[0] + (axis === 'x' ? offset : 0);
           const z = piece.position[2] + (axis === 'z' ? offset : 0);
-          const y = baseY + row * wallRowStep;
-          const hash = hashText(`${piece.id}:${row}:${slot}`);
-          const roll = hash % 100;
-          const rowT = rows <= 1 ? 0 : row / (rows - 1);
 
-          let profile = baseProfile;
-          if (rowT > 0.7 && weatheredProfiles.length > 0 && roll < 55) {
-            profile = weatheredProfiles[hash % weatheredProfiles.length];
-          } else if (roll < 22 && weatheredProfiles.length > 0) {
-            profile = weatheredProfiles[hash % weatheredProfiles.length];
-          } else if (solidProfiles.length > 0) {
-            profile = solidProfiles[hash % solidProfiles.length];
-          } else if (fillProfiles.length > 0) {
-            profile = fillProfiles[hash % fillProfiles.length];
-          }
+          const seed = `${piece.id}:${row}:${slot}`;
+          const profile = pickVariant(seed, rowT);
 
-          const scaleXZRaw = wallSpan / Math.max(0.1, profile.footprint);
-          const scale = Math.min(1.28, Math.max(0.7, scaleXZRaw));
-          const remainingHeight = Math.max(0.1, piece.size[1] - row * wallRowStep);
-          const scaleY = Math.min(1.16, Math.max(0.8, remainingHeight / Math.max(0.1, profile.height)));
+          // Scale to fit: match footprint width and adjust height
+          const scaleXZ = Math.min(1.35, Math.max(0.7, wallSpan / Math.max(0.01, profile.footprint)));
+          const scaleY = isTopRow
+            ? Math.min(1.3, Math.max(0.5, remainingHeight / Math.max(0.01, profile.height)))
+            : Math.min(1.15, Math.max(0.85, wallRowStep / Math.max(0.01, profile.height)));
 
           placements.push({
             id: `wall-${placementCounter++}`,
@@ -722,7 +804,7 @@ export default function DungeonWorld() {
             position: [x, y, z],
             rotationX: profile.rotationX,
             rotationY,
-            scale: wallScale * scale,
+            scale: scaleXZ,
             scaleY,
             anchor: profile.anchor,
           });
@@ -730,9 +812,71 @@ export default function DungeonWorld() {
       }
     });
 
+    // --- Pillar anchor points at segment joints ---
+    const pillarProfiles = PILLAR_NODE_POOL
+      .map((n) => getWallProfile(n))
+      .filter(Boolean) as WallProfile[];
+
+    if (pillarProfiles.length > 0 && placementCounter < WALL_MAX_PLACEMENTS) {
+      wallPieces.forEach((piece) => {
+        if (placementCounter >= WALL_MAX_PLACEMENTS) return;
+
+        const axis: 'x' | 'z' = piece.size[0] >= piece.size[2] ? 'x' : 'z';
+        const length = axis === 'x' ? piece.size[0] : piece.size[2];
+        const wallHeight = piece.size[1];
+        const baseY = piece.position[1] - wallHeight / 2 - WALL_BASE_SINK;
+        const rotationY = axis === 'x' ? 0 : Math.PI / 2;
+
+        // Place pillars at every PILLAR_INTERVAL wall slots
+        const slots = Math.max(1, Math.round(length / wallStep));
+        const occupiedLength = slots * wallStep;
+        const startOffset = -occupiedLength / 2 + wallStep / 2;
+
+        for (let slot = 0; slot <= slots; slot += PILLAR_INTERVAL) {
+          if (placementCounter >= WALL_MAX_PLACEMENTS) break;
+
+          const pillarHash = hashText(`${piece.id}:pillar:${slot}`);
+          const pillarProfile = pillarProfiles[pillarHash % pillarProfiles.length];
+
+          // Vertical tiling of pillars to cover wall height
+          const pillarRows = Math.max(1, Math.ceil(wallHeight / Math.max(0.1, pillarProfile.height)));
+
+          for (let pRow = 0; pRow < pillarRows; pRow += 1) {
+            if (placementCounter >= WALL_MAX_PLACEMENTS) break;
+
+            const offset = startOffset + slot * wallStep - wallStep / 2;
+            const px = piece.position[0] + (axis === 'x' ? offset : 0);
+            const pz = piece.position[2] + (axis === 'z' ? offset : 0);
+            const py = baseY + pRow * pillarProfile.height * (1 - WALL_VERTICAL_OVERLAP);
+
+            const remainingH = Math.max(0.01, wallHeight - pRow * pillarProfile.height * (1 - WALL_VERTICAL_OVERLAP));
+            const pScaleY = pRow === pillarRows - 1 && pillarRows > 1
+              ? Math.min(1.2, Math.max(0.5, remainingH / Math.max(0.01, pillarProfile.height)))
+              : 1.0;
+
+            placements.push({
+              id: `pillar-${placementCounter++}`,
+              name: pillarProfile.name,
+              position: [px, py, pz],
+              rotationX: pillarProfile.rotationX,
+              rotationY,
+              scale: 1.0,
+              scaleY: pScaleY,
+              anchor: pillarProfile.anchor,
+            });
+          }
+        }
+      });
+    }
+
+    // --- Archway placement at room openings ---
+    const archProfiles = STANDALONE_ARCH_POOL
+      .map((n) => getWallProfile(n))
+      .filter(Boolean) as WallProfile[];
+
     if (archProfiles.length > 0 && placementCounter < WALL_MAX_PLACEMENTS) {
-      const archTargetHeight = Math.min(8, WALL_HEIGHT * 0.42);
       const archBaseY = -WALL_BASE_SINK;
+
       const pushArch = (
         seed: string,
         x: number,
@@ -740,17 +884,22 @@ export default function DungeonWorld() {
         rotationY: number,
       ) => {
         if (placementCounter >= WALL_MAX_PLACEMENTS) return;
-        const profile = archProfiles[hashText(seed) % archProfiles.length];
-        const scale = Math.min(1.26, Math.max(0.84, (DOOR_WIDTH / Math.max(0.1, profile.footprint)) * 0.9));
-        const scaleY = Math.min(1.6, Math.max(0.9, archTargetHeight / Math.max(0.1, profile.height)));
+        const hash = hashText(seed);
+        const profile = archProfiles[hash % archProfiles.length];
+
+        // Scale arch width to match door opening
+        const archScale = Math.min(1.4, Math.max(0.7, DOOR_WIDTH / Math.max(0.01, profile.footprint)));
+        // Scale height proportionally but allow slight adjustment
+        const archScaleY = Math.min(1.5, Math.max(0.8, (WALL_HEIGHT * 0.45) / Math.max(0.01, profile.height)));
+
         placements.push({
           id: `arch-${seed}-${placementCounter++}`,
           name: profile.name,
           position: [x, archBaseY, z],
           rotationX: profile.rotationX,
           rotationY,
-          scale,
-          scaleY,
+          scale: archScale,
+          scaleY: archScaleY,
           anchor: profile.anchor,
         });
       };
@@ -877,6 +1026,24 @@ export default function DungeonWorld() {
         </mesh>
       ))}
 
+      {/* Dungeon ceiling cap — prevents seeing void above */}
+      <mesh
+        position={[
+          (DUNGEON_BOUNDS.minX + DUNGEON_BOUNDS.maxX) / 2,
+          WALL_HEIGHT + 0.1,
+          (DUNGEON_BOUNDS.minZ + DUNGEON_BOUNDS.maxZ) / 2,
+        ]}
+        castShadow={false}
+        receiveShadow={false}
+        material={ceilingMaterial}
+      >
+        <boxGeometry args={[
+          DUNGEON_BOUNDS.maxX - DUNGEON_BOUNDS.minX + OUTER_BORDER_THICKNESS * 2,
+          0.5,
+          DUNGEON_BOUNDS.maxZ - DUNGEON_BOUNDS.minZ + OUTER_BORDER_THICKNESS * 2,
+        ]} />
+      </mesh>
+
       {FLOOR_OVERLAY ? floorOverlayObjects.map((tile) => <primitive key={`tile-${tile.id}`} object={tile.object} />) : null}
 
       {wallDecorObjects.map((decor) => {
@@ -900,15 +1067,15 @@ export default function DungeonWorld() {
             const colliderSize: Vec3 = isWallPiece
               ? alongX
                 ? [
-                    piece.size[0] + WALL_COLLIDER_LENGTH_PAD,
-                    piece.size[1],
-                    Math.max(piece.size[2], WALL_COLLIDER_THICKNESS),
-                  ]
+                  piece.size[0] + WALL_COLLIDER_LENGTH_PAD,
+                  piece.size[1],
+                  Math.max(piece.size[2], WALL_COLLIDER_THICKNESS),
+                ]
                 : [
-                    Math.max(piece.size[0], WALL_COLLIDER_THICKNESS),
-                    piece.size[1],
-                    piece.size[2] + WALL_COLLIDER_LENGTH_PAD,
-                  ]
+                  Math.max(piece.size[0], WALL_COLLIDER_THICKNESS),
+                  piece.size[1],
+                  piece.size[2] + WALL_COLLIDER_LENGTH_PAD,
+                ]
               : piece.size;
 
             return (
@@ -928,6 +1095,19 @@ export default function DungeonWorld() {
           />
         ))}
         <CuboidCollider args={[180, 1, 180]} position={[0, -4, 0]} />
+        {/* Ceiling collider — prevents player from jumping through ceiling */}
+        <CuboidCollider
+          args={[
+            (DUNGEON_BOUNDS.maxX - DUNGEON_BOUNDS.minX + OUTER_BORDER_THICKNESS * 2) / 2,
+            0.5,
+            (DUNGEON_BOUNDS.maxZ - DUNGEON_BOUNDS.minZ + OUTER_BORDER_THICKNESS * 2) / 2,
+          ]}
+          position={[
+            (DUNGEON_BOUNDS.minX + DUNGEON_BOUNDS.maxX) / 2,
+            WALL_HEIGHT + 0.5,
+            (DUNGEON_BOUNDS.minZ + DUNGEON_BOUNDS.maxZ) / 2,
+          ]}
+        />
       </RigidBody>
     </group>
   );
