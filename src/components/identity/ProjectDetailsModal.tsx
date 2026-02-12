@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Github, Layers, Calendar, Rocket } from 'lucide-react';
+import { X, ExternalLink, Github, Layers } from 'lucide-react';
 
 interface Project {
   title: string;

@@ -77,7 +77,7 @@ export function useDungeonInteraction() {
   useEffect(() => {
     uiOpenAudioRef.current = new Audio('/sounds/ui/ui_open.wav');
     uiCloseAudioRef.current = new Audio('/sounds/ui/ui_close.wav');
-    const safeVolume = clampVolume(masterVolume) * 0.5;
+    const safeVolume = 0.35;
     uiOpenAudioRef.current.volume = safeVolume;
     uiCloseAudioRef.current.volume = safeVolume;
     return () => {

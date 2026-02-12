@@ -19,6 +19,67 @@ interface LetterCell {
   colorProgress: number;
 }
 
+const LETTERS_AND_SYMBOLS = [
+  'A',
+  'B',
+  'C',
+  'D',
+  'E',
+  'F',
+  'G',
+  'H',
+  'I',
+  'J',
+  'K',
+  'L',
+  'M',
+  'N',
+  'O',
+  'P',
+  'Q',
+  'R',
+  'S',
+  'T',
+  'U',
+  'V',
+  'W',
+  'X',
+  'Y',
+  'Z',
+  '!',
+  '@',
+  '#',
+  '$',
+  '&',
+  '*',
+  '(',
+  ')',
+  '-',
+  '_',
+  '+',
+  '=',
+  '/',
+  '[',
+  ']',
+  '{',
+  '}',
+  ';',
+  ':',
+  '<',
+  '>',
+  ',',
+  '0',
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+];
+
 const LetterGlitch: React.FC<LetterGlitchProps> = ({
   glitchColors = ['#2b4539', '#61dca3', '#61b3dc'],
   glitchSpeed = 50,
@@ -39,70 +100,14 @@ const LetterGlitch: React.FC<LetterGlitchProps> = ({
   const charWidth = 10;
   const charHeight = 20;
 
-  const lettersAndSymbols = [
-    'A',
-    'B',
-    'C',
-    'D',
-    'E',
-    'F',
-    'G',
-    'H',
-    'I',
-    'J',
-    'K',
-    'L',
-    'M',
-    'N',
-    'O',
-    'P',
-    'Q',
-    'R',
-    'S',
-    'T',
-    'U',
-    'V',
-    'W',
-    'X',
-    'Y',
-    'Z',
-    '!',
-    '@',
-    '#',
-    '$',
-    '&',
-    '*',
-    '(',
-    ')',
-    '-',
-    '_',
-    '+',
-    '=',
-    '/',
-    '[',
-    ']',
-    '{',
-    '}',
-    ';',
-    ':',
-    '<',
-    '>',
-    ',',
-    '0',
-    '1',
-    '2',
-    '3',
-    '4',
-    '5',
-    '6',
-    '7',
-    '8',
-    '9',
-  ];
-
-  const getRandomChar = () =>
-    lettersAndSymbols[Math.floor(Math.random() * lettersAndSymbols.length)];
-  const getRandomColor = () => glitchColors[Math.floor(Math.random() * glitchColors.length)];
+  const getRandomChar = useCallback(
+    () => LETTERS_AND_SYMBOLS[Math.floor(Math.random() * LETTERS_AND_SYMBOLS.length)],
+    [],
+  );
+  const getRandomColor = useCallback(
+    () => glitchColors[Math.floor(Math.random() * glitchColors.length)],
+    [glitchColors],
+  );
 
   const hexToRgb = (hex: string) => {
     const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
@@ -134,7 +139,7 @@ const LetterGlitch: React.FC<LetterGlitchProps> = ({
     return { columns, rows };
   };
 
-  const initializeLetters = (columns: number, rows: number) => {
+  const initializeLetters = useCallback((columns: number, rows: number) => {
     grid.current = { columns, rows };
     const totalLetters = columns * rows;
     letters.current = Array.from({ length: totalLetters }, () => ({
@@ -143,7 +148,7 @@ const LetterGlitch: React.FC<LetterGlitchProps> = ({
       targetColor: getRandomColor(),
       colorProgress: 1,
     }));
-  };
+  }, [getRandomChar, getRandomColor]);
 
   const drawLetters = useCallback(() => {
     if (!context.current || letters.current.length === 0) return;
@@ -166,7 +171,7 @@ const LetterGlitch: React.FC<LetterGlitchProps> = ({
     });
   }, []);
 
-  const updateLetters = () => {
+  const updateLetters = useCallback(() => {
     if (!letters.current || letters.current.length === 0) return;
     const updateCount = Math.max(1, Math.floor(letters.current.length * 0.05));
     for (let i = 0; i < updateCount; i++) {
@@ -181,9 +186,9 @@ const LetterGlitch: React.FC<LetterGlitchProps> = ({
         letters.current[index].colorProgress = 0;
       }
     }
-  };
+  }, [getRandomChar, getRandomColor, smooth]);
 
-  const handleSmoothTransitions = () => {
+  const handleSmoothTransitions = useCallback(() => {
     let needsRedraw = false;
     letters.current.forEach((letter) => {
       if (letter.colorProgress < 1) {
@@ -200,7 +205,7 @@ const LetterGlitch: React.FC<LetterGlitchProps> = ({
     if (needsRedraw) {
       drawLetters();
     }
-  };
+  }, [drawLetters]);
 
   const animate = useCallback(() => {
     const now = Date.now();
@@ -213,7 +218,7 @@ const LetterGlitch: React.FC<LetterGlitchProps> = ({
       handleSmoothTransitions();
     }
     animationRef.current = requestAnimationFrame(animate);
-  }, [glitchSpeed, smooth, drawLetters]);
+  }, [drawLetters, glitchSpeed, handleSmoothTransitions, smooth, updateLetters]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -256,7 +261,7 @@ const LetterGlitch: React.FC<LetterGlitchProps> = ({
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       window.removeEventListener('resize', handleResize);
     };
-  }, [animate, drawLetters]);
+  }, [animate, drawLetters, initializeLetters]);
 
   return (
     <div

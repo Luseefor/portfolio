@@ -8,7 +8,6 @@ import { PORTFOLIO_CONTENT } from './portfolio-template';
 import { useStore } from '@/utils/store';
 import { getThemeColor, hexToRgba } from '@/utils/themes';
 
-const FuturisticCard = dynamic(() => import('./FuturisticCard'), { ssr: false });
 const ProjectDetailsModal = dynamic(() => import('./ProjectDetailsModal'), { ssr: false });
 type PortfolioProject = (typeof PORTFOLIO_CONTENT.projects.categories)[number]['items'][number];
 

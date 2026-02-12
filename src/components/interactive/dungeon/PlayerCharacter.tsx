@@ -94,7 +94,7 @@ export default function PlayerCharacter({ animation = 'idle' }: { animation?: Pl
     return () => {
       action.fadeOut(0.15);
     };
-  }, [actions, clipName]);
+  }, [actions, animation, clipName]);
 
   useEffect(() => {
     scene.traverse((child) => {

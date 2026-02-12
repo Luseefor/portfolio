@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { hexToRgba } from '@/utils/themes'; // Assuming utility exists or I'll implement inline helper
 
 interface FuturisticCardProps {
   children: React.ReactNode;

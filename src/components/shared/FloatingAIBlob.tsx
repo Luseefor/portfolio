@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { useStore } from '@/utils/store';
 import { getThemeColor } from '@/utils/themes';
 
@@ -40,10 +41,13 @@ export default function FloatingAIBlob() {
             background: `radial-gradient(circle at 70% 70%, ${themeColor}40, transparent 55%)`,
           }}
         />
-        <img
+        <Image
           src="/2d.png"
           alt="Luseefor AI"
-          className="relative z-10 h-full w-full rounded-full object-cover"
+          fill
+          sizes="80px"
+          className="relative z-10 rounded-full object-cover"
+          priority={false}
         />
       </motion.button>
     </div>
