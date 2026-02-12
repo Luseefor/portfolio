@@ -58,6 +58,9 @@ const OUTER_BORDER_HEIGHT = 28;
 const OUTER_BORDER_SINK = 0.4;
 const WALL_COLLIDER_THICKNESS = 1.8;
 const WALL_COLLIDER_LENGTH_PAD = 0.2;
+const WALKABLE_COLLIDER_OVERLAP = 1.0;
+const WALKABLE_COLLIDER_THICKNESS = 0.36;
+const WALKABLE_COLLIDER_Y = -0.18;
 
 type BoxPiece = {
   id: string;
@@ -1011,6 +1014,34 @@ export default function DungeonWorld() {
     ];
   }, []);
 
+  const walkableColliderPieces = useMemo(() => {
+    const roomColliders = ROOM_LAYOUT.map((room) => ({
+      id: `walk-room-${room.id}`,
+      size: [
+        room.size.w + WALKABLE_COLLIDER_OVERLAP,
+        WALKABLE_COLLIDER_THICKNESS,
+        room.size.d + WALKABLE_COLLIDER_OVERLAP,
+      ] as Vec3,
+      position: [room.center[0], WALKABLE_COLLIDER_Y, room.center[2]] as Vec3,
+    }));
+
+    const corridorColliders = CORRIDOR_LAYOUT.map((corridor) => {
+      const width = corridor.axis === 'z' ? corridor.width : corridor.length;
+      const depth = corridor.axis === 'z' ? corridor.length : corridor.width;
+      return {
+        id: `walk-corridor-${corridor.id}`,
+        size: [
+          width + WALKABLE_COLLIDER_OVERLAP,
+          WALKABLE_COLLIDER_THICKNESS,
+          depth + WALKABLE_COLLIDER_OVERLAP,
+        ] as Vec3,
+        position: [corridor.center[0], WALKABLE_COLLIDER_Y, corridor.center[2]] as Vec3,
+      };
+    });
+
+    return [...roomColliders, ...corridorColliders];
+  }, []);
+
   return (
     <group name="dungeon-world">
       {pieces.map((piece) => (
@@ -1110,6 +1141,13 @@ export default function DungeonWorld() {
             key={`border-collider-${wall.id}`}
             args={[wall.size[0] / 2, wall.size[1] / 2, wall.size[2] / 2]}
             position={wall.position}
+          />
+        ))}
+        {walkableColliderPieces.map((floor) => (
+          <CuboidCollider
+            key={`walk-collider-${floor.id}`}
+            args={[floor.size[0] / 2, floor.size[1] / 2, floor.size[2] / 2]}
+            position={floor.position}
           />
         ))}
         <CuboidCollider args={[180, 1, 180]} position={[0, -4, 0]} />
