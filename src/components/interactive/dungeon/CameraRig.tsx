@@ -31,6 +31,10 @@ const CAMERA_MIN_Y = 0.35;
 const CAMERA_WALL_BUFFER = 0.8;
 const CAMERA_MIN_COLLISION_DISTANCE = 0.7;
 
+function isFiniteVec3Like(value: { x: number; y: number; z: number }) {
+  return Number.isFinite(value.x) && Number.isFinite(value.y) && Number.isFinite(value.z);
+}
+
 function clampMapX(value: number) {
   return Math.min(
     DUNGEON_BOUNDS.maxX - DUNGEON_BOUNDS.cameraPadding,
@@ -147,6 +151,9 @@ export default function CameraRig({
     if (!body) return;
 
     const position = body.translation();
+    if (!isFiniteVec3Like(position)) {
+      return;
+    }
     targetPosition.set(position.x, position.y, position.z);
     if (!initializedRef.current) {
       smoothedTargetPosition.copy(targetPosition);
@@ -175,6 +182,9 @@ export default function CameraRig({
       distanceRef.current,
       CAMERA_OFFSET,
     );
+    if (!isFiniteVec3Like(desired)) {
+      return;
+    }
     desiredPosition.set(desired.x, desired.y, desired.z);
     desiredPosition.x = clampMapX(desiredPosition.x);
     desiredPosition.z = clampMapZ(desiredPosition.z);
@@ -188,11 +198,12 @@ export default function CameraRig({
         { x: rayDirection.x, y: rayDirection.y, z: rayDirection.z },
       );
       const hit = world.castRay(ray, rayDistance, true);
-      if (hit) {
+      if (hit && Number.isFinite(hit.toi)) {
         const safeDistance = Math.max(
           Math.max(CAMERA_COLLISION.minCameraDistance, CAMERA_MIN_COLLISION_DISTANCE),
           hit.toi - Math.max(CAMERA_COLLISION.minDistanceFromWall, CAMERA_WALL_BUFFER),
         );
+        if (!Number.isFinite(safeDistance)) return;
         desiredPosition.copy(smoothedTargetPosition).add(rayDirection.multiplyScalar(safeDistance));
         desiredPosition.x = clampMapX(desiredPosition.x);
         desiredPosition.z = clampMapZ(desiredPosition.z);
@@ -203,7 +214,7 @@ export default function CameraRig({
     const probeFloorAt = (x: number, z: number) => {
       const floorProbe = new rapier.Ray({ x, y: probeOriginY, z }, { x: 0, y: -1, z: 0 });
       const floorHit = world.castRay(floorProbe, FLOOR_PROBE_DISTANCE, true);
-      if (!floorHit) return null;
+      if (!floorHit || !Number.isFinite(floorHit.toi)) return null;
       return probeOriginY - floorHit.toi;
     };
 
@@ -226,6 +237,7 @@ export default function CameraRig({
     }
 
     const lerpFactor = computeSmoothingFactor(delta, CAMERA_FOLLOW.smoothing);
+    if (!Number.isFinite(lerpFactor)) return;
     camera.position.lerp(desiredPosition, lerpFactor);
     if (camera.position.y < minAllowedY) {
       camera.position.lerp(desiredPosition, 1);
@@ -233,6 +245,13 @@ export default function CameraRig({
     const clampedX = clampMapX(camera.position.x);
     const clampedZ = clampMapZ(camera.position.z);
     camera.position.set(clampedX, camera.position.y, clampedZ);
+    if (!isFiniteVec3Like(camera.position)) {
+      camera.position.set(
+        clampMapX(smoothedTargetPosition.x),
+        Math.max(CAMERA_MIN_Y, smoothedTargetPosition.y + CAMERA_OFFSET.lookAtHeight),
+        clampMapZ(smoothedTargetPosition.z + CAMERA_DISTANCE.default * 0.6),
+      );
+    }
     camera.lookAt(smoothedLookAtPosition);
   });
 
