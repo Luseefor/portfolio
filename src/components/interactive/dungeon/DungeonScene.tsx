@@ -9,30 +9,12 @@ import CameraController from './CameraController';
 import DungeonAmbience from './DungeonAmbience';
 import DungeonWorld from './DungeonWorld';
 import { CAMERA_PITCH } from '@/constants/camera';
-import { BUILT_DUNGEON } from '@/game/dungeon/buildDungeon';
 
 const FOG_COLOR = new Color('#101418');
 const BASE_BACKGROUND = '#0a0d10';
 const FULLBRIGHT_BACKGROUND = '#a3afbb';
 const BASE_FOG_DENSITY = 0.0175;
 const FULLBRIGHT_FOG_DENSITY = 0.0028;
-const TORCH_LIGHTS = BUILT_DUNGEON.torchAnchors.slice(0, 36).map((anchor, index) => ({
-  id: anchor.id,
-  position: anchor.position,
-  color:
-    anchor.source === 'spawn'
-      ? '#ffc272'
-      : anchor.source === 'corridor'
-        ? '#ffad63'
-        : '#ffbf7a',
-  intensity:
-    anchor.source === 'spawn'
-      ? 1.65 + (index % 3) * 0.08
-      : anchor.source === 'corridor'
-        ? 1.25 + (index % 2) * 0.1
-        : 1.45,
-  distance: anchor.source === 'corridor' ? 10 : 12,
-}));
 
 export default function DungeonScene() {
   const playerBodyRef = useRef<RapierRigidBody | null>(null);
@@ -97,17 +79,6 @@ export default function DungeonScene() {
         shadow-camera-top={20}
         shadow-camera-bottom={-20}
       />
-
-      {TORCH_LIGHTS.map((light) => (
-        <pointLight
-          key={`torch-light-${light.id}`}
-          position={light.position}
-          intensity={fullbrightEnabled ? light.intensity * 0.45 : light.intensity}
-          color={light.color}
-          distance={light.distance}
-          decay={2}
-        />
-      ))}
 
       <Suspense fallback={null}>
         <DungeonAmbience />
