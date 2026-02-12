@@ -24,3 +24,13 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
 - Added per-kind scale clamps to prevent oversized arches/pillars and malformed wall proportions.
 - Build/test status after wall-visual pass: typecheck/lint/build/test all pass.
 - Playwright skill client currently points at http://127.0.0.1:3000/interactive but target server returns Page Not Found in this environment, so screenshot validation is blocked on local server availability.
+- Performance + torch visual pass:
+  - Removed duplicate scene-level torch point lights from `DungeonScene` (torch lighting now driven by world props only) to reduce light count and frame cost.
+  - Reduced dynamic prop budgets in `DungeonWorld` (`TORCH_PLACEMENT_LIMIT`, `POT_PLACEMENT_LIMIT`, `AMBIENT_PROP_PLACEMENT_LIMIT`) to cut draw + interaction overhead.
+  - Updated torch emissive logic so only top flame meshes glow (height-threshold based), instead of entire torch body.
+  - Switched torch lighting to single wall-mounted `spotLight` per torch with per-torch target object for visible light spot directionality.
+  - Added wall-attach offset so torch props sit against wall planes instead of floating.
+- Validation after patch:
+  - `npm run -s lint` ✅
+  - `npx next build --webpack` ✅
+  - `npx tsc --noEmit` ✅ (run after build regenerated `.next/types`)

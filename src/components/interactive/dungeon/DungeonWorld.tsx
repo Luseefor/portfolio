@@ -88,6 +88,8 @@ const TORCH_MOUNT_HEIGHT = 2.3;
 const POT_PLACEMENT_LIMIT = 24;
 const AMBIENT_PROP_PLACEMENT_LIMIT = 24;
 const PROP_COLLIDER_INSET = 0.82;
+const TORCH_WALL_ADVANCE = 0.18;
+const TORCH_WALL_CLEARANCE = 0.025;
 
 const floorMaterial = new MeshStandardMaterial({ color: '#252825', roughness: 0.96, metalness: 0.02 });
 const corridorMaterial = new MeshStandardMaterial({ color: '#2e322e', roughness: 0.95, metalness: 0.02 });
@@ -791,6 +793,52 @@ function resolvePropXZForPanel(
   return [preferred.x, preferred.z] as [number, number];
 }
 
+function closestPointOnWallPanel(panel: WallPanel, x: number, z: number) {
+  const halfLength = panel.size[0] * 0.5;
+  const halfThickness = panel.size[2] * 0.5;
+  let wallX = x;
+  let wallZ = z;
+
+  if (panel.axis === 'x') {
+    wallX = Math.max(panel.position[0] - halfLength, Math.min(panel.position[0] + halfLength, x));
+    wallZ = Math.max(
+      panel.position[2] - halfThickness,
+      Math.min(panel.position[2] + halfThickness, z),
+    );
+  } else {
+    wallX = Math.max(
+      panel.position[0] - halfThickness,
+      Math.min(panel.position[0] + halfThickness, x),
+    );
+    wallZ = Math.max(panel.position[2] - halfLength, Math.min(panel.position[2] + halfLength, z));
+  }
+
+  return { x: wallX, z: wallZ };
+}
+
+function moveTowardWallPanel(panel: WallPanel, x: number, z: number, advance: number, minClearance: number) {
+  const closest = closestPointOnWallPanel(panel, x, z);
+  const dx = closest.x - x;
+  const dz = closest.z - z;
+  const distance = Math.hypot(dx, dz);
+  if (distance < 1e-5) return [x, z] as [number, number];
+
+  const maxStep = Math.max(0, distance - minClearance);
+  const step = Math.max(0, Math.min(advance, maxStep));
+  return [x + (dx / distance) * step, z + (dz / distance) * step] as [number, number];
+}
+
+function wallFacingRotationY(panel: WallPanel, x: number, z: number) {
+  const wallPoint = closestPointOnWallPanel(panel, x, z);
+  const dx = wallPoint.x - x;
+  const dz = wallPoint.z - z;
+  if (dx * dx + dz * dz < 1e-6) {
+    return panel.rotationY + Math.PI;
+  }
+
+  return Math.atan2(dx, dz);
+}
+
 function groundAlignObjectToZeroY(object: Object3D) {
   object.updateMatrixWorld(true);
   const bounds = new Box3().setFromObject(object);
@@ -1111,11 +1159,16 @@ export default function DungeonWorld() {
             : [1, 2.15, 0.78];
       const panel = findNearestWallPanel(anchor.position[0], anchor.position[2], wallPanels);
       const seed = hashString(`torch-pos-${anchor.id}`);
-      const [x, z] = panel
-        ? resolvePropXZForPanel(panel, size, seed, floorPieces, wallCollisionBoxes)
+      const torchPlacementSize: [number, number, number] = [0.42, size[1], 0.42];
+      const [baseX, baseZ] = panel
+        ? resolvePropXZForPanel(panel, torchPlacementSize, seed, floorPieces, wallCollisionBoxes)
         : [anchor.position[0], anchor.position[2]];
+      const [x, z] = panel
+        ? moveTowardWallPanel(panel, baseX, baseZ, TORCH_WALL_ADVANCE, TORCH_WALL_CLEARANCE)
+        : [baseX, baseZ];
       const floorTopY = floorSurfaceYAt(x, z, floorPieces);
       const torchPosition: [number, number, number] = [x, floorTopY + 0.04, z];
+      const rotationY = (panel ? wallFacingRotationY(panel, x, z) : anchor.rotationY) + Math.PI;
 
       const object = sourceNode ? buildScaledFloorObject(sourceNode, size) : null;
       if (object) {
@@ -1130,7 +1183,7 @@ export default function DungeonWorld() {
       return {
         id: `torch-prop-${anchor.id}`,
         position: torchPosition,
-        rotationY: panel?.rotationY ?? anchor.rotationY,
+        rotationY,
         size,
         object,
         glowColor:
