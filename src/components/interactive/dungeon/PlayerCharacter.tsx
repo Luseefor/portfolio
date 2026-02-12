@@ -4,13 +4,14 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useAnimations, useGLTF } from '@react-three/drei';
 import { Mesh, type Group } from 'three';
 
-export type PlayerAnimation = 'idle' | 'walk' | 'run' | 'jump';
+export type PlayerAnimation = 'idle' | 'walk' | 'run' | 'jump' | 'dash';
 
 const CLIP_PATTERNS: Record<PlayerAnimation, RegExp[]> = {
   idle: [/idle/i, /breath/i, /stand/i],
   walk: [/walk/i, /walkforward/i, /walk_fwd/i],
   run: [/run/i, /sprint/i, /jog/i],
   jump: [/roll/i, /jump/i, /leap/i],
+  dash: [/dash/i, /quick/i, /quickstep/i, /sprint/i, /roll/i, /slide/i],
 };
 
 function pickClipName(names: string[], state: PlayerAnimation) {
@@ -32,6 +33,14 @@ function pickClipName(names: string[], state: PlayerAnimation) {
   };
 
   if (state === 'jump') {
+    const jumpClip = findByPatterns(CLIP_PATTERNS.jump);
+    if (jumpClip) return jumpClip;
+  }
+  if (state === 'dash') {
+    const dashClip = findByPatterns(CLIP_PATTERNS.dash);
+    if (dashClip) return dashClip;
+    const runClip = findByPatterns(CLIP_PATTERNS.run);
+    if (runClip) return runClip;
     const jumpClip = findByPatterns(CLIP_PATTERNS.jump);
     if (jumpClip) return jumpClip;
   }
@@ -57,8 +66,17 @@ export default function PlayerCharacter({ animation = 'idle' }: { animation?: Pl
   const group = useRef<Group>(null);
   const { scene, animations } = useGLTF('/models/dungeon/character/character.glb');
   const { actions, names } = useAnimations(animations, group);
+  const loggedAnimationsRef = useRef(false);
 
   const clipName = useMemo(() => pickClipName(names, animation), [names, animation]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return;
+    if (loggedAnimationsRef.current) return;
+    if (!names.length) return;
+    loggedAnimationsRef.current = true;
+    console.info('[PlayerCharacter] animation clips', names);
+  }, [names]);
 
   useEffect(() => {
     const action = clipName ? actions[clipName] : undefined;
@@ -69,7 +87,8 @@ export default function PlayerCharacter({ animation = 'idle' }: { animation?: Pl
       }
     });
     action.reset().fadeIn(0.15).play();
-    if (animation === 'run') action.timeScale = 1.25;
+    if (animation === 'dash') action.timeScale = 1.45;
+    else if (animation === 'run') action.timeScale = 1.25;
     else if (animation === 'walk') action.timeScale = 1.05;
     else action.timeScale = 1.0;
     return () => {

@@ -413,7 +413,9 @@ export default function PlayerController({
     }
 
     let nextAnim: PlayerAnimation = 'idle';
-    if (dashRef.current.active || rollTimer.current > 0) {
+    if (dashRef.current.active) {
+      nextAnim = 'dash';
+    } else if (rollTimer.current > 0) {
       nextAnim = 'jump';
     } else if (speed > 0.15) {
       nextAnim = runPressed ? 'run' : 'walk';
