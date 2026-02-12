@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { CapsuleCollider, RigidBody, type RapierRigidBody } from '@react-three/rapier';
-import { Group, MathUtils, Quaternion, Vector3 } from 'three';
+import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
+import { Group, MathUtils, PerspectiveCamera, Quaternion, Vector3, type Camera } from 'three';
 import { Suspense } from 'react';
 import PlayerCharacter, { type PlayerAnimation } from './PlayerCharacter';
 import { useDungeonInput } from '@/lib/dungeonInput';
@@ -25,12 +25,22 @@ const STEP_INTERVAL_WALK = 0.6;
 const STEP_INTERVAL_RUN = 0.42;
 const PLAYER_LIFT_UP_SMOOTHING = 18;
 const PLAYER_LIFT_DOWN_SMOOTHING = 8;
+const DASH_DURATION = 0.2;
+const DASH_COOLDOWN = 0.95;
+const DASH_MAX_DISTANCE = 5.8;
+const DASH_MIN_DISTANCE = 1.6;
+const DASH_RAY_BUFFER = 0.45;
+const DASH_COLLISION_OFFSET = 0.4;
+const DASH_CAMERA_KICK = 2.25;
+const DASH_FOV_DAMPING = 14;
 
 const forward = new Vector3();
 const right = new Vector3();
 const up = new Vector3(0, 1, 0);
 const moveDir = new Vector3();
+const dashDirection = new Vector3();
 const rotation = new Quaternion();
+const bodyQuaternion = new Quaternion();
 
 function clampPlayerX(value: number) {
   return Math.min(
@@ -46,6 +56,10 @@ function clampPlayerZ(value: number) {
   );
 }
 
+function isPerspectiveCamera(camera: Camera): camera is PerspectiveCamera {
+  return (camera as PerspectiveCamera).isPerspectiveCamera === true;
+}
+
 export default function PlayerController({
   bodyRef,
   cameraYawRef,
@@ -56,6 +70,7 @@ export default function PlayerController({
   const internalBodyRef = useRef<RapierRigidBody | null>(null);
   const rigidBodyRef = bodyRef ?? internalBodyRef;
   const { camera } = useThree();
+  const { rapier, world } = useRapier();
   const keys = useDungeonInput((state) => state.keys);
   const inputRef = useRef({
     forward: false,
@@ -77,6 +92,15 @@ export default function PlayerController({
   const visualLiftRef = useRef(0);
   const stepAudioRef = useRef<HTMLAudioElement[]>([]);
   const jumpAudioRef = useRef<HTMLAudioElement | null>(null);
+  const dashRef = useRef({
+    active: false,
+    timeLeft: 0,
+    speed: 0,
+    direction: new Vector3(0, 0, 1),
+  });
+  const dashCooldownRef = useRef(0);
+  const dashButtonPrevRef = useRef(false);
+  const baseFovRef = useRef(isPerspectiveCamera(camera) ? camera.fov : 50);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -92,6 +116,15 @@ export default function PlayerController({
     }
     jumpAudioRef.current = null;
   }, []);
+
+  useEffect(() => {
+    if (!isPerspectiveCamera(camera)) return;
+    baseFovRef.current = camera.fov;
+    return () => {
+      camera.fov = baseFovRef.current;
+      camera.updateProjectionMatrix();
+    };
+  }, [camera]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent, pressed: boolean) => {
@@ -138,6 +171,9 @@ export default function PlayerController({
         jump: false,
         roll: false,
       };
+      dashButtonPrevRef.current = false;
+      dashRef.current.active = false;
+      dashRef.current.timeLeft = 0;
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -198,20 +234,71 @@ export default function PlayerController({
     if (rightPressed) moveDir.add(right);
 
     const hasInput = moveDir.lengthSq() > 0.001;
-    if (hasInput || jumpPressed) {
+    const dashPressed = runPressed;
+    const dashJustPressed = dashPressed && !dashButtonPrevRef.current;
+    dashButtonPrevRef.current = dashPressed;
+
+    if (hasInput || jumpPressed || dashJustPressed) {
       body.wakeUp();
     }
+
     const targetSpeed = runPressed ? RUN_SPEED : WALK_SPEED;
     let targetX = 0;
     let targetZ = 0;
 
     if (hasInput) {
-      moveDir.normalize().multiplyScalar(targetSpeed);
+      dashDirection.copy(moveDir).normalize();
+      moveDir.copy(dashDirection).multiplyScalar(targetSpeed);
       targetX = moveDir.x;
       targetZ = moveDir.z;
       const desiredYaw = Math.atan2(moveDir.x, moveDir.z);
       rotation.setFromAxisAngle(up, desiredYaw);
       body.setRotation(rotation, true);
+    } else {
+      const bodyRotation = body.rotation();
+      bodyQuaternion.set(bodyRotation.x, bodyRotation.y, bodyRotation.z, bodyRotation.w);
+      dashDirection.set(0, 0, 1).applyQuaternion(bodyQuaternion);
+      dashDirection.y = 0;
+      if (dashDirection.lengthSq() < 1e-4) {
+        dashDirection.set(forward.x, 0, forward.z);
+      }
+      dashDirection.normalize();
+    }
+
+    const now = performance.now() / 1000;
+    if (dashJustPressed && !dashRef.current.active && now >= dashCooldownRef.current) {
+      const ray = new rapier.Ray(
+        {
+          x: position.x,
+          y: position.y + 1,
+          z: position.z,
+        },
+        {
+          x: dashDirection.x,
+          y: 0,
+          z: dashDirection.z,
+        },
+      );
+      const hit = world.castRay(
+        ray,
+        DASH_MAX_DISTANCE + DASH_RAY_BUFFER,
+        true,
+        undefined,
+        undefined,
+        undefined,
+        body,
+      );
+
+      let allowedDistance = DASH_MAX_DISTANCE;
+      if (hit && Number.isFinite(hit.timeOfImpact)) {
+        allowedDistance = Math.max(DASH_MIN_DISTANCE, hit.timeOfImpact - DASH_COLLISION_OFFSET);
+      }
+
+      dashRef.current.active = true;
+      dashRef.current.timeLeft = DASH_DURATION;
+      dashRef.current.speed = allowedDistance / DASH_DURATION;
+      dashRef.current.direction.copy(dashDirection);
+      dashCooldownRef.current = now + DASH_COOLDOWN;
     }
 
     const desiredX = targetX;
@@ -254,7 +341,20 @@ export default function PlayerController({
       nextY = 0;
     }
 
-    if (!hasInput && Math.abs(smoothX) < 0.02 && Math.abs(smoothZ) < 0.02) {
+    if (dashRef.current.active) {
+      dashRef.current.timeLeft = Math.max(0, dashRef.current.timeLeft - delta);
+      body.setLinvel(
+        {
+          x: dashRef.current.direction.x * dashRef.current.speed,
+          y: nextY,
+          z: dashRef.current.direction.z * dashRef.current.speed,
+        },
+        true,
+      );
+      if (dashRef.current.timeLeft <= 0) {
+        dashRef.current.active = false;
+      }
+    } else if (!hasInput && Math.abs(smoothX) < 0.02 && Math.abs(smoothZ) < 0.02) {
       body.setLinvel({ x: 0, y: nextY, z: 0 }, true);
     } else {
       body.setLinvel({ x: smoothX, y: nextY, z: smoothZ }, true);
@@ -283,7 +383,7 @@ export default function PlayerController({
 
     const speed = Math.hypot(smoothX, smoothZ);
     stepTimer.current -= delta;
-    if (grounded && speed > 0.2 && rollTimer.current <= 0) {
+    if (grounded && speed > 0.2 && rollTimer.current <= 0 && !dashRef.current.active) {
       if (stepTimer.current <= 0) {
         const index = stepIndex.current % stepAudioRef.current.length;
         const stepAudio = stepAudioRef.current[index];
@@ -301,8 +401,19 @@ export default function PlayerController({
     } else {
       stepTimer.current = 0;
     }
+
+    if (isPerspectiveCamera(camera)) {
+      const dashFovTarget = dashRef.current.active ? baseFovRef.current + DASH_CAMERA_KICK : baseFovRef.current;
+      const fovBlend = 1 - Math.exp(-DASH_FOV_DAMPING * delta);
+      const nextFov = MathUtils.lerp(camera.fov, dashFovTarget, fovBlend);
+      if (Math.abs(nextFov - camera.fov) > 0.001) {
+        camera.fov = nextFov;
+        camera.updateProjectionMatrix();
+      }
+    }
+
     let nextAnim: PlayerAnimation = 'idle';
-    if (rollTimer.current > 0) {
+    if (dashRef.current.active || rollTimer.current > 0) {
       nextAnim = 'jump';
     } else if (speed > 0.15) {
       nextAnim = runPressed ? 'run' : 'walk';
