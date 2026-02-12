@@ -163,43 +163,40 @@ export default function CameraRig({
     }
 
     // 1. Damped Pivot Follow
-    // Hides physics jitter while keeping camera responsive
-    // Use faster lerp for FPS to reduce lag
     const lerpFactor = firstPerson.current ? FPS_LERP : PIVOT_LERP;
     const t = Math.min(1, lerpFactor * dt * 60);
     _pivot.lerp(_targetPos, t);
 
     // 2. Camera Rotation (Direct Control)
-    // No smoothing here — eliminates "drunk" feel
     _euler.set(pitch.current, yaw.current, 0, 'YXZ');
     _quat.setFromEuler(_euler);
     camera.quaternion.copy(_quat);
 
     // 3. Boom Offset & Collision
     const isFP = firstPerson.current;
-    let finalDist = 0;
 
     if (isFP) {
       // FPS: Shift pivot forward to clear face
       _offset.set(0, 0, -FPS_FORWARD_OFFSET).applyQuaternion(_quat);
       _idealPos.copy(_pivot).add(_offset);
 
+      // Clamp FPS pos to bounds too? 
+      // Physics should keep player in bounds, but camera offset might poke out.
+      // Usually fine.
       camera.position.copy(_idealPos);
     } else {
       // Third Person: Boom Arm
 
       // Calculate Ideal Position (ignoring walls)
-      // Vector pointing BACK from pivot
       _offset.set(0, 0, distRef.current).applyQuaternion(_quat);
       _idealPos.copy(_pivot).add(_offset);
 
-      // SphereCast for Boom Collision
+      // SphereCast for Boom Collision (Walls)
       _rayDir.copy(_offset).normalize();
       const idealDist = distRef.current;
       let targetDist = idealDist;
 
       if (idealDist > MIN_RAY_DIST && sphereShape.current) {
-        // Offset origin slightly to avoid self-collision with player capsule
         _origin.copy(_pivot).addScaledVector(_rayDir, MIN_RAY_DIST);
         const maxToi = idealDist - MIN_RAY_DIST + WALL_BUF;
 
@@ -224,26 +221,51 @@ export default function CameraRig({
         }
       }
 
-      // Smooth Recovery (Snap-in, Lerp-out)
+      // Smooth Recovery (Snap-in, Lerp-out) for wall collisions
       if (targetDist < collisionDistRef.current) {
         collisionDistRef.current = targetDist; // Snap
       } else {
         collisionDistRef.current = MathUtils.lerp(collisionDistRef.current, targetDist, dt * ZOOM_RECOVERY_SPEED);
       }
 
-      // Apply Final Position
-      _offset.set(0, 0, collisionDistRef.current).applyQuaternion(_quat);
+      // Apply smoothed distance to offset vector
+      let currentBoomDist = collisionDistRef.current;
 
-      // Clamp bounds (floor/ceiling/walls)
-      // We clamp the FINAL position, not just lookAt
-      const finalPos = _idealPos.copy(_pivot).add(_offset);
-      finalPos.x = clampX(finalPos.x);
-      finalPos.z = clampZ(finalPos.z);
-      if (finalPos.y > CAMERA_COLLISION.maxCameraY) finalPos.y = CAMERA_COLLISION.maxCameraY;
-      // Floor clamp (optional, prevents going under map if no collision)
-      if (finalPos.y < 0.2) finalPos.y = 0.2;
+      // 4. Ceiling Collision Check (Slide along boom)
+      // Recalculate candidate position with current smoothed distance
+      _offset.set(0, 0, currentBoomDist).applyQuaternion(_quat);
+      _idealPos.copy(_pivot).add(_offset);
 
-      camera.position.copy(finalPos);
+      const ceilingY = CAMERA_COLLISION.maxCameraY;
+
+      // If camera is above ceiling, shorten boom distance to fit under ceiling
+      // preserving the look angle.
+      if (_idealPos.y > ceilingY) {
+        const overshoot = _idealPos.y - _pivot.y;
+        if (overshoot > 0.001) {
+          const available = ceilingY - _pivot.y;
+          // Only shorten if pivot is under ceiling
+          if (available > 0) {
+            const scale = available / overshoot;
+            currentBoomDist *= scale; // Shorten distance
+
+            // Apply shortened distance
+            _offset.set(0, 0, currentBoomDist).applyQuaternion(_quat);
+            _idealPos.copy(_pivot).add(_offset);
+          } else {
+            // Pivot is above ceiling (unlikely) -> clamp flat
+            _idealPos.y = ceilingY;
+          }
+        }
+      }
+
+      // 5. Floor/Wall Bounds Clamp
+      _idealPos.x = clampX(_idealPos.x);
+      _idealPos.z = clampZ(_idealPos.z);
+      // Floor clamp (simple Y clamp avoids going under map)
+      if (_idealPos.y < 0.2) _idealPos.y = 0.2;
+
+      camera.position.copy(_idealPos);
     }
   });
 
