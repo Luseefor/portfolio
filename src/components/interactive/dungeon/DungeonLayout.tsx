@@ -12,7 +12,7 @@ import {
   DUNGEON_COLUMN_HEIGHT,
   DUNGEON_COLUMN_RADIUS,
   type DungeonPlacement,
-} from '@/constants/DungeonLayout';
+} from '@/constants/dungeonLayout';
 
 const floorGeometry = new BoxGeometry(DUNGEON_TILE_SIZE, DUNGEON_FLOOR_THICKNESS, DUNGEON_TILE_SIZE);
 const wallGeometry = new BoxGeometry(DUNGEON_TILE_SIZE, DUNGEON_WALL_HEIGHT, DUNGEON_WALL_THICKNESS);

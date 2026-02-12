@@ -9,13 +9,18 @@ import PlayerCharacter, { type PlayerAnimation } from './PlayerCharacter';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import { getDungeonVisualLiftAt } from '@/lib/dungeonVisualLift';
 import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
+import { DUNGEON_LAYOUT_GRAPH } from '@/constants/dungeonLayout';
 
 const WALK_SPEED = 2.4;
 const RUN_SPEED = 6.2;
 const SMOOTHING = 10;
 const JUMP_SPEED = 7.2;
 const GRAVITY = 24;
-const START_POSITION: [number, number, number] = [0, 2, 0];
+const START_POSITION: [number, number, number] = [
+  DUNGEON_LAYOUT_GRAPH.spawnPoint[0],
+  DUNGEON_LAYOUT_GRAPH.spawnPoint[1],
+  DUNGEON_LAYOUT_GRAPH.spawnPoint[2],
+];
 const STEP_INTERVAL_WALK = 0.6;
 const STEP_INTERVAL_RUN = 0.42;
 const PLAYER_LIFT_UP_SMOOTHING = 18;

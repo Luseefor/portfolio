@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { usePlayerState, playerStateSelectors } from '@/lib/playerState';
 import { clampVolume, useSettings } from '@/lib/settings';
 
-import { DUNGEON_SCALE, CHEST_POIS, type ChestPOI } from '@/constants/DungeonLayout';
+import { DUNGEON_SCALE, CHEST_POIS, type ChestPOI } from '@/constants/dungeonLayout';
 
 interface ChestProps {
   chest: ChestPOI;

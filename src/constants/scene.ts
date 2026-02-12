@@ -1,4 +1,4 @@
-import { DUNGEON_SCALE } from './DungeonLayout';
+import { DUNGEON_SCALE } from './dungeonLayout';
 
 export const sceneLighting = {
   // Fog - atmospheric depth, not too dense to maintain readability

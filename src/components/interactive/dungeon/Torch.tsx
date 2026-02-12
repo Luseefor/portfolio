@@ -3,7 +3,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useRef, useMemo } from 'react';
 import * as THREE from 'three';
-import { TORCH_PLACEMENTS, DUNGEON_SCALE } from '@/constants/DungeonLayout';
+import { TORCH_PLACEMENTS, DUNGEON_SCALE } from '@/constants/dungeonLayout';
 
 interface TorchProps {
   position: [number, number, number];

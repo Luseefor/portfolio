@@ -3,7 +3,7 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { TORCH_PLACEMENTS, DUNGEON_SCALE } from '@/constants/DungeonLayout';
+import { TORCH_PLACEMENTS, DUNGEON_SCALE } from '@/constants/dungeonLayout';
 
 // ========================================
 // DUST MOTES - Global ambient particles

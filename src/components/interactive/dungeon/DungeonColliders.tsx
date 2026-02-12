@@ -12,7 +12,7 @@ import {
   DUNGEON_COLUMN_RADIUS,
   DUNGEON_COLUMN_HEIGHT,
   type DungeonPlacement,
-} from '@/constants/DungeonLayout';
+} from '@/constants/dungeonLayout';
 
 // Collider Dimensions (Half-extents)
 // Must match the visual mesh dimensions roughly.
