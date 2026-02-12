@@ -10,7 +10,7 @@ import DungeonAmbience from './DungeonAmbience';
 import DungeonWorld from './DungeonWorld';
 
 const FOG_COLOR = new Color('#0b0f14');
-const DEV_FULLBRIGHT = process.env.NODE_ENV !== 'production';
+const DEV_FULLBRIGHT = false;
 
 export default function DungeonScene() {
   const playerBodyRef = useRef<RapierRigidBody | null>(null);

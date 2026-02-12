@@ -73,17 +73,17 @@ const floorMaterial = new MeshStandardMaterial({
   metalness: 0.05,
 });
 const wallMaterial = new MeshStandardMaterial({
-  color: '#3a352f',
-  roughness: 0.92,
-  metalness: 0.08,
+  color: '#2f312d',
+  roughness: 0.95,
+  metalness: 0.04,
 });
 const ceilingMaterial = new MeshStandardMaterial({
-  color: '#1f1e1b',
-  roughness: 0.98,
+  color: '#171915',
+  roughness: 0.99,
   metalness: 0.02,
 });
 const underfloorMaterial = new MeshStandardMaterial({
-  color: '#6a6456',
+  color: '#4f4a3e',
   roughness: 0.97,
   metalness: 0.01,
 });
@@ -99,6 +99,7 @@ const FLOOR_NODES = [
 
 const SHOW_FLOOR_GRID = false;
 const FLOOR_OVERLAY = true;
+const SHOW_WALL_DECOR = false;
 const FLOOR_TILES = {
   primary: 'Floor_Squares',
   accent: 'Floor_Standard',
@@ -165,78 +166,96 @@ const ROOM_LAYOUT: RoomSpec[] = [
   {
     id: 'entrance',
     center: [0, 0, -8],
-    size: { w: 22, d: 16 },
-    height: 15,
+    size: { w: 20, d: 16 },
+    height: 14,
     theme: 'entrance',
     pattern: 'stripes',
     openings: { north: true, east: true, west: true },
   },
   {
-    id: 'chapel',
-    center: [0, 0, 18],
-    size: { w: 26, d: 22 },
-    height: 20,
+    id: 'guard-east',
+    center: [34, 0, -8],
+    size: { w: 16, d: 14 },
+    height: 13,
+    theme: 'ossuary',
+    pattern: 'checker',
+    openings: { west: true, north: true },
+  },
+  {
+    id: 'guard-west',
+    center: [-34, 0, -8],
+    size: { w: 16, d: 14 },
+    height: 13,
+    theme: 'ossuary',
+    pattern: 'checker',
+    openings: { east: true, north: true },
+  },
+  {
+    id: 'hall-of-bones',
+    center: [0, 0, 26],
+    size: { w: 30, d: 22 },
+    height: 18,
     theme: 'chapel',
     pattern: 'rings',
     openings: { south: true, north: true, east: true, west: true },
   },
   {
     id: 'ossuary-east',
-    center: [24, 0, 18],
+    center: [34, 0, 26],
     size: { w: 18, d: 18 },
-    height: 17,
+    height: 16,
     theme: 'ossuary',
     pattern: 'checker',
     openings: { west: true, north: true, south: true },
   },
   {
     id: 'reliquary-west',
-    center: [-24, 0, 18],
-    size: { w: 18, d: 24 },
-    height: 18,
+    center: [-34, 0, 26],
+    size: { w: 18, d: 20 },
+    height: 17,
     theme: 'reliquary',
     pattern: 'spokes',
     openings: { east: true, north: true, south: true },
   },
   {
-    id: 'catacomb-core',
-    center: [0, 0, 42],
-    size: { w: 20, d: 20 },
-    height: 16,
+    id: 'crossroads',
+    center: [0, 0, 62],
+    size: { w: 24, d: 24 },
+    height: 19,
     theme: 'catacomb',
     pattern: 'checker',
     openings: { south: true, north: true, east: true, west: true },
   },
   {
     id: 'crypt-east',
-    center: [24, 0, 42],
-    size: { w: 22, d: 16 },
-    height: 22,
+    center: [34, 0, 62],
+    size: { w: 20, d: 18 },
+    height: 16,
     theme: 'crypt',
     pattern: 'rings',
-    openings: { west: true, north: true, south: true },
+    openings: { west: true, north: true },
   },
   {
     id: 'crypt-west',
-    center: [-24, 0, 42],
+    center: [-34, 0, 62],
     size: { w: 20, d: 18 },
-    height: 19,
+    height: 16,
     theme: 'crypt',
     pattern: 'spokes',
-    openings: { east: true, north: true, south: true },
+    openings: { east: true, north: true },
   },
   {
-    id: 'catacomb-north',
-    center: [0, 0, 64],
-    size: { w: 26, d: 14 },
-    height: 18,
+    id: 'catacomb-crown',
+    center: [0, 0, 96],
+    size: { w: 30, d: 18 },
+    height: 17,
     theme: 'catacomb',
     pattern: 'rings',
     openings: { south: true, east: true, west: true },
   },
   {
     id: 'deadend-east',
-    center: [26, 0, 64],
+    center: [34, 0, 96],
     size: { w: 14, d: 14 },
     height: 14,
     theme: 'ossuary',
@@ -245,31 +264,33 @@ const ROOM_LAYOUT: RoomSpec[] = [
   },
   {
     id: 'deadend-west',
-    center: [-26, 0, 64],
-    size: { w: 14, d: 18 },
-    height: 16,
+    center: [-34, 0, 96],
+    size: { w: 14, d: 14 },
+    height: 14,
     theme: 'ossuary',
-    pattern: 'stripes',
+    pattern: 'checker',
     openings: { east: true },
   },
 ];
 
 const CORRIDOR_LAYOUT: CorridorSpec[] = [
-  { id: 'entry-main', center: [0, 0, 5], length: 10, width: 8, axis: 'z', height: 14, theme: 'corridor-main', pattern: 'stripes' },
-  { id: 'entry-east', center: [12, 0, -8], length: 10, width: 8, axis: 'x', height: 14, theme: 'corridor-side', pattern: 'checker' },
-  { id: 'entry-west', center: [-12, 0, -8], length: 10, width: 8, axis: 'x', height: 14, theme: 'corridor-side', pattern: 'checker' },
-  { id: 'chapel-east', center: [12, 0, 18], length: 8, width: 8, axis: 'x', height: 15, theme: 'corridor-main', pattern: 'stripes' },
-  { id: 'chapel-west', center: [-12, 0, 18], length: 8, width: 8, axis: 'x', height: 15, theme: 'corridor-main', pattern: 'stripes' },
-  { id: 'chapel-core', center: [0, 0, 30], length: 8, width: 8, axis: 'z', height: 15, theme: 'corridor-main', pattern: 'stripes' },
-  { id: 'ossuary-south', center: [24, 0, 30], length: 8, width: 8, axis: 'z', height: 16, theme: 'corridor-side', pattern: 'checker' },
-  { id: 'reliquary-south', center: [-24, 0, 30], length: 8, width: 8, axis: 'z', height: 16, theme: 'corridor-side', pattern: 'checker' },
-  { id: 'core-east', center: [12, 0, 42], length: 8, width: 8, axis: 'x', height: 15, theme: 'corridor-main', pattern: 'spokes' },
-  { id: 'core-west', center: [-12, 0, 42], length: 8, width: 8, axis: 'x', height: 15, theme: 'corridor-main', pattern: 'spokes' },
-  { id: 'core-north', center: [0, 0, 53], length: 8, width: 8, axis: 'z', height: 15, theme: 'corridor-main', pattern: 'stripes' },
-  { id: 'east-north-link', center: [24, 0, 53], length: 8, width: 7, axis: 'z', height: 17, theme: 'corridor-narrow', pattern: 'checker' },
-  { id: 'west-north-link', center: [-24, 0, 53], length: 8, width: 7, axis: 'z', height: 17, theme: 'corridor-narrow', pattern: 'checker' },
-  { id: 'north-east-wing', center: [13, 0, 64], length: 8, width: 7, axis: 'x', height: 15, theme: 'corridor-narrow', pattern: 'checker' },
-  { id: 'north-west-wing', center: [-13, 0, 64], length: 8, width: 7, axis: 'x', height: 15, theme: 'corridor-narrow', pattern: 'checker' },
+  { id: 'entry-main', center: [0, 0, 9], length: 14, width: 8, axis: 'z', height: 14, theme: 'corridor-main', pattern: 'stripes' },
+  { id: 'entry-east', center: [18, 0, -8], length: 16, width: 7, axis: 'x', height: 13, theme: 'corridor-narrow', pattern: 'checker' },
+  { id: 'entry-west', center: [-18, 0, -8], length: 16, width: 7, axis: 'x', height: 13, theme: 'corridor-narrow', pattern: 'checker' },
+  { id: 'guard-east-link', center: [34, 0, 9], length: 16, width: 7, axis: 'z', height: 14, theme: 'corridor-side', pattern: 'checker' },
+  { id: 'guard-west-link', center: [-34, 0, 9], length: 16, width: 7, axis: 'z', height: 14, theme: 'corridor-side', pattern: 'checker' },
+  { id: 'hall-east', center: [20, 0, 26], length: 10, width: 8, axis: 'x', height: 15, theme: 'corridor-main', pattern: 'spokes' },
+  { id: 'hall-west', center: [-20, 0, 26], length: 10, width: 8, axis: 'x', height: 15, theme: 'corridor-main', pattern: 'spokes' },
+  { id: 'hall-core', center: [0, 0, 43], length: 14, width: 8, axis: 'z', height: 16, theme: 'corridor-main', pattern: 'stripes' },
+  { id: 'east-branch', center: [34, 0, 44], length: 22, width: 7, axis: 'z', height: 15, theme: 'corridor-side', pattern: 'checker' },
+  { id: 'west-branch', center: [-34, 0, 44], length: 22, width: 7, axis: 'z', height: 15, theme: 'corridor-side', pattern: 'checker' },
+  { id: 'core-east', center: [17, 0, 62], length: 10, width: 8, axis: 'x', height: 15, theme: 'corridor-main', pattern: 'spokes' },
+  { id: 'core-west', center: [-17, 0, 62], length: 10, width: 8, axis: 'x', height: 15, theme: 'corridor-main', pattern: 'spokes' },
+  { id: 'north-main', center: [0, 0, 80], length: 14, width: 8, axis: 'z', height: 16, theme: 'corridor-main', pattern: 'stripes' },
+  { id: 'east-north-link', center: [34, 0, 80], length: 18, width: 7, axis: 'z', height: 15, theme: 'corridor-narrow', pattern: 'checker' },
+  { id: 'west-north-link', center: [-34, 0, 80], length: 18, width: 7, axis: 'z', height: 15, theme: 'corridor-narrow', pattern: 'checker' },
+  { id: 'crown-east-wing', center: [21, 0, 96], length: 12, width: 7, axis: 'x', height: 15, theme: 'corridor-narrow', pattern: 'checker' },
+  { id: 'crown-west-wing', center: [-21, 0, 96], length: 12, width: 7, axis: 'x', height: 15, theme: 'corridor-narrow', pattern: 'checker' },
 ];
 
 const WALL_SEGMENT_OVERLAP = 0.08;
@@ -634,7 +655,7 @@ export default function DungeonWorld() {
       const gzCount = Math.ceil(size.d / step);
       const selectedTheme =
         ROOM_TILE_THEMES[themeName] ??
-        (kind === 'corridor' ? ROOM_TILE_THEMES.corridor : FLOOR_TILES);
+        (kind === 'corridor' ? ROOM_TILE_THEMES['corridor-main'] : FLOOR_TILES);
       const normalTop = Math.min(
         getTileTop(safeTile(selectedTheme.primary)),
         getTileTop(safeTile(selectedTheme.filler)),
@@ -716,7 +737,7 @@ export default function DungeonWorld() {
   }, [floorPattern, nodes]);
 
   const wallDecor = useMemo(() => {
-    if (!nodes) return [];
+    if (!SHOW_WALL_DECOR || !nodes) return [];
 
     type DecorPlacement = {
       id: string;
@@ -997,9 +1018,9 @@ export default function DungeonWorld() {
           key={`mesh-${piece.id}`}
           position={piece.position}
           castShadow={false}
-          receiveShadow={piece.id.includes('floor')}
+          receiveShadow={piece.id.includes('floor') || piece.id.includes('wall')}
           material={piece.material}
-          visible={piece.visible !== false && (piece.id.includes('floor') || piece.id.includes('ceiling'))}
+          visible={piece.visible !== false}
         >
           <boxGeometry args={piece.size} />
         </mesh>
@@ -1043,7 +1064,7 @@ export default function DungeonWorld() {
 
       {FLOOR_OVERLAY ? floorOverlayObjects.map((tile) => <primitive key={`tile-${tile.id}`} object={tile.object} />) : null}
 
-      {wallDecorObjects.map((decor) => {
+      {SHOW_WALL_DECOR ? wallDecorObjects.map((decor) => {
         return (
           <group
             key={`decor-${decor.id}`}
@@ -1054,7 +1075,7 @@ export default function DungeonWorld() {
             <primitive object={decor.object} />
           </group>
         );
-      })}
+      }) : null}
 
       <RigidBody type="fixed" colliders={false} name="dungeon-colliders">
         {pieces.map((piece) => (
