@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Vector3 } from 'three';
+import { Vector3, MathUtils } from 'three';
 import type { MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useRapier, type RapierRigidBody } from '@react-three/rapier';
@@ -15,17 +15,18 @@ import {
 } from '@/constants/camera';
 import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
 import { clampPitch, computeCameraDesired, clampCameraDistance } from './math/cameraMath';
-import { Ray as RapierRay } from '@dimforge/rapier3d-compat';
 
 /* ── tuning constants ── */
-const FOLLOW_LERP = 0.12;
-const PROBE_OFFSET = 0.5;
-const FLOOR_PROBE_HEIGHT = 1.5;
-const FLOOR_CLEARANCE = 0.6;
-const MIN_Y = 0.4;
-const WALL_BUF = 1.2;
+const FOLLOW_LERP = 0.15;
+const WALL_BUF = 0.2; // Smaller buffer since SphereCast has radius
 /** First-person camera height above player pivot */
 const FP_EYE_HEIGHT = 1.65;
+/** Sphere radius for camera collision probe */
+const SPHERE_RADIUS = 0.25;
+/** Minimum distance to prevent self-collision */
+const MIN_RAY_DIST = 0.6;
+/** Lerp factor for expanding zoom (recovering from collision) */
+const ZOOM_RECOVERY_SPEED = 2.0;
 
 /* ── helpers ── */
 function clampX(v: number) {
@@ -42,7 +43,7 @@ const _desired = new Vector3();
 const _lookAt = new Vector3();
 const _smoothLookAt = new Vector3();
 const _rayDir = new Vector3();
-const _probeSide = new Vector3();
+const _origin = new Vector3();
 
 /* ═══════════════════════════════════════════════════════════
    CameraRig — MMORPG third-person + first-person toggle (V)
@@ -61,9 +62,23 @@ export default function CameraRig({
   const isPointerLocked = useDungeonInput((s) => s.isPointerLocked);
   const mouseDown = useDungeonInput((s) => s.mouseDown);
 
+  // Memoize collision shape to prevent memory churn
+  const sphereShape = useRef<any>(null);
+  useEffect(() => {
+    if (!rapier) return;
+    sphereShape.current = new rapier.Ball(SPHERE_RADIUS);
+    return () => {
+      // Rapier JS shapes are GC'd, but good habit to clear ref
+      sphereShape.current = null;
+    };
+  }, [rapier]);
+
   const _yaw = useRef(0);
   const _pitch = useRef(CAMERA_PITCH.initial);
   const distRef = useRef<number>(CAMERA_DISTANCE.default);
+  // Current collision-constrained distance (smoothed)
+  const collisionDistRef = useRef<number>(CAMERA_DISTANCE.default);
+
   const lastClient = useRef<{ x: number; y: number } | null>(null);
   const initDone = useRef(false);
   /** false = third-person, true = first-person */
@@ -123,7 +138,9 @@ export default function CameraRig({
         if (firstPerson.current) {
           distRef.current = CAMERA_DISTANCE.min;
         } else {
-          distRef.current = CAMERA_DISTANCE.default;
+          distRef.current = Math.max(CAMERA_DISTANCE.default, distRef.current);
+          // Reset collision distance to current to restart smoothing
+          collisionDistRef.current = CAMERA_DISTANCE.min;
         }
       }
     };
@@ -152,10 +169,11 @@ export default function CameraRig({
       _smoothTarget.copy(_target);
       _lookAt.set(_target.x, _target.y + CAMERA_OFFSET.lookAtHeight, _target.z);
       _smoothLookAt.copy(_lookAt);
+      collisionDistRef.current = distRef.current;
       initDone.current = true;
     }
 
-    // Smooth follow
+    // Smooth follow target
     const t = Math.min(1, FOLLOW_LERP * dt * 60);
     _smoothTarget.lerp(_target, t);
     _lookAt.set(_target.x, _target.y + CAMERA_OFFSET.lookAtHeight, _target.z);
@@ -172,7 +190,6 @@ export default function CameraRig({
       );
       _desired.x = clampX(_desired.x);
       _desired.z = clampZ(_desired.z);
-      if (_desired.y > CAMERA_COLLISION.maxCameraY) _desired.y = CAMERA_COLLISION.maxCameraY;
 
       // Look direction from yaw/pitch
       const lookDist = 10;
@@ -183,88 +200,76 @@ export default function CameraRig({
       camera.position.lerp(_desired, Math.min(1, t * 2));
       _smoothLookAt.set(fpLookX, fpLookY, fpLookZ);
       camera.lookAt(_smoothLookAt);
+
     } else {
       /* ── THIRD-PERSON MODE ── */
-      const d = computeCameraDesired(
+
+      // 1. Compute ideal position (ignoring walls)
+      // Pass pivotHeight=1.5 explicitly to ensure orbit center is correct
+      const ideal = computeCameraDesired(
         { x: _smoothTarget.x, y: _smoothTarget.y, z: _smoothTarget.z },
         yaw.current, pitch.current, distRef.current, CAMERA_OFFSET,
+        1.5
       );
-      _desired.set(d.x, d.y, d.z);
-      _desired.x = clampX(_desired.x);
-      _desired.z = clampZ(_desired.z);
+      _desired.set(ideal.x, ideal.y, ideal.z);
 
-      // Ceiling clamp
-      if (_desired.y > CAMERA_COLLISION.maxCameraY) _desired.y = CAMERA_COLLISION.maxCameraY;
-
-      // ── Wall collision: 3-ray probe (center + left + right) ──
+      // 2. Perform SphereCast collision check
+      // Cast from (Target + Offset) towards Camera
       _rayDir.copy(_desired).sub(_smoothTarget);
-      const rayLen = _rayDir.length();
+      const idealDist = _rayDir.length();
+      let targetDist = idealDist;
 
-      // Minimum distance to prevent self-collision (radius of player capsule ~0.4)
-      const MIN_RAY_DIST = 0.5;
+      if (idealDist > MIN_RAY_DIST && sphereShape.current) {
+        // Offset origin to clear player collider
+        _origin.copy(_smoothTarget).addScaledVector(_rayDir.normalize(), MIN_RAY_DIST);
 
-      if (rayLen > MIN_RAY_DIST) {
-        _rayDir.divideScalar(rayLen);
-        const maxTOI = rayLen - MIN_RAY_DIST + WALL_BUF;
+        // ShapeCast checks volume (radius 0.25)
+        // Max TOI is the remaining distance after offset
+        const maxToi = idealDist - MIN_RAY_DIST + WALL_BUF;
 
-        // Origin offset to clear player collider
-        const originOffset = _rayDir.clone().multiplyScalar(MIN_RAY_DIST);
-        const origin = _smoothTarget.clone().add(originOffset);
-
-        // Center ray
-        const rCenter = new RapierRay(
-          { x: origin.x, y: origin.y, z: origin.z },
-          { x: _rayDir.x, y: _rayDir.y, z: _rayDir.z },
+        const hit = (world as any).castShape(
+          _origin,
+          { w: 1, x: 0, y: 0, z: 0 },
+          _rayDir, // normalized direction
+          sphereShape.current,
+          maxToi,
+          true,
+          undefined, // groups
+          undefined, // filter
+          undefined  // filterData
         );
-        const hitCenter = world.castRay(rCenter, maxTOI, true);
 
-        // Left/right side probes
-        _probeSide.set(-_rayDir.z, 0, _rayDir.x).normalize().multiplyScalar(PROBE_OFFSET);
-
-        // Left ray
-        const originLeft = origin.clone().add(_probeSide);
-        const rLeft = new RapierRay(
-          { x: originLeft.x, y: originLeft.y, z: originLeft.z },
-          { x: _rayDir.x, y: _rayDir.y, z: _rayDir.z },
-        );
-        const hitLeft = world.castRay(rLeft, maxTOI, true);
-
-        // Right ray
-        _probeSide.negate();
-        const originRight = origin.clone().add(_probeSide);
-        const rRight = new RapierRay(
-          { x: originRight.x, y: originRight.y, z: originRight.z },
-          { x: _rayDir.x, y: _rayDir.y, z: _rayDir.z },
-        );
-        const hitRight = world.castRay(rRight, maxTOI, true);
-
-        let nearest = rayLen - MIN_RAY_DIST;
-        // Adjust hits by adding back the offset, then subtract buffer
-        if (hitCenter) nearest = Math.min(nearest, hitCenter.timeOfImpact - WALL_BUF);
-        if (hitLeft) nearest = Math.min(nearest, hitLeft.timeOfImpact - WALL_BUF);
-        if (hitRight) nearest = Math.min(nearest, hitRight.timeOfImpact - WALL_BUF);
-
-        // Clamp to minimum cam distance
-        const finalDist = Math.max(CAMERA_COLLISION.minDistanceFromWall, nearest + MIN_RAY_DIST);
-
-        if (finalDist < rayLen) {
-          _desired.copy(_smoothTarget).addScaledVector(_rayDir, finalDist);
+        if (hit) {
+          // Check for timeOfImpact property
+          const toi = (hit as any).timeOfImpact ?? (hit as any).toi;
+          if (typeof toi === 'number') {
+            const hitDist = toi - WALL_BUF;
+            targetDist = Math.max(CAMERA_COLLISION.minCameraDistance, MIN_RAY_DIST + hitDist);
+          }
         }
       }
 
-      // Floor clearance probe
-      const floorRay = new RapierRay(
-        { x: _desired.x, y: _desired.y + FLOOR_PROBE_HEIGHT, z: _desired.z },
-        { x: 0, y: -1, z: 0 },
-      );
-      const floorHit = world.castRay(floorRay, FLOOR_PROBE_HEIGHT + 10, true);
-      if (floorHit) {
-        const groundY = _desired.y + FLOOR_PROBE_HEIGHT - floorHit.timeOfImpact;
-        const minY = Math.max(MIN_Y, groundY + FLOOR_CLEARANCE);
-        if (_desired.y < minY) _desired.y = minY;
+      // 3. Smooth Collision Recovery (MMORPG zoom behavior)
+      // Instant snap IN (when blocked), Smooth lerp OUT (when looking away from wall)
+      if (targetDist < collisionDistRef.current) {
+        collisionDistRef.current = targetDist; // Snap
+      } else {
+        // Recover slowly
+        collisionDistRef.current = MathUtils.lerp(collisionDistRef.current, targetDist, dt * ZOOM_RECOVERY_SPEED);
       }
 
-      // Apply — lerp camera toward desired
+      // 4. Final Position
+      // Re-project `_desired` along the ray direction using the smoothed distance
+      _rayDir.copy(_desired).sub(_smoothTarget).normalize();
+      _desired.copy(_smoothTarget).addScaledVector(_rayDir, collisionDistRef.current);
+
+      // 5. Bounds Clamping
+      _desired.x = clampX(_desired.x);
+      _desired.z = clampZ(_desired.z);
+      // Ceiling clamp
+      if (_desired.y > CAMERA_COLLISION.maxCameraY) _desired.y = CAMERA_COLLISION.maxCameraY;
+
+      // Apply to camera
       camera.position.lerp(_desired, t);
       camera.lookAt(_smoothLookAt);
     }
