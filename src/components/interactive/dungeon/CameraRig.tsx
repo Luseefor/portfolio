@@ -1,36 +1,29 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Vector3, MathUtils } from 'three';
+import { Vector3, MathUtils, Quaternion, Euler } from 'three';
 import type { MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useRapier, type RapierRigidBody } from '@react-three/rapier';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import {
   CAMERA_DISTANCE,
-  CAMERA_OFFSET,
   CAMERA_PITCH,
   CAMERA_SENSITIVITY,
   CAMERA_COLLISION,
 } from '@/constants/camera';
 import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
-import { clampPitch, computeCameraDesired, clampCameraDistance } from './math/cameraMath';
+import { clampPitch, clampCameraDistance } from './math/cameraMath';
 
 /* ── tuning constants ── */
-const FOLLOW_LERP = 0.15;
-const FPS_LERP = 0.8; // Faster, snappier follow for first-person
+const PIVOT_LERP = 0.4; // Fast damping to hide physics jitter
+const FPS_LERP = 0.8;
 const WALL_BUF = 0.2;
-/** First-person camera height above player pivot */
-const FP_EYE_HEIGHT = 1.65;
-/** Forward offset for FPS camera relative to body center (clears face) */
-const FP_FORWARD_OFFSET = 0.45;
-
-/** Sphere radius for camera collision probe */
+const PIVOT_HEIGHT = 1.5; // Head/Chest height
+const FPS_FORWARD_OFFSET = 0.45; // Clear face mesh
 const SPHERE_RADIUS = 0.25;
-/** Minimum distance to prevent self-collision */
-const MIN_RAY_DIST = 0.6;
-/** Lerp factor for expanding zoom (recovering from collision) */
-const ZOOM_RECOVERY_SPEED = 2.0;
+const MIN_RAY_DIST = 0.5;
+const ZOOM_RECOVERY_SPEED = 3.0; // Faster recovery for action feel
 
 /* ── helpers ── */
 function clampX(v: number) {
@@ -40,17 +33,18 @@ function clampZ(v: number) {
   return Math.min(DUNGEON_BOUNDS.maxZ, Math.max(DUNGEON_BOUNDS.minZ, v));
 }
 
-/* ── pre-allocated vectors (avoid GC) ── */
-const _target = new Vector3();
-const _smoothTarget = new Vector3();
-const _desired = new Vector3();
-const _lookAt = new Vector3();
-const _smoothLookAt = new Vector3();
+/* ── pre-allocated objects (avoid GC) ── */
+const _targetPos = new Vector3();
+const _pivot = new Vector3();
+const _idealPos = new Vector3();
+const _offset = new Vector3();
+const _quat = new Quaternion();
+const _euler = new Euler(0, 0, 0, 'YXZ');
 const _rayDir = new Vector3();
 const _origin = new Vector3();
 
 /* ═══════════════════════════════════════════════════════════
-   CameraRig — MMORPG third-person + first-person toggle (V)
+   CameraRig — Standard Spring Arm (Boom) System
    ═══════════════════════════════════════════════════════════ */
 export default function CameraRig({
   targetBody,
@@ -88,6 +82,7 @@ export default function CameraRig({
   const yaw = yawRef ?? _yaw;
   const pitch = pitchRef ?? _pitch;
 
+  /* ── Input Handling ── */
   useEffect(() => { lastClient.current = null; }, [isPointerLocked]);
 
   useEffect(() => {
@@ -153,84 +148,59 @@ export default function CameraRig({
     };
   }, [isPointerLocked, mouseDown, pitch, yaw]);
 
+  /* ── Physics & Camera Loop ── */
   useFrame((_, dt) => {
     const body = targetBody?.current;
     if (!body) return;
     const pos = body.translation();
-    _target.set(pos.x, pos.y, pos.z);
+    _targetPos.set(pos.x, pos.y + PIVOT_HEIGHT, pos.z);
 
+    // Initialization: snap to target
     if (!initDone.current) {
-      _smoothTarget.copy(_target);
-      _lookAt.set(_target.x, _target.y + CAMERA_OFFSET.lookAtHeight, _target.z);
-      _smoothLookAt.copy(_lookAt);
+      _pivot.copy(_targetPos);
       collisionDistRef.current = distRef.current;
       initDone.current = true;
     }
 
+    // 1. Damped Pivot Follow
+    // Hides physics jitter while keeping camera responsive
+    // Use faster lerp for FPS to reduce lag
+    const lerpFactor = firstPerson.current ? FPS_LERP : PIVOT_LERP;
+    const t = Math.min(1, lerpFactor * dt * 60);
+    _pivot.lerp(_targetPos, t);
+
+    // 2. Camera Rotation (Direct Control)
+    // No smoothing here — eliminates "drunk" feel
+    _euler.set(pitch.current, yaw.current, 0, 'YXZ');
+    _quat.setFromEuler(_euler);
+    camera.quaternion.copy(_quat);
+
+    // 3. Boom Offset & Collision
     const isFP = firstPerson.current;
+    let finalDist = 0;
 
-    /* ── FIRST-PERSON MODE ── */
     if (isFP) {
-      // Snappier follow for FPS (reduced lag)
-      const t = Math.min(1, FPS_LERP * dt * 60);
-      _smoothTarget.lerp(_target, t);
+      // FPS: Shift pivot forward to clear face
+      _offset.set(0, 0, -FPS_FORWARD_OFFSET).applyQuaternion(_quat);
+      _idealPos.copy(_pivot).add(_offset);
 
-      // Offset camera forward relative to view direction to clear face mesh
-      // View direction (XZ projection) is opposite to yaw angle?
-      // If yaw=0, camera is at +Z looking at -Z. Forward is (0, -1).
-      // sin(0)=0. cos(0)=1. 
-      // viewX = -sin(yaw), viewZ = -cos(yaw).
-      const viewX = -Math.sin(yaw.current);
-      const viewZ = -Math.cos(yaw.current);
-
-      _desired.set(
-        _smoothTarget.x + viewX * FP_FORWARD_OFFSET,
-        _smoothTarget.y + FP_EYE_HEIGHT,
-        _smoothTarget.z + viewZ * FP_FORWARD_OFFSET
-      );
-
-      // Bounds clamping
-      _desired.x = clampX(_desired.x);
-      _desired.z = clampZ(_desired.z);
-      if (_desired.y > CAMERA_COLLISION.maxCameraY) _desired.y = CAMERA_COLLISION.maxCameraY;
-
-      // Apply INSTANTLY to camera position (no secondary lerp) to prevent "drunk" lag
-      camera.position.copy(_desired);
-
-      // Calculate look target based on pitch
-      const lookDist = 10;
-      // Note: cos(pitch) scales X/Z components based on vertical angle
-      const fpLookX = _desired.x + viewX * Math.cos(pitch.current) * lookDist;
-      const fpLookY = _desired.y - Math.sin(pitch.current) * lookDist;
-      const fpLookZ = _desired.z + viewZ * Math.cos(pitch.current) * lookDist;
-
-      // Apply lookAt instantly 
-      camera.lookAt(fpLookX, fpLookY, fpLookZ);
-      // Sync smooth lookAt vector so it's ready when switching back
-      _smoothLookAt.set(fpLookX, fpLookY, fpLookZ);
-
-      /* ── THIRD-PERSON MODE ── */
+      camera.position.copy(_idealPos);
     } else {
-      // Smoother follow for cinematic feel
-      const t = Math.min(1, FOLLOW_LERP * dt * 60);
-      _smoothTarget.lerp(_target, t);
+      // Third Person: Boom Arm
 
-      // 1. Compute ideal position (ignoring walls)
-      // Pass pivotHeight=1.5 explicitly
-      const ideal = computeCameraDesired(
-        { x: _smoothTarget.x, y: _smoothTarget.y, z: _smoothTarget.z },
-        yaw.current, pitch.current, distRef.current, CAMERA_OFFSET,
-        1.5
-      );
-      _desired.set(ideal.x, ideal.y, ideal.z);
+      // Calculate Ideal Position (ignoring walls)
+      // Vector pointing BACK from pivot
+      _offset.set(0, 0, distRef.current).applyQuaternion(_quat);
+      _idealPos.copy(_pivot).add(_offset);
 
-      // 2. SphereCast Collision
-      _rayDir.copy(_desired).sub(_smoothTarget);
-      const idealDist = _rayDir.length();
+      // SphereCast for Boom Collision
+      _rayDir.copy(_offset).normalize();
+      const idealDist = distRef.current;
       let targetDist = idealDist;
 
       if (idealDist > MIN_RAY_DIST && sphereShape.current) {
-        _origin.copy(_smoothTarget).addScaledVector(_rayDir.normalize(), MIN_RAY_DIST);
+        // Offset origin slightly to avoid self-collision with player capsule
+        _origin.copy(_pivot).addScaledVector(_rayDir, MIN_RAY_DIST);
         const maxToi = idealDist - MIN_RAY_DIST + WALL_BUF;
 
         const hit = (world as any).castShape(
@@ -254,28 +224,26 @@ export default function CameraRig({
         }
       }
 
-      // 3. Smooth Recovery
+      // Smooth Recovery (Snap-in, Lerp-out)
       if (targetDist < collisionDistRef.current) {
-        collisionDistRef.current = targetDist; // Snap IN
+        collisionDistRef.current = targetDist; // Snap
       } else {
-        collisionDistRef.current = MathUtils.lerp(collisionDistRef.current, targetDist, dt * ZOOM_RECOVERY_SPEED); // Lerp OUT
+        collisionDistRef.current = MathUtils.lerp(collisionDistRef.current, targetDist, dt * ZOOM_RECOVERY_SPEED);
       }
 
-      // 4. Final Position
-      _rayDir.copy(_desired).sub(_smoothTarget).normalize();
-      _desired.copy(_smoothTarget).addScaledVector(_rayDir, collisionDistRef.current);
+      // Apply Final Position
+      _offset.set(0, 0, collisionDistRef.current).applyQuaternion(_quat);
 
-      // 5. Clamping & Apply
-      _desired.x = clampX(_desired.x);
-      _desired.z = clampZ(_desired.z);
-      if (_desired.y > CAMERA_COLLISION.maxCameraY) _desired.y = CAMERA_COLLISION.maxCameraY;
+      // Clamp bounds (floor/ceiling/walls)
+      // We clamp the FINAL position, not just lookAt
+      const finalPos = _idealPos.copy(_pivot).add(_offset);
+      finalPos.x = clampX(finalPos.x);
+      finalPos.z = clampZ(finalPos.z);
+      if (finalPos.y > CAMERA_COLLISION.maxCameraY) finalPos.y = CAMERA_COLLISION.maxCameraY;
+      // Floor clamp (optional, prevents going under map if no collision)
+      if (finalPos.y < 0.2) finalPos.y = 0.2;
 
-      camera.position.lerp(_desired, t);
-
-      // LookAt Target smoothing
-      _lookAt.set(_target.x, _target.y + CAMERA_OFFSET.lookAtHeight, _target.z);
-      _smoothLookAt.lerp(_lookAt, t);
-      camera.lookAt(_smoothLookAt);
+      camera.position.copy(finalPos);
     }
   });
 
