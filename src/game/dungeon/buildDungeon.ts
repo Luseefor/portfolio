@@ -427,6 +427,9 @@ function pushCorridorSegment(
 
   const centerX = (start[0] + end[0]) / 2;
   const centerZ = (start[1] + end[1]) / 2;
+  const pointToToken = (point: Vec2) =>
+    `${snapValue(point[0], 0.01).toFixed(2)}_${snapValue(point[1], 0.01).toFixed(2)}`;
+  const segmentKey = `${route.id}-segment-${routeIndex}-${pointToToken(start)}__${pointToToken(end)}`;
 
   const floorSize: [number, number, number] =
     axis === 'x'
@@ -434,7 +437,7 @@ function pushCorridorSegment(
       : [route.width + WALL_THICKNESS, FLOOR_THICKNESS, length + WALL_THICKNESS];
 
   addPieceAndCollider(result.pieces, result.colliders, {
-    id: `${route.id}-segment-${routeIndex}-floor`,
+    id: `${segmentKey}-floor`,
     kind: 'corridor-floor',
     nodeKey: DUNGEON_STRUCTURAL_KEYS.floors[route.kind === 'main' ? 0 : 1],
     position: [centerX, -FLOOR_THICKNESS / 2, centerZ],
@@ -458,7 +461,7 @@ function pushCorridorSegment(
 
   if (axis === 'x') {
     addPieceAndCollider(result.pieces, result.colliders, {
-      id: `${route.id}-segment-${routeIndex}-wall-north`,
+      id: `${segmentKey}-wall-north`,
       kind: 'corridor-wall',
       nodeKey: wallNode,
       position: [centerX, wallY, centerZ + offset],
@@ -468,7 +471,7 @@ function pushCorridorSegment(
     });
 
     addPieceAndCollider(result.pieces, result.colliders, {
-      id: `${route.id}-segment-${routeIndex}-wall-south`,
+      id: `${segmentKey}-wall-south`,
       kind: 'corridor-wall',
       nodeKey: wallNode,
       position: [centerX, wallY, centerZ - offset],
@@ -478,7 +481,7 @@ function pushCorridorSegment(
     });
   } else {
     addPieceAndCollider(result.pieces, result.colliders, {
-      id: `${route.id}-segment-${routeIndex}-wall-east`,
+      id: `${segmentKey}-wall-east`,
       kind: 'corridor-wall',
       nodeKey: wallNode,
       position: [centerX + offset, wallY, centerZ],
@@ -488,7 +491,7 @@ function pushCorridorSegment(
     });
 
     addPieceAndCollider(result.pieces, result.colliders, {
-      id: `${route.id}-segment-${routeIndex}-wall-west`,
+      id: `${segmentKey}-wall-west`,
       kind: 'corridor-wall',
       nodeKey: wallNode,
       position: [centerX - offset, wallY, centerZ],
@@ -502,26 +505,26 @@ function pushCorridorSegment(
     const torchOffset = route.width / 2 - 0.8;
     if (axis === 'x') {
       result.torchAnchors.push({
-        id: `${route.id}-segment-${routeIndex}-torch-north`,
+        id: `${segmentKey}-torch-north`,
         position: [centerX, 2.2, centerZ + torchOffset],
         rotationY: Math.PI,
         source: 'corridor',
       });
       result.torchAnchors.push({
-        id: `${route.id}-segment-${routeIndex}-torch-south`,
+        id: `${segmentKey}-torch-south`,
         position: [centerX, 2.2, centerZ - torchOffset],
         rotationY: 0,
         source: 'corridor',
       });
     } else {
       result.torchAnchors.push({
-        id: `${route.id}-segment-${routeIndex}-torch-east`,
+        id: `${segmentKey}-torch-east`,
         position: [centerX + torchOffset, 2.2, centerZ],
         rotationY: -Math.PI / 2,
         source: 'corridor',
       });
       result.torchAnchors.push({
-        id: `${route.id}-segment-${routeIndex}-torch-west`,
+        id: `${segmentKey}-torch-west`,
         position: [centerX - torchOffset, 2.2, centerZ],
         rotationY: Math.PI / 2,
         source: 'corridor',
