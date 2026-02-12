@@ -20,6 +20,9 @@ type RoomSpec = {
   id: string;
   center: Vec3;
   size: { w: number; d: number };
+  height?: number;
+  theme?: string;
+  pattern?: FloorPatternKind;
   openings?: WallOpening;
 };
 
@@ -29,14 +32,21 @@ type CorridorSpec = {
   length: number;
   width: number;
   axis: 'x' | 'z';
+  height?: number;
+  theme?: string;
+  pattern?: FloorPatternKind;
 };
 
+type FloorPatternKind = 'rings' | 'checker' | 'spokes' | 'stripes';
+
 const WALL_HEIGHT = 21;
+const DEFAULT_ROOM_HEIGHT = 18;
+const DEFAULT_CORRIDOR_HEIGHT = 15;
 const WALL_THICKNESS = 0.8;
 const FLOOR_THICKNESS = 0.45;
 const CEILING_THICKNESS = 0.35;
 const DOOR_WIDTH = 6;
-const FLOOR_TILE_OVERLAP = 0.015;
+const FLOOR_TILE_OVERLAP = 0.025;
 const FLOOR_MIN_STEP = 1.2;
 const FLOOR_MAX_STEP = 6;
 const FLOOR_MAX_TILES = 14000;
@@ -44,7 +54,7 @@ const FLOOR_MAX_RENDER_OBJECTS = 14000;
 const UNDERFLOOR_SIZE: Vec3 = [220, 0.2, 220];
 const UNDERFLOOR_Y = -0.2;
 const OUTER_BORDER_THICKNESS = 1.2;
-const OUTER_BORDER_HEIGHT = WALL_HEIGHT + 2;
+const OUTER_BORDER_HEIGHT = 28;
 const OUTER_BORDER_SINK = 0.4;
 const WALL_COLLIDER_THICKNESS = 1.8;
 const WALL_COLLIDER_LENGTH_PAD = 0.2;
@@ -104,64 +114,162 @@ const ROOM_TILE_THEMES: Record<
     filler: string;
   }
 > = {
-  'room-a': {
+  entrance: {
     primary: 'Floor_Squares',
     accent: 'Floor_Standard',
     filler: 'Floor_Standard',
   },
-  'room-b': {
-    primary: 'Floor_Standard',
+  chapel: {
+    primary: 'Floor_Diamond',
     accent: 'Floor_Squares',
     filler: 'Floor_Standard',
   },
-  'room-c': {
-    primary: 'Floor_Squares',
-    accent: 'Floor_Diamond',
-    filler: 'Floor_Standard',
-  },
-  'room-hidden': {
+  ossuary: {
     primary: 'Floor_Standard',
     accent: 'Floor_Diamond',
     filler: 'Floor_Squares',
   },
-  corridor: {
+  reliquary: {
     primary: 'Floor_Standard',
     accent: 'Floor_Squares',
+    filler: 'Floor_Diamond',
+  },
+  catacomb: {
+    primary: 'Floor_Squares',
+    accent: 'Floor_Standard',
+    filler: 'Floor_Standard',
+  },
+  crypt: {
+    primary: 'Floor_Diamond',
+    accent: 'Floor_Standard',
+    filler: 'Floor_Standard',
+  },
+  'corridor-main': {
+    primary: 'Floor_Standard',
+    accent: 'Floor_Squares',
+    filler: 'Floor_Standard',
+  },
+  'corridor-side': {
+    primary: 'Floor_Squares',
+    accent: 'Floor_Diamond',
+    filler: 'Floor_Standard',
+  },
+  'corridor-narrow': {
+    primary: 'Floor_Standard',
+    accent: 'Floor_Diamond',
     filler: 'Floor_Standard',
   },
 };
 
 const ROOM_LAYOUT: RoomSpec[] = [
   {
-    id: 'room-a',
-    center: [0, 0, 0],
-    size: { w: 40, d: 40 },
-    openings: { north: true },
+    id: 'entrance',
+    center: [0, 0, -8],
+    size: { w: 22, d: 16 },
+    height: 15,
+    theme: 'entrance',
+    pattern: 'stripes',
+    openings: { north: true, east: true, west: true },
   },
   {
-    id: 'room-b',
-    center: [0, 0, 52],
-    size: { w: 40, d: 40 },
+    id: 'chapel',
+    center: [0, 0, 18],
+    size: { w: 26, d: 22 },
+    height: 20,
+    theme: 'chapel',
+    pattern: 'rings',
+    openings: { south: true, north: true, east: true, west: true },
+  },
+  {
+    id: 'ossuary-east',
+    center: [24, 0, 18],
+    size: { w: 18, d: 18 },
+    height: 17,
+    theme: 'ossuary',
+    pattern: 'checker',
+    openings: { west: true, north: true, south: true },
+  },
+  {
+    id: 'reliquary-west',
+    center: [-24, 0, 18],
+    size: { w: 18, d: 24 },
+    height: 18,
+    theme: 'reliquary',
+    pattern: 'spokes',
+    openings: { east: true, north: true, south: true },
+  },
+  {
+    id: 'catacomb-core',
+    center: [0, 0, 42],
+    size: { w: 20, d: 20 },
+    height: 16,
+    theme: 'catacomb',
+    pattern: 'checker',
+    openings: { south: true, north: true, east: true, west: true },
+  },
+  {
+    id: 'crypt-east',
+    center: [24, 0, 42],
+    size: { w: 22, d: 16 },
+    height: 22,
+    theme: 'crypt',
+    pattern: 'rings',
+    openings: { west: true, north: true, south: true },
+  },
+  {
+    id: 'crypt-west',
+    center: [-24, 0, 42],
+    size: { w: 20, d: 18 },
+    height: 19,
+    theme: 'crypt',
+    pattern: 'spokes',
+    openings: { east: true, north: true, south: true },
+  },
+  {
+    id: 'catacomb-north',
+    center: [0, 0, 64],
+    size: { w: 26, d: 14 },
+    height: 18,
+    theme: 'catacomb',
+    pattern: 'rings',
     openings: { south: true, east: true, west: true },
   },
   {
-    id: 'room-c',
-    center: [52, 0, 52],
-    size: { w: 40, d: 40 },
+    id: 'deadend-east',
+    center: [26, 0, 64],
+    size: { w: 14, d: 14 },
+    height: 14,
+    theme: 'ossuary',
+    pattern: 'checker',
     openings: { west: true },
   },
   {
-    id: 'room-hidden',
-    center: [-52, 0, 52],
-    size: { w: 40, d: 40 },
+    id: 'deadend-west',
+    center: [-26, 0, 64],
+    size: { w: 14, d: 18 },
+    height: 16,
+    theme: 'ossuary',
+    pattern: 'stripes',
     openings: { east: true },
   },
 ];
 
 const CORRIDOR_LAYOUT: CorridorSpec[] = [
-  { id: 'corridor-a', center: [0, 0, 26], length: 12, width: 6, axis: 'z' },
-  { id: 'corridor-c', center: [26, 0, 52], length: 12, width: 6, axis: 'x' },
-  { id: 'corridor-hidden', center: [-26, 0, 52], length: 12, width: 6, axis: 'x' },
+  { id: 'entry-main', center: [0, 0, 5], length: 10, width: 8, axis: 'z', height: 14, theme: 'corridor-main', pattern: 'stripes' },
+  { id: 'entry-east', center: [12, 0, -8], length: 10, width: 8, axis: 'x', height: 14, theme: 'corridor-side', pattern: 'checker' },
+  { id: 'entry-west', center: [-12, 0, -8], length: 10, width: 8, axis: 'x', height: 14, theme: 'corridor-side', pattern: 'checker' },
+  { id: 'chapel-east', center: [12, 0, 18], length: 8, width: 8, axis: 'x', height: 15, theme: 'corridor-main', pattern: 'stripes' },
+  { id: 'chapel-west', center: [-12, 0, 18], length: 8, width: 8, axis: 'x', height: 15, theme: 'corridor-main', pattern: 'stripes' },
+  { id: 'chapel-core', center: [0, 0, 30], length: 8, width: 8, axis: 'z', height: 15, theme: 'corridor-main', pattern: 'stripes' },
+  { id: 'ossuary-south', center: [24, 0, 30], length: 8, width: 8, axis: 'z', height: 16, theme: 'corridor-side', pattern: 'checker' },
+  { id: 'reliquary-south', center: [-24, 0, 30], length: 8, width: 8, axis: 'z', height: 16, theme: 'corridor-side', pattern: 'checker' },
+  { id: 'core-east', center: [12, 0, 42], length: 8, width: 8, axis: 'x', height: 15, theme: 'corridor-main', pattern: 'spokes' },
+  { id: 'core-west', center: [-12, 0, 42], length: 8, width: 8, axis: 'x', height: 15, theme: 'corridor-main', pattern: 'spokes' },
+  { id: 'core-north', center: [0, 0, 53], length: 8, width: 8, axis: 'z', height: 15, theme: 'corridor-main', pattern: 'stripes' },
+  { id: 'east-north-link', center: [24, 0, 53], length: 8, width: 7, axis: 'z', height: 17, theme: 'corridor-narrow', pattern: 'checker' },
+  { id: 'west-north-link', center: [-24, 0, 53], length: 8, width: 7, axis: 'z', height: 17, theme: 'corridor-narrow', pattern: 'checker' },
+  { id: 'north-east-wing', center: [13, 0, 64], length: 8, width: 7, axis: 'x', height: 15, theme: 'corridor-narrow', pattern: 'checker' },
+  { id: 'north-west-wing', center: [-13, 0, 64], length: 8, width: 7, axis: 'x', height: 15, theme: 'corridor-narrow', pattern: 'checker' },
 ];
 
 const WALL_SEGMENT_OVERLAP = 0.08;
@@ -196,19 +304,20 @@ function buildWallSegments(
   center: Vec3,
   size: { w: number; d: number },
   side: 'north' | 'south' | 'east' | 'west',
+  wallHeight: number,
   hasOpening: boolean,
 ): BoxPiece[] {
   const [cx, cy, cz] = center;
   const halfW = size.w / 2;
   const halfD = size.d / 2;
-  const wallY = cy + WALL_HEIGHT / 2;
+  const wallY = cy + wallHeight / 2;
 
   if (!hasOpening) {
     if (side === 'north' || side === 'south') {
       return [
         {
           id: `${id}-${side}`,
-          size: [size.w, WALL_HEIGHT, WALL_THICKNESS],
+          size: [size.w, wallHeight, WALL_THICKNESS],
           position: [
             cx,
             wallY,
@@ -221,7 +330,7 @@ function buildWallSegments(
     return [
       {
         id: `${id}-${side}`,
-        size: [WALL_THICKNESS, WALL_HEIGHT, size.d],
+        size: [WALL_THICKNESS, wallHeight, size.d],
         position: [
           cx + (side === 'east' ? halfW - WALL_THICKNESS / 2 : -halfW + WALL_THICKNESS / 2),
           wallY,
@@ -241,13 +350,13 @@ function buildWallSegments(
     segments.push(
       {
         id: `${id}-${side}-left`,
-        size: [segLength, WALL_HEIGHT, WALL_THICKNESS],
+        size: [segLength, wallHeight, WALL_THICKNESS],
         position: [leftX, wallY, z],
         material: wallMaterial,
       },
       {
         id: `${id}-${side}-right`,
-        size: [segLength, WALL_HEIGHT, WALL_THICKNESS],
+        size: [segLength, wallHeight, WALL_THICKNESS],
         position: [rightX, wallY, z],
         material: wallMaterial,
       },
@@ -260,13 +369,13 @@ function buildWallSegments(
     segments.push(
       {
         id: `${id}-${side}-near`,
-        size: [WALL_THICKNESS, WALL_HEIGHT, segLength],
+        size: [WALL_THICKNESS, wallHeight, segLength],
         position: [x, wallY, nearZ],
         material: wallMaterial,
       },
       {
         id: `${id}-${side}-far`,
-        size: [WALL_THICKNESS, WALL_HEIGHT, segLength],
+        size: [WALL_THICKNESS, wallHeight, segLength],
         position: [x, wallY, farZ],
         material: wallMaterial,
       },
@@ -278,6 +387,7 @@ function buildWallSegments(
 
 function buildRoom(spec: RoomSpec): BoxPiece[] {
   const { id, center, size, openings } = spec;
+  const roomHeight = spec.height ?? DEFAULT_ROOM_HEIGHT;
   const [cx, cy, cz] = center;
 
   const pieces: BoxPiece[] = [
@@ -290,22 +400,29 @@ function buildRoom(spec: RoomSpec): BoxPiece[] {
     {
       id: `${id}-ceiling`,
       size: [size.w, CEILING_THICKNESS, size.d],
-      position: [cx, cy + WALL_HEIGHT - CEILING_THICKNESS / 2, cz],
+      position: [cx, cy + roomHeight - CEILING_THICKNESS / 2, cz],
       material: ceilingMaterial,
     },
   ];
 
   pieces.push(
-    ...buildWallSegments(id, center, size, 'north', Boolean(openings?.north)),
-    ...buildWallSegments(id, center, size, 'south', Boolean(openings?.south)),
-    ...buildWallSegments(id, center, size, 'east', Boolean(openings?.east)),
-    ...buildWallSegments(id, center, size, 'west', Boolean(openings?.west)),
+    ...buildWallSegments(id, center, size, 'north', roomHeight, Boolean(openings?.north)),
+    ...buildWallSegments(id, center, size, 'south', roomHeight, Boolean(openings?.south)),
+    ...buildWallSegments(id, center, size, 'east', roomHeight, Boolean(openings?.east)),
+    ...buildWallSegments(id, center, size, 'west', roomHeight, Boolean(openings?.west)),
   );
 
   return pieces;
 }
 
-function buildCorridor(id: string, center: Vec3, length: number, width: number, axis: 'x' | 'z') {
+function buildCorridor(
+  id: string,
+  center: Vec3,
+  length: number,
+  width: number,
+  axis: 'x' | 'z',
+  corridorHeight = DEFAULT_CORRIDOR_HEIGHT,
+) {
   const [cx, cy, cz] = center;
   const pieces: BoxPiece[] = [];
   const size: Vec3 = axis === 'z' ? [width, FLOOR_THICKNESS, length] : [length, FLOOR_THICKNESS, width];
@@ -318,26 +435,26 @@ function buildCorridor(id: string, center: Vec3, length: number, width: number, 
   pieces.push({
     id: `${id}-ceiling`,
     size: axis === 'z' ? [width, CEILING_THICKNESS, length] : [length, CEILING_THICKNESS, width],
-    position: [cx, cy + WALL_HEIGHT - CEILING_THICKNESS / 2, cz],
+    position: [cx, cy + corridorHeight - CEILING_THICKNESS / 2, cz],
     material: ceilingMaterial,
   });
 
   const wallSize: Vec3 = axis === 'z'
-    ? [WALL_THICKNESS, WALL_HEIGHT, length]
-    : [length, WALL_HEIGHT, WALL_THICKNESS];
+    ? [WALL_THICKNESS, corridorHeight, length]
+    : [length, corridorHeight, WALL_THICKNESS];
   const offset = width / 2 - WALL_THICKNESS / 2;
   if (axis === 'z') {
     pieces.push(
       {
         id: `${id}-wall-east`,
         size: wallSize,
-        position: [cx + offset, cy + WALL_HEIGHT / 2, cz],
+        position: [cx + offset, cy + corridorHeight / 2, cz],
         material: wallMaterial,
       },
       {
         id: `${id}-wall-west`,
         size: wallSize,
-        position: [cx - offset, cy + WALL_HEIGHT / 2, cz],
+        position: [cx - offset, cy + corridorHeight / 2, cz],
         material: wallMaterial,
       },
     );
@@ -346,13 +463,13 @@ function buildCorridor(id: string, center: Vec3, length: number, width: number, 
       {
         id: `${id}-wall-north`,
         size: wallSize,
-        position: [cx, cy + WALL_HEIGHT / 2, cz + offset],
+        position: [cx, cy + corridorHeight / 2, cz + offset],
         material: wallMaterial,
       },
       {
         id: `${id}-wall-south`,
         size: wallSize,
-        position: [cx, cy + WALL_HEIGHT / 2, cz - offset],
+        position: [cx, cy + corridorHeight / 2, cz - offset],
         material: wallMaterial,
       },
     );
@@ -369,7 +486,14 @@ export default function DungeonWorld() {
     return [
       ...ROOM_LAYOUT.flatMap(buildRoom),
       ...CORRIDOR_LAYOUT.flatMap((corridor) =>
-        buildCorridor(corridor.id, corridor.center, corridor.length, corridor.width, corridor.axis),
+        buildCorridor(
+          corridor.id,
+          corridor.center,
+          corridor.length,
+          corridor.width,
+          corridor.axis,
+          corridor.height ?? DEFAULT_CORRIDOR_HEIGHT,
+        ),
       ),
     ];
   }, []);
@@ -432,6 +556,7 @@ export default function DungeonWorld() {
       gzCount: number,
       kind: 'room' | 'corridor',
       theme: { primary: string; accent: string; filler: string },
+      pattern: FloorPatternKind,
     ) => {
       const edge = gx === 0 || gz === 0 || gx === gxCount - 1 || gz === gzCount - 1;
       const innerEdge = gx === 1 || gz === 1 || gx === gxCount - 2 || gz === gzCount - 2;
@@ -444,24 +569,53 @@ export default function DungeonWorld() {
       const checker = (gx + gz) % 2 === 0;
       const onAxis = gx === centerX || gz === centerZ;
       const onDiagonal = distX === distZ;
+      const stripeOnX = gxCount <= gzCount;
+      const stripeIndex = stripeOnX ? gx : gz;
+      const stripeBand = Math.abs(stripeIndex - Math.floor((stripeOnX ? gxCount : gzCount) / 2));
 
       if (kind === 'corridor') {
-        const stripeOnX = gxCount <= gzCount;
-        const isStripe = stripeOnX ? gx === centerX : gz === centerZ;
-        if (isStripe) return safeTile(theme.accent);
+        if (pattern === 'checker') {
+          if (edge) return safeTile(theme.filler);
+          return checker ? safeTile(theme.accent) : safeTile(theme.primary);
+        }
+        if (pattern === 'spokes') {
+          if (edge) return safeTile(theme.filler);
+          if (onAxis || onDiagonal) return safeTile(theme.accent);
+          return safeTile(theme.primary);
+        }
+        if (stripeBand === 0) return safeTile(theme.accent);
+        if (stripeBand === 1) return safeTile(theme.filler);
         if (edge) return safeTile(theme.filler);
-        if (onAxis && checker) return safeTile(theme.filler);
         return safeTile(theme.primary);
       }
 
+      if (pattern === 'checker') {
+        if (edge) return safeTile(theme.filler);
+        if (innerEdge) return safeTile(theme.accent);
+        return checker ? safeTile(theme.primary) : safeTile(theme.accent);
+      }
+      if (pattern === 'spokes') {
+        if (edge) return safeTile(theme.filler);
+        if (isCenter) return safeTile(theme.accent);
+        if (onAxis || onDiagonal) return safeTile(theme.accent);
+        if (ring % 2 === 0) return safeTile(theme.filler);
+        return safeTile(theme.primary);
+      }
+      if (pattern === 'stripes') {
+        if (edge) return safeTile(theme.filler);
+        if (stripeBand === 0) return safeTile(theme.accent);
+        if (stripeBand === 1 || stripeBand === 3) return safeTile(theme.filler);
+        return safeTile(theme.primary);
+      }
+
+      // Default "rings" style
       if (isCenter) return safeTile(theme.accent);
-      if (edge) return safeTile(theme.accent);
+      if (edge) return safeTile(theme.filler);
       if (innerEdge && checker) return safeTile(theme.filler);
       if (ring === 2) return safeTile(theme.accent);
       if (ring === 3 && checker) return safeTile(theme.filler);
-      if (ring === 4 && onDiagonal) return safeTile(theme.accent);
-      if (ring === 5 && onAxis && checker) return safeTile(theme.filler);
-      if (ring === 6 && checker) return safeTile(theme.accent);
+      if (ring % 3 === 0 && onDiagonal) return safeTile(theme.accent);
+      if (ring % 2 === 0 && onAxis && checker) return safeTile(theme.filler);
       return safeTile(theme.primary);
     };
 
@@ -470,6 +624,7 @@ export default function DungeonWorld() {
       size: { w: number; d: number },
       kind: 'room' | 'corridor',
       themeName: string,
+      pattern: FloorPatternKind,
     ) => {
       const [cx, cy, cz] = center;
       const halfW = size.w / 2;
@@ -489,7 +644,7 @@ export default function DungeonWorld() {
         for (let gz = 0; gz < gzCount; gz += 1) {
           const x = -halfW + step / 2 + gx * step;
           const z = -halfD + step / 2 + gz * step;
-          const picked = pickTile(gx, gz, gxCount, gzCount, kind, selectedTheme);
+          const picked = pickTile(gx, gz, gxCount, gzCount, kind, selectedTheme, pattern);
           const liftFromMesh = Math.max(0, getTileTop(picked) - normalTop);
           tiles.push({
             id: `${center[0]}-${center[2]}-${gx}-${gz}`,
@@ -504,13 +659,22 @@ export default function DungeonWorld() {
     };
 
     const allTiles = [
-      ...ROOM_LAYOUT.flatMap((room) => buildArea(room.center, room.size, 'room', room.id)),
+      ...ROOM_LAYOUT.flatMap((room) =>
+        buildArea(
+          room.center,
+          room.size,
+          'room',
+          room.theme ?? room.id,
+          room.pattern ?? 'rings',
+        ),
+      ),
       ...CORRIDOR_LAYOUT.flatMap((corridor) =>
         buildArea(
           corridor.center,
           corridor.axis === 'z' ? { w: corridor.width, d: corridor.length } : { w: corridor.length, d: corridor.width },
           'corridor',
-          corridor.id,
+          corridor.theme ?? 'corridor-main',
+          corridor.pattern ?? 'stripes',
         ),
       ),
     ];
