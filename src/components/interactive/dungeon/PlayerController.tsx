@@ -22,7 +22,6 @@ const START_POSITION: [number, number, number] = [
   DUNGEON_LAYOUT_GRAPH.spawnPoint[2],
 ];
 const STEP_INTERVAL_WALK = 0.6;
-const STEP_INTERVAL_RUN = 0.42;
 const PLAYER_LIFT_UP_SMOOTHING = 18;
 const PLAYER_LIFT_DOWN_SMOOTHING = 8;
 const DASH_DURATION = 0.2;
@@ -33,6 +32,11 @@ const DASH_RAY_BUFFER = 0.45;
 const DASH_COLLISION_OFFSET = 0.4;
 const DASH_CAMERA_KICK = 2.25;
 const DASH_FOV_DAMPING = 14;
+const RUN_LOOP_SPEED_THRESHOLD = WALK_SPEED * 1.35;
+const RUN_LOOP_START_OFFSET = 3;
+const RUN_LOOP_WRAP_EPSILON = 0.04;
+const MIN_LAND_IMPACT_SPEED = 2.5;
+const MIN_LAND_AIRBORNE_TIME = 0.14;
 
 const forward = new Vector3();
 const right = new Vector3();
@@ -58,6 +62,14 @@ function clampPlayerZ(value: number) {
 
 function isPerspectiveCamera(camera: Camera): camera is PerspectiveCamera {
   return (camera as PerspectiveCamera).isPerspectiveCamera === true;
+}
+
+function safeSetAudioTime(audio: HTMLAudioElement, time: number) {
+  try {
+    audio.currentTime = Number.isFinite(time) && time > 0 ? time : 0;
+  } catch {
+    // Ignore seek failures before metadata is ready.
+  }
 }
 
 export default function PlayerController({
@@ -92,7 +104,16 @@ export default function PlayerController({
   const characterRootRef = useRef<Group | null>(null);
   const visualLiftRef = useRef(0);
   const stepAudioRef = useRef<HTMLAudioElement[]>([]);
-  const jumpAudioRef = useRef<HTMLAudioElement | null>(null);
+  const runningLoopAudioRef = useRef<HTMLAudioElement | null>(null);
+  const jumpAudioRef = useRef<HTMLAudioElement[]>([]);
+  const landAudioRef = useRef<HTMLAudioElement[]>([]);
+  const jumpAudioIndexRef = useRef(0);
+  const landAudioIndexRef = useRef(0);
+  const wasGroundedRef = useRef(true);
+  const airborneTimeRef = useRef(0);
+  const maxFallSpeedRef = useRef(0);
+  const jumpSoundLockedUntilLandRef = useRef(false);
+  const jumpButtonHeldRef = useRef(false);
   const dashRef = useRef({
     active: false,
     timeLeft: 0,
@@ -108,14 +129,41 @@ export default function PlayerController({
     if (!stepAudioRef.current.length) {
       stepAudioRef.current = [
         new Audio('/sounds/footsteps/gravel_step.wav'),
-        new Audio('/sounds/footsteps/grassy_step.wav'),
       ];
       stepAudioRef.current.forEach((audio) => {
         audio.preload = 'auto';
         audio.volume = 0.35;
       });
     }
-    jumpAudioRef.current = null;
+    if (!runningLoopAudioRef.current) {
+      runningLoopAudioRef.current = new Audio('/sounds/footsteps/running_step.wav');
+      runningLoopAudioRef.current.preload = 'auto';
+      runningLoopAudioRef.current.loop = false;
+      runningLoopAudioRef.current.volume = 0.42;
+    }
+    if (!jumpAudioRef.current.length) {
+      jumpAudioRef.current = [new Audio('/sounds/player/jump.wav'), new Audio('/sounds/player/jump.wav')];
+      jumpAudioRef.current.forEach((audio) => {
+        audio.preload = 'auto';
+        audio.volume = 0.42;
+      });
+    }
+    if (!landAudioRef.current.length) {
+      landAudioRef.current = [new Audio('/sounds/player/land.wav'), new Audio('/sounds/player/land.wav')];
+      landAudioRef.current.forEach((audio) => {
+        audio.preload = 'auto';
+        audio.volume = 0.48;
+      });
+    }
+    return () => {
+      stepAudioRef.current.forEach((audio) => audio.pause());
+      if (runningLoopAudioRef.current) {
+        runningLoopAudioRef.current.pause();
+        safeSetAudioTime(runningLoopAudioRef.current, 0);
+      }
+      jumpAudioRef.current.forEach((audio) => audio.pause());
+      landAudioRef.current.forEach((audio) => audio.pause());
+    };
   }, []);
 
   useEffect(() => {
@@ -179,6 +227,11 @@ export default function PlayerController({
       dashButtonPrevRef.current = false;
       dashRef.current.active = false;
       dashRef.current.timeLeft = 0;
+      jumpButtonHeldRef.current = false;
+      if (runningLoopAudioRef.current) {
+        runningLoopAudioRef.current.pause();
+        safeSetAudioTime(runningLoopAudioRef.current, 0);
+      }
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -209,6 +262,27 @@ export default function PlayerController({
     if (characterRootRef.current) {
       characterRootRef.current.position.y = visualLiftRef.current;
     }
+    if (!grounded) {
+      airborneTimeRef.current += delta;
+      maxFallSpeedRef.current = Math.max(maxFallSpeedRef.current, -linvel.y);
+    } else if (!wasGroundedRef.current) {
+      const hasMeaningfulImpact =
+        maxFallSpeedRef.current >= MIN_LAND_IMPACT_SPEED ||
+        airborneTimeRef.current >= MIN_LAND_AIRBORNE_TIME;
+      if (hasMeaningfulImpact && landAudioRef.current.length > 0) {
+        const landAudio = landAudioRef.current[landAudioIndexRef.current % landAudioRef.current.length];
+        landAudioIndexRef.current += 1;
+        landAudio.currentTime = 0;
+        landAudio.playbackRate = 0.97 + Math.random() * 0.06;
+        landAudio.play().catch(() => { });
+        jumpSoundLockedUntilLandRef.current = false;
+      }
+      airborneTimeRef.current = 0;
+      maxFallSpeedRef.current = 0;
+    } else {
+      airborneTimeRef.current = 0;
+      maxFallSpeedRef.current = 0;
+    }
     if (grounded) groundedTimer.current = 0;
     else groundedTimer.current += delta;
 
@@ -232,6 +306,7 @@ export default function PlayerController({
     const dashPressed = keys.dash || inputRef.current.dash;
     const jumpPressed = keys.jump || inputRef.current.jump;
     const rollPressed = keys.roll || inputRef.current.roll;
+    const jumpJustPressed = jumpPressed && !jumpButtonHeldRef.current;
 
     moveDir.set(0, 0, 0);
     if (forwardPressed) moveDir.add(forward);
@@ -317,6 +392,14 @@ export default function PlayerController({
     let nextY = linvel.y - GRAVITY * delta;
     if (canJump) {
       nextY = JUMP_SPEED;
+      if (jumpAudioRef.current.length > 0 && jumpJustPressed && !jumpSoundLockedUntilLandRef.current) {
+        const jumpAudio = jumpAudioRef.current[jumpAudioIndexRef.current % jumpAudioRef.current.length];
+        jumpAudioIndexRef.current += 1;
+        jumpAudio.currentTime = 0;
+        jumpAudio.playbackRate = 0.98 + Math.random() * 0.05;
+        jumpAudio.play().catch(() => { });
+        jumpSoundLockedUntilLandRef.current = true;
+      }
       if (rollPressed && hasInput) {
         rollTimer.current = 0.6;
         const rollBoost = runPressed ? 3.4 : 2.6;
@@ -387,25 +470,56 @@ export default function PlayerController({
     }
 
     const speed = Math.hypot(smoothX, smoothZ);
+    const useRunningLoop =
+      grounded &&
+      speed >= RUN_LOOP_SPEED_THRESHOLD &&
+      runPressed &&
+      rollTimer.current <= 0 &&
+      !dashRef.current.active;
+    const runningLoopAudio = runningLoopAudioRef.current;
+    if (runningLoopAudio) {
+      const hasDuration = Number.isFinite(runningLoopAudio.duration) && runningLoopAudio.duration > 0;
+      const loopStart =
+        hasDuration && runningLoopAudio.duration > RUN_LOOP_START_OFFSET + RUN_LOOP_WRAP_EPSILON
+          ? RUN_LOOP_START_OFFSET
+          : 0;
+      if (useRunningLoop) {
+        runningLoopAudio.playbackRate = 0.98 + Math.min(0.16, Math.max(0, speed - WALK_SPEED) * 0.06);
+        if (
+          hasDuration &&
+          runningLoopAudio.currentTime >= runningLoopAudio.duration - RUN_LOOP_WRAP_EPSILON
+        ) {
+          safeSetAudioTime(runningLoopAudio, loopStart);
+        }
+        if (runningLoopAudio.paused) {
+          safeSetAudioTime(runningLoopAudio, loopStart);
+          runningLoopAudio.play().catch(() => { });
+        }
+      } else if (!runningLoopAudio.paused) {
+        runningLoopAudio.pause();
+        safeSetAudioTime(runningLoopAudio, 0);
+      }
+    }
     stepTimer.current -= delta;
-    if (grounded && speed > 0.2 && rollTimer.current <= 0 && !dashRef.current.active) {
+    if (grounded && speed > 0.2 && rollTimer.current <= 0 && !dashRef.current.active && !useRunningLoop) {
       if (stepTimer.current <= 0) {
-        const index = stepIndex.current % stepAudioRef.current.length;
-        const stepAudio = stepAudioRef.current[index];
+        const walkIndex = stepIndex.current % stepAudioRef.current.length;
+        const walkStepAudio = stepAudioRef.current[walkIndex];
+        const stepAudio = walkStepAudio;
         if (stepAudio) {
           stepAudio.currentTime = 0;
-          stepAudio.volume = runPressed ? 0.55 : 0.38;
-          stepAudio.playbackRate = runPressed ? 1.1 + Math.random() * 0.12 : 0.92 + Math.random() * 0.08;
-          stepAudio.play().catch(() => {});
+          stepAudio.volume = 0.38;
+          stepAudio.playbackRate = 0.92 + Math.random() * 0.08;
+          stepAudio.play().catch(() => { });
         }
         stepIndex.current += 1;
-        const speedBlend = Math.min(1, speed / RUN_SPEED);
-        const interval = MathUtils.lerp(STEP_INTERVAL_WALK, STEP_INTERVAL_RUN, speedBlend);
-        stepTimer.current = interval * (0.95 + Math.random() * 0.1);
+        stepTimer.current = STEP_INTERVAL_WALK * (0.95 + Math.random() * 0.1);
       }
     } else {
       stepTimer.current = 0;
     }
+    jumpButtonHeldRef.current = jumpPressed;
+    wasGroundedRef.current = grounded;
 
     if (isPerspectiveCamera(camera)) {
       const dashFovTarget = dashRef.current.active ? baseFovRef.current + DASH_CAMERA_KICK : baseFovRef.current;
