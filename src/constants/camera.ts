@@ -26,13 +26,13 @@ export const CAMERA_DISTANCE = {
 // ========================================
 export const CAMERA_OFFSET = {
   /** Height above player pivot (eye level offset) */
-  height: 4.5,
+  height: 0.0,
   /** Horizontal offset for over-shoulder view (0 = centered) */
   side: 0.6,
   /** Additional backward bias to keep the head in frame */
   back: 1.0,
   /** Look-at height offset (where camera points at on player) */
-  lookAtHeight: 1.2,
+  lookAtHeight: 1.5,
 } as const;
 
 // ========================================

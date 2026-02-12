@@ -48,6 +48,7 @@ export function computeCameraDesired(
   pitch: number,
   distance: number,
   offset: CameraOffset = CAMERA_OFFSET,
+  pivotHeight: number = 1.5,
 ): Vec3 {
   const forwardX = Math.sin(yaw);
   const forwardZ = Math.cos(yaw);
@@ -60,7 +61,7 @@ export function computeCameraDesired(
 
   return {
     x: playerPos.x + -forwardX * biasedDistance + rightX * offset.side,
-    y: playerPos.y + offset.height + verticalOffset,
+    y: playerPos.y + pivotHeight + offset.height + verticalOffset,
     z: playerPos.z + -forwardZ * biasedDistance + rightZ * offset.side,
   };
 }
