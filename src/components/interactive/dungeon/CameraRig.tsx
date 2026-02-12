@@ -31,9 +31,14 @@ const CAMERA_BORDER_BUFFER = Math.max(2.4, DUNGEON_BOUNDS.cameraPadding);
 const CAMERA_WALL_BUFFER = 0.55;
 const CAMERA_MIN_COLLISION_DISTANCE = 1.0;
 const COLLISION_RECOVERY_DAMPING = 6;
+const DEFAULT_MAX_CAMERA_Y = 28;
 
 function isFiniteVec3Like(value: { x: number; y: number; z: number }) {
   return Number.isFinite(value.x) && Number.isFinite(value.y) && Number.isFinite(value.z);
+}
+
+function finiteOr(value: number, fallback: number) {
+  return Number.isFinite(value) ? value : fallback;
 }
 
 function clampMapX(value: number) {
@@ -79,6 +84,7 @@ export default function CameraRig({
 
   useEffect(() => {
     const applyDelta = (deltaX: number, deltaY: number) => {
+      if (!Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return;
       if (deltaX === 0 && deltaY === 0) return;
       const next = applyMouseDelta(
         yaw.current,
@@ -92,13 +98,20 @@ export default function CameraRig({
       pitch.current = next.pitch;
     };
 
-    const handlePointerMove = (event: PointerEvent) => {
-      if (!isPointerLocked && !mouseDown) return;
-      if (isPointerLocked) {
-        applyDelta(event.movementX || 0, event.movementY || 0);
+    const handleMouseMove = (event: MouseEvent) => {
+      const pointerLockedNow = isPointerLocked || document.pointerLockElement !== null;
+      if (!pointerLockedNow && !mouseDown) {
+        lastClientRef.current = null;
         return;
       }
-      if (event.buttons <= 0) return;
+      if (pointerLockedNow) {
+        applyDelta(event.movementX ?? 0, event.movementY ?? 0);
+        return;
+      }
+      if (event.buttons <= 0) {
+        lastClientRef.current = null;
+        return;
+      }
       if (lastClientRef.current) {
         applyDelta(event.clientX - lastClientRef.current.x, event.clientY - lastClientRef.current.y);
       }
@@ -106,15 +119,15 @@ export default function CameraRig({
     };
 
     const handleWheel = (event: WheelEvent) => {
-      if (Math.abs(event.deltaY) < 0.01) return;
+      if (!Number.isFinite(event.deltaY) || Math.abs(event.deltaY) < 0.01) return;
       const next = distanceRef.current + Math.sign(event.deltaY) * CAMERA_DISTANCE.scrollStep;
       distanceRef.current = clampCameraDistance(next);
     };
 
-    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('wheel', handleWheel, { passive: true });
     return () => {
-      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('wheel', handleWheel);
     };
   }, [isPointerLocked, mouseDown, pitch, yaw]);
@@ -149,6 +162,20 @@ export default function CameraRig({
       smoothedLookAtPosition.lerp(lookAtPosition, targetLerp);
     }
 
+    const safeYaw = finiteOr(yaw.current, 0);
+    const safePitch = Math.min(
+      CAMERA_PITCH.max,
+      Math.max(CAMERA_PITCH.min, finiteOr(pitch.current, CAMERA_PITCH.initial)),
+    );
+    if (safeYaw !== yaw.current) yaw.current = safeYaw;
+    if (safePitch !== pitch.current) pitch.current = safePitch;
+
+    const desiredDistance = clampCameraDistance(finiteOr(distanceRef.current, CAMERA_DISTANCE.default));
+    distanceRef.current = desiredDistance;
+    if (!Number.isFinite(collisionDistanceRef.current)) {
+      collisionDistanceRef.current = desiredDistance;
+    }
+
     // Raycast using intended distance, then smooth out pullback recovery.
     const desiredForRay = computeCameraDesired(
       {
@@ -156,9 +183,9 @@ export default function CameraRig({
         y: smoothedTargetPosition.y,
         z: smoothedTargetPosition.z,
       },
-      yaw.current,
-      pitch.current,
-      distanceRef.current,
+      safeYaw,
+      safePitch,
+      desiredDistance,
       CAMERA_OFFSET,
     );
     if (!isFiniteVec3Like(desiredForRay)) return;
@@ -168,7 +195,7 @@ export default function CameraRig({
     desiredPosition.z = clampMapZ(desiredPosition.z);
 
     rayDirection.copy(desiredPosition).sub(smoothedLookAtPosition);
-    let collisionTargetDistance = distanceRef.current;
+    let collisionTargetDistance = desiredDistance;
     const rayDistance = rayDirection.length();
     if (rayDistance > 0.01) {
       rayDirection.normalize();
@@ -200,8 +227,8 @@ export default function CameraRig({
         y: smoothedTargetPosition.y,
         z: smoothedTargetPosition.z,
       },
-      yaw.current,
-      pitch.current,
+      safeYaw,
+      safePitch,
       collisionDistanceRef.current,
       CAMERA_OFFSET,
     );
@@ -211,9 +238,13 @@ export default function CameraRig({
     desiredPosition.x = clampMapX(desiredPosition.x);
     desiredPosition.z = clampMapZ(desiredPosition.z);
 
-    const visualLift = getDungeonVisualLiftAt(smoothedTargetPosition.x, smoothedTargetPosition.z);
+    const visualLift = finiteOr(
+      getDungeonVisualLiftAt(smoothedTargetPosition.x, smoothedTargetPosition.z),
+      0,
+    );
     const minAllowedY = Math.max(CAMERA_MIN_Y, smoothedTargetPosition.y + visualLift + CAMERA_FLOOR_CLEARANCE);
-    const maxAllowedY = Math.max(minAllowedY + 0.5, CAMERA_COLLISION.maxCameraY);
+    const maxCameraY = finiteOr(CAMERA_COLLISION.maxCameraY, DEFAULT_MAX_CAMERA_Y);
+    const maxAllowedY = Math.max(minAllowedY + 0.5, maxCameraY);
     desiredPosition.y = Math.max(minAllowedY, Math.min(maxAllowedY, desiredPosition.y));
 
     const lerpFactor = computeSmoothingFactor(delta, CAMERA_FOLLOW.smoothing);
@@ -231,6 +262,10 @@ export default function CameraRig({
         minAllowedY + CAMERA_FLOOR_CLEARANCE,
         clampMapZ(smoothedTargetPosition.z + CAMERA_DISTANCE.default * 0.6),
       );
+    }
+
+    if (!isFiniteVec3Like(smoothedLookAtPosition)) {
+      smoothedLookAtPosition.set(smoothedTargetPosition.x, minAllowedY, smoothedTargetPosition.z);
     }
 
     camera.lookAt(smoothedLookAtPosition);

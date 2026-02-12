@@ -83,6 +83,8 @@ export const CAMERA_COLLISION = {
   minDistanceFromWall: 0.3,
   /** Minimum allowed camera distance when colliding */
   minCameraDistance: 0.5,
+  /** Hard vertical ceiling for camera world-space Y */
+  maxCameraY: 28,
 } as const;
 
 // ========================================

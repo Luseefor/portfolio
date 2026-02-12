@@ -36,8 +36,12 @@ export function applyMouseDelta(
   sensitivity: Sensitivity = CAMERA_SENSITIVITY,
   clamp: PitchClamp = CAMERA_PITCH,
 ) {
-  const nextYaw = yaw - dx * sensitivity.yaw;
-  let nextPitch = pitch - dy * sensitivity.pitch;
+  const safeYaw = Number.isFinite(yaw) ? yaw : 0;
+  const safePitch = Number.isFinite(pitch) ? pitch : CAMERA_PITCH.initial;
+  const safeDx = Number.isFinite(dx) ? dx : 0;
+  const safeDy = Number.isFinite(dy) ? dy : 0;
+  const nextYaw = safeYaw - safeDx * sensitivity.yaw;
+  let nextPitch = safePitch - safeDy * sensitivity.pitch;
   nextPitch = clampPitch(nextPitch, clamp.min, clamp.max);
   return { yaw: nextYaw, pitch: nextPitch };
 }
@@ -49,19 +53,18 @@ export function computeCameraDesired(
   distance: number,
   offset: CameraOffset = CAMERA_OFFSET,
 ): Vec3 {
-  const forwardX = Math.sin(yaw);
-  const forwardZ = Math.cos(yaw);
-  const rightX = forwardZ;
-  const rightZ = -forwardX;
-  const horizontalDistance = Math.cos(pitch) * distance;
-  const verticalOffset = Math.sin(pitch) * distance;
+  const safeYaw = Number.isFinite(yaw) ? yaw : 0;
+  const safePitch = Number.isFinite(pitch) ? pitch : CAMERA_PITCH.initial;
+  const safeDistance = Number.isFinite(distance) ? distance : CAMERA_DISTANCE.default;
+  const horizontalDistance = Math.cos(safePitch) * safeDistance;
+  const verticalOffset = Math.sin(safePitch) * safeDistance;
   const backBias = offset.back ?? 0;
   const biasedDistance = horizontalDistance + backBias;
 
   return {
-    x: playerPos.x + -forwardX * biasedDistance + rightX * offset.side,
+    x: playerPos.x + -Math.sin(safeYaw) * biasedDistance + Math.cos(safeYaw) * offset.side,
     y: playerPos.y + offset.height + verticalOffset,
-    z: playerPos.z + -forwardZ * biasedDistance + rightZ * offset.side,
+    z: playerPos.z + -Math.cos(safeYaw) * biasedDistance + -Math.sin(safeYaw) * offset.side,
   };
 }
 
