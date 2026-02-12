@@ -18,13 +18,9 @@ import { clampPitch, computeCameraDesired, clampCameraDistance } from './math/ca
 
 /* ── tuning constants ── */
 const FOLLOW_LERP = 0.15;
-const FPS_LERP = 0.8; // Faster, snappier follow for first-person
-const WALL_BUF = 0.2;
+const WALL_BUF = 0.2; // Smaller buffer since SphereCast has radius
 /** First-person camera height above player pivot */
 const FP_EYE_HEIGHT = 1.65;
-/** Forward offset for FPS camera relative to body center (clears face) */
-const FP_FORWARD_OFFSET = 0.45;
-
 /** Sphere radius for camera collision probe */
 const SPHERE_RADIUS = 0.25;
 /** Minimum distance to prevent self-collision */
@@ -66,12 +62,13 @@ export default function CameraRig({
   const isPointerLocked = useDungeonInput((s) => s.isPointerLocked);
   const mouseDown = useDungeonInput((s) => s.mouseDown);
 
-  // Memoize collision shape
+  // Memoize collision shape to prevent memory churn
   const sphereShape = useRef<any>(null);
   useEffect(() => {
     if (!rapier) return;
     sphereShape.current = new rapier.Ball(SPHERE_RADIUS);
     return () => {
+      // Rapier JS shapes are GC'd, but good habit to clear ref
       sphereShape.current = null;
     };
   }, [rapier]);
@@ -79,17 +76,21 @@ export default function CameraRig({
   const _yaw = useRef(0);
   const _pitch = useRef(CAMERA_PITCH.initial);
   const distRef = useRef<number>(CAMERA_DISTANCE.default);
+  // Current collision-constrained distance (smoothed)
   const collisionDistRef = useRef<number>(CAMERA_DISTANCE.default);
 
   const lastClient = useRef<{ x: number; y: number } | null>(null);
   const initDone = useRef(false);
+  /** false = third-person, true = first-person */
   const firstPerson = useRef(false);
 
   const yaw = yawRef ?? _yaw;
   const pitch = pitchRef ?? _pitch;
 
+  /* ── reset client ref on pointer state change ── */
   useEffect(() => { lastClient.current = null; }, [isPointerLocked]);
 
+  /* ── mouse & wheel listeners ── */
   useEffect(() => {
     const apply = (dx: number, dy: number) => {
       if (dx === 0 && dy === 0) return;
@@ -117,10 +118,12 @@ export default function CameraRig({
     };
 
     const onWheel = (e: WheelEvent) => {
+      // Scroll always controls zoom — MMORPG convention
       if (Math.abs(e.deltaY) > 0.01) {
         const newDist = distRef.current + Math.sign(e.deltaY) * CAMERA_DISTANCE.scrollStep;
         distRef.current = clampCameraDistance(newDist);
 
+        // Auto-switch to first-person when zoomed all the way in
         if (distRef.current <= CAMERA_DISTANCE.min) {
           firstPerson.current = true;
         } else {
@@ -136,6 +139,7 @@ export default function CameraRig({
           distRef.current = CAMERA_DISTANCE.min;
         } else {
           distRef.current = Math.max(CAMERA_DISTANCE.default, distRef.current);
+          // Reset collision distance to current to restart smoothing
           collisionDistRef.current = CAMERA_DISTANCE.min;
         }
       }
@@ -153,12 +157,14 @@ export default function CameraRig({
     };
   }, [isPointerLocked, mouseDown, pitch, yaw]);
 
+  /* ── per-frame update ── */
   useFrame((_, dt) => {
     const body = targetBody?.current;
     if (!body) return;
     const pos = body.translation();
     _target.set(pos.x, pos.y, pos.z);
 
+    // First frame: snap
     if (!initDone.current) {
       _smoothTarget.copy(_target);
       _lookAt.set(_target.x, _target.y + CAMERA_OFFSET.lookAtHeight, _target.z);
@@ -167,56 +173,39 @@ export default function CameraRig({
       initDone.current = true;
     }
 
+    // Smooth follow target
+    const t = Math.min(1, FOLLOW_LERP * dt * 60);
+    _smoothTarget.lerp(_target, t);
+    _lookAt.set(_target.x, _target.y + CAMERA_OFFSET.lookAtHeight, _target.z);
+    _smoothLookAt.lerp(_lookAt, t);
+
     const isFP = firstPerson.current;
 
-    /* ── FIRST-PERSON MODE ── */
     if (isFP) {
-      // Snappier follow for FPS (reduced lag)
-      const t = Math.min(1, FPS_LERP * dt * 60);
-      _smoothTarget.lerp(_target, t);
-
-      // Offset camera forward relative to view direction to clear face mesh
-      // View direction (XZ projection) is opposite to yaw angle?
-      // If yaw=0, camera is at +Z looking at -Z. Forward is (0, -1).
-      // sin(0)=0. cos(0)=1. 
-      // viewX = -sin(yaw), viewZ = -cos(yaw).
-      const viewX = -Math.sin(yaw.current);
-      const viewZ = -Math.cos(yaw.current);
-
+      /* ── FIRST-PERSON MODE ── */
       _desired.set(
-        _smoothTarget.x + viewX * FP_FORWARD_OFFSET,
+        _smoothTarget.x,
         _smoothTarget.y + FP_EYE_HEIGHT,
-        _smoothTarget.z + viewZ * FP_FORWARD_OFFSET
+        _smoothTarget.z,
       );
-
-      // Bounds clamping
       _desired.x = clampX(_desired.x);
       _desired.z = clampZ(_desired.z);
-      if (_desired.y > CAMERA_COLLISION.maxCameraY) _desired.y = CAMERA_COLLISION.maxCameraY;
 
-      // Apply INSTANTLY to camera position (no secondary lerp) to prevent "drunk" lag
-      camera.position.copy(_desired);
-
-      // Calculate look target based on pitch
+      // Look direction from yaw/pitch
       const lookDist = 10;
-      // Note: cos(pitch) scales X/Z components based on vertical angle
-      const fpLookX = _desired.x + viewX * Math.cos(pitch.current) * lookDist;
+      const fpLookX = _desired.x + Math.sin(yaw.current) * Math.cos(pitch.current) * lookDist;
       const fpLookY = _desired.y - Math.sin(pitch.current) * lookDist;
-      const fpLookZ = _desired.z + viewZ * Math.cos(pitch.current) * lookDist;
+      const fpLookZ = _desired.z + Math.cos(yaw.current) * Math.cos(pitch.current) * lookDist;
 
-      // Apply lookAt instantly 
-      camera.lookAt(fpLookX, fpLookY, fpLookZ);
-      // Sync smooth lookAt vector so it's ready when switching back
+      camera.position.lerp(_desired, Math.min(1, t * 2));
       _smoothLookAt.set(fpLookX, fpLookY, fpLookZ);
+      camera.lookAt(_smoothLookAt);
 
-      /* ── THIRD-PERSON MODE ── */
     } else {
-      // Smoother follow for cinematic feel
-      const t = Math.min(1, FOLLOW_LERP * dt * 60);
-      _smoothTarget.lerp(_target, t);
+      /* ── THIRD-PERSON MODE ── */
 
       // 1. Compute ideal position (ignoring walls)
-      // Pass pivotHeight=1.5 explicitly
+      // Pass pivotHeight=1.5 explicitly to ensure orbit center is correct
       const ideal = computeCameraDesired(
         { x: _smoothTarget.x, y: _smoothTarget.y, z: _smoothTarget.z },
         yaw.current, pitch.current, distRef.current, CAMERA_OFFSET,
@@ -224,28 +213,34 @@ export default function CameraRig({
       );
       _desired.set(ideal.x, ideal.y, ideal.z);
 
-      // 2. SphereCast Collision
+      // 2. Perform SphereCast collision check
+      // Cast from (Target + Offset) towards Camera
       _rayDir.copy(_desired).sub(_smoothTarget);
       const idealDist = _rayDir.length();
       let targetDist = idealDist;
 
       if (idealDist > MIN_RAY_DIST && sphereShape.current) {
+        // Offset origin to clear player collider
         _origin.copy(_smoothTarget).addScaledVector(_rayDir.normalize(), MIN_RAY_DIST);
+
+        // ShapeCast checks volume (radius 0.25)
+        // Max TOI is the remaining distance after offset
         const maxToi = idealDist - MIN_RAY_DIST + WALL_BUF;
 
         const hit = (world as any).castShape(
           _origin,
           { w: 1, x: 0, y: 0, z: 0 },
-          _rayDir,
+          _rayDir, // normalized direction
           sphereShape.current,
           maxToi,
           true,
-          undefined,
-          undefined,
-          undefined
+          undefined, // groups
+          undefined, // filter
+          undefined  // filterData
         );
 
         if (hit) {
+          // Check for timeOfImpact property
           const toi = (hit as any).timeOfImpact ?? (hit as any).toi;
           if (typeof toi === 'number') {
             const hitDist = toi - WALL_BUF;
@@ -254,27 +249,28 @@ export default function CameraRig({
         }
       }
 
-      // 3. Smooth Recovery
+      // 3. Smooth Collision Recovery (MMORPG zoom behavior)
+      // Instant snap IN (when blocked), Smooth lerp OUT (when looking away from wall)
       if (targetDist < collisionDistRef.current) {
-        collisionDistRef.current = targetDist; // Snap IN
+        collisionDistRef.current = targetDist; // Snap
       } else {
-        collisionDistRef.current = MathUtils.lerp(collisionDistRef.current, targetDist, dt * ZOOM_RECOVERY_SPEED); // Lerp OUT
+        // Recover slowly
+        collisionDistRef.current = MathUtils.lerp(collisionDistRef.current, targetDist, dt * ZOOM_RECOVERY_SPEED);
       }
 
       // 4. Final Position
+      // Re-project `_desired` along the ray direction using the smoothed distance
       _rayDir.copy(_desired).sub(_smoothTarget).normalize();
       _desired.copy(_smoothTarget).addScaledVector(_rayDir, collisionDistRef.current);
 
-      // 5. Clamping & Apply
+      // 5. Bounds Clamping
       _desired.x = clampX(_desired.x);
       _desired.z = clampZ(_desired.z);
+      // Ceiling clamp
       if (_desired.y > CAMERA_COLLISION.maxCameraY) _desired.y = CAMERA_COLLISION.maxCameraY;
 
+      // Apply to camera
       camera.position.lerp(_desired, t);
-
-      // LookAt Target smoothing
-      _lookAt.set(_target.x, _target.y + CAMERA_OFFSET.lookAtHeight, _target.z);
-      _smoothLookAt.lerp(_lookAt, t);
       camera.lookAt(_smoothLookAt);
     }
   });

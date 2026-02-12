@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { AudioListener, Color } from 'three';
 import { Physics, type RapierRigidBody } from '@react-three/rapier';
 import { useThree } from '@react-three/fiber';
@@ -32,28 +32,14 @@ export default function DungeonScene() {
     };
   }, [camera]);
 
-  /* ── Dev: Full Bright Mode (Toggle with 'L') ── */
-  const [fullBright, setFullBright] = useState(false);
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'KeyL') setFullBright((prev: boolean) => !prev);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
-
   return (
     <group>
-      <color attach="background" args={[fullBright ? '#111' : '#030406']} />
-      <fogExp2 attach="fog" args={[FOG_COLOR, fullBright ? 0 : 0.035]} />
+      <color attach="background" args={['#030406']} />
+      <fogExp2 attach="fog" args={[FOG_COLOR, 0.035]} />
 
-      {/* ── Global base light — dim vs full bright ── */}
-      <ambientLight intensity={fullBright ? 0.8 : 0.08} color="#8899aa" />
-      <hemisphereLight
-        intensity={fullBright ? 1.0 : 0.12}
-        color="#667788"
-        groundColor="#111111"
-      />
+      {/* ── Global base light — very dim for enclosed dungeon ── */}
+      <ambientLight intensity={0.08} color="#8899aa" />
+      <hemisphereLight intensity={0.12} color="#667788" groundColor="#111111" />
 
       {/* ── Key directional light — primary shadow caster ── */}
       <directionalLight
