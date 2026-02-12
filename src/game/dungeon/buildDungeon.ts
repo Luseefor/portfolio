@@ -9,6 +9,7 @@ import {
   type Vec2,
   type Vec3,
 } from '@/constants/dungeonLayout';
+import { snapValue, snapVec3 } from './utils';
 
 export type DungeonPieceKind =
   | 'floor'
@@ -77,6 +78,8 @@ const ARCH_THICKNESS = 1;
 const PILLAR_SIZE = 1.2;
 const BOUNDARY_WALL_HEIGHT = 11;
 const BOUNDARY_WALL_THICKNESS = 2.2;
+const POSITION_SNAP = 0.5;
+const SIZE_SNAP = 0.25;
 
 const FLOOR_BY_THEME: Record<DungeonRoomTheme, string> = {
   spawn: 'Floor_SquareLarge',
@@ -95,12 +98,8 @@ const WALL_BY_THEME: Partial<Record<DungeonRoomTheme, string>> = {
   treasury: 'Wall_Overgrown',
 };
 
-function snapToGrid(value: number, gridSize: number) {
-  return Math.round(value / gridSize) * gridSize;
-}
-
 function snapPoint(point: Vec2, gridSize: number): Vec2 {
-  return [snapToGrid(point[0], gridSize), snapToGrid(point[1], gridSize)] as const;
+  return [snapValue(point[0], gridSize), snapValue(point[1], gridSize)] as const;
 }
 
 function sideFromDelta(dx: number, dz: number): RoomSide {
@@ -173,16 +172,34 @@ function getRoomWallNode(theme: DungeonRoomTheme) {
   return WALL_BY_THEME[theme] ?? DUNGEON_STRUCTURAL_KEYS.walls[0];
 }
 
+function normalizePiece(piece: DungeonBuildPiece): DungeonBuildPiece {
+  return {
+    ...piece,
+    position: snapVec3(piece.position, POSITION_SNAP),
+    size: [
+      Math.max(SIZE_SNAP, snapValue(piece.size[0], SIZE_SNAP)),
+      Math.max(SIZE_SNAP, snapValue(piece.size[1], SIZE_SNAP)),
+      Math.max(SIZE_SNAP, snapValue(piece.size[2], SIZE_SNAP)),
+    ],
+    rotationY: snapValue(piece.rotationY, 0.0001),
+  };
+}
+
+function addPiece(pieces: DungeonBuildPiece[], piece: DungeonBuildPiece) {
+  pieces.push(normalizePiece(piece));
+}
+
 function addPieceAndCollider(
   pieces: DungeonBuildPiece[],
   colliders: DungeonBuildCollider[],
   piece: DungeonBuildPiece,
 ) {
-  pieces.push(piece);
+  const normalized = normalizePiece(piece);
+  pieces.push(normalized);
   colliders.push({
-    id: piece.id,
-    position: piece.position,
-    size: piece.size,
+    id: normalized.id,
+    position: normalized.position,
+    size: normalized.size,
   });
 }
 
@@ -263,7 +280,7 @@ function buildRoom(
       rotationY = Math.PI / 2;
     }
 
-    result.pieces.push({
+    addPiece(result.pieces, {
       id: `${room.id}-arch-${side}`,
       kind: 'arch',
       nodeKey: DUNGEON_STRUCTURAL_KEYS.arches[0],
@@ -365,7 +382,7 @@ function buildRoom(
         cy + prop.offset[1],
         cz + prop.offset[2],
       ];
-      result.pieces.push({
+      addPiece(result.pieces, {
         id: `${room.id}-prop-${i}`,
         kind: 'prop',
         nodeKey: prop.key,
@@ -607,10 +624,10 @@ function buildBoundaryWalls(result: DungeonBuildResult) {
 
 export function buildDungeon(layout: DungeonLayoutGraph = DUNGEON_LAYOUT_GRAPH): DungeonBuildResult {
   const bounds = {
-    minX: snapToGrid(DUNGEON_LAYOUT_BOUNDS.minX, layout.gridSize),
-    maxX: snapToGrid(DUNGEON_LAYOUT_BOUNDS.maxX, layout.gridSize),
-    minZ: snapToGrid(DUNGEON_LAYOUT_BOUNDS.minZ, layout.gridSize),
-    maxZ: snapToGrid(DUNGEON_LAYOUT_BOUNDS.maxZ, layout.gridSize),
+    minX: snapValue(DUNGEON_LAYOUT_BOUNDS.minX, layout.gridSize),
+    maxX: snapValue(DUNGEON_LAYOUT_BOUNDS.maxX, layout.gridSize),
+    minZ: snapValue(DUNGEON_LAYOUT_BOUNDS.minZ, layout.gridSize),
+    maxZ: snapValue(DUNGEON_LAYOUT_BOUNDS.maxZ, layout.gridSize),
   };
 
   const result: DungeonBuildResult = {
