@@ -46,7 +46,7 @@ const WALL_THICKNESS = 0.8;
 const FLOOR_THICKNESS = 0.45;
 const CEILING_THICKNESS = 0.35;
 const DOOR_WIDTH = 6;
-const FLOOR_TILE_OVERLAP = 0.025;
+const FLOOR_TILE_OVERLAP = 0.045;
 const FLOOR_MIN_STEP = 1.2;
 const FLOOR_MAX_STEP = 6;
 const FLOOR_MAX_TILES = 14000;
@@ -666,8 +666,16 @@ export default function DungeonWorld() {
       const halfW = size.w / 2;
       const halfD = size.d / 2;
       const tiles: { id: string; name: string; position: Vec3; lift: number; halfSize: number }[] = [];
-      const gxCount = Math.ceil(size.w / step);
-      const gzCount = Math.ceil(size.d / step);
+      const minX = cx - halfW;
+      const maxX = cx + halfW;
+      const minZ = cz - halfD;
+      const maxZ = cz + halfD;
+      const gxStart = Math.ceil((minX - step / 2) / step);
+      const gxEnd = Math.floor((maxX - step / 2) / step);
+      const gzStart = Math.ceil((minZ - step / 2) / step);
+      const gzEnd = Math.floor((maxZ - step / 2) / step);
+      const gxCount = Math.max(1, gxEnd - gxStart + 1);
+      const gzCount = Math.max(1, gzEnd - gzStart + 1);
       const selectedTheme =
         ROOM_TILE_THEMES[themeName] ??
         (kind === 'corridor' ? ROOM_TILE_THEMES['corridor-main'] : FLOOR_TILES);
@@ -676,16 +684,18 @@ export default function DungeonWorld() {
         getTileTop(safeTile(selectedTheme.filler)),
         getTileTop(safeTile(selectedTheme.accent)),
       );
-      for (let gx = 0; gx < gxCount; gx += 1) {
-        for (let gz = 0; gz < gzCount; gz += 1) {
-          const x = -halfW + step / 2 + gx * step;
-          const z = -halfD + step / 2 + gz * step;
-          const picked = pickTile(gx, gz, gxCount, gzCount, kind, selectedTheme, pattern);
+      for (let gxLocal = 0; gxLocal < gxCount; gxLocal += 1) {
+        for (let gzLocal = 0; gzLocal < gzCount; gzLocal += 1) {
+          const gx = gxStart + gxLocal;
+          const gz = gzStart + gzLocal;
+          const x = gx * step + step / 2;
+          const z = gz * step + step / 2;
+          const picked = pickTile(gxLocal, gzLocal, gxCount, gzCount, kind, selectedTheme, pattern);
           const liftFromMesh = Math.max(0, getTileTop(picked) - normalTop);
           tiles.push({
-            id: `${center[0]}-${center[2]}-${gx}-${gz}`,
+            id: `${center[0]}-${center[2]}-${gxLocal}-${gzLocal}`,
             name: picked,
-            position: [cx + x, cy + 0.02, cz + z],
+            position: [x, cy + 0.02, z],
             lift: Math.min(LIFTED_TILE_VISUAL_HEIGHT, liftFromMesh),
             halfSize: step * 0.5,
           });
