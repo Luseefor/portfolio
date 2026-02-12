@@ -51,16 +51,21 @@ const FLOOR_MIN_STEP = 1.2;
 const FLOOR_MAX_STEP = 6;
 const FLOOR_MAX_TILES = 14000;
 const FLOOR_MAX_RENDER_OBJECTS = 14000;
+const FLOOR_SURFACE_OVERLAP = 1.1;
 const UNDERFLOOR_SIZE: Vec3 = [220, 0.2, 220];
 const UNDERFLOOR_Y = -0.2;
+const SEAM_FILL_SIZE: Vec3 = [220, 0.12, 220];
+const SEAM_FILL_Y = -0.08;
 const OUTER_BORDER_THICKNESS = 1.2;
 const OUTER_BORDER_HEIGHT = 28;
 const OUTER_BORDER_SINK = 0.4;
 const WALL_COLLIDER_THICKNESS = 1.8;
 const WALL_COLLIDER_LENGTH_PAD = 0.2;
-const WALKABLE_COLLIDER_OVERLAP = 1.0;
+const WALKABLE_COLLIDER_OVERLAP = 1.8;
 const WALKABLE_COLLIDER_THICKNESS = 0.36;
 const WALKABLE_COLLIDER_Y = -0.18;
+const FALLBACK_FLOOR_HALF_HEIGHT = 0.16;
+const FALLBACK_FLOOR_Y = -0.24;
 
 type BoxPiece = {
   id: string;
@@ -88,6 +93,11 @@ const ceilingMaterial = new MeshStandardMaterial({
 const underfloorMaterial = new MeshStandardMaterial({
   color: '#4f4a3e',
   roughness: 0.97,
+  metalness: 0.01,
+});
+const seamFillMaterial = new MeshStandardMaterial({
+  color: '#4a4438',
+  roughness: 0.96,
   metalness: 0.01,
 });
 
@@ -417,7 +427,7 @@ function buildRoom(spec: RoomSpec): BoxPiece[] {
   const pieces: BoxPiece[] = [
     {
       id: `${id}-floor`,
-      size: [size.w, FLOOR_THICKNESS, size.d],
+      size: [size.w + FLOOR_SURFACE_OVERLAP, FLOOR_THICKNESS, size.d + FLOOR_SURFACE_OVERLAP],
       position: [cx, cy - FLOOR_THICKNESS / 2, cz],
       material: floorMaterial,
     },
@@ -449,7 +459,9 @@ function buildCorridor(
 ) {
   const [cx, cy, cz] = center;
   const pieces: BoxPiece[] = [];
-  const size: Vec3 = axis === 'z' ? [width, FLOOR_THICKNESS, length] : [length, FLOOR_THICKNESS, width];
+  const size: Vec3 = axis === 'z'
+    ? [width + FLOOR_SURFACE_OVERLAP, FLOOR_THICKNESS, length + FLOOR_SURFACE_OVERLAP]
+    : [length + FLOOR_SURFACE_OVERLAP, FLOOR_THICKNESS, width + FLOOR_SURFACE_OVERLAP];
   pieces.push({
     id: `${id}-floor`,
     size,
@@ -1080,6 +1092,9 @@ export default function DungeonWorld() {
       <mesh position={[0, UNDERFLOOR_Y, 0]} castShadow={false} receiveShadow material={underfloorMaterial}>
         <boxGeometry args={UNDERFLOOR_SIZE} />
       </mesh>
+      <mesh position={[0, SEAM_FILL_Y, 0]} castShadow={false} receiveShadow material={seamFillMaterial}>
+        <boxGeometry args={SEAM_FILL_SIZE} />
+      </mesh>
 
       {outerBorderPieces.map((wall) => (
         <mesh
@@ -1150,7 +1165,7 @@ export default function DungeonWorld() {
             position={floor.position}
           />
         ))}
-        <CuboidCollider args={[180, 1, 180]} position={[0, -4, 0]} />
+        <CuboidCollider args={[180, FALLBACK_FLOOR_HALF_HEIGHT, 180]} position={[0, FALLBACK_FLOOR_Y, 0]} />
       </RigidBody>
     </group>
   );
