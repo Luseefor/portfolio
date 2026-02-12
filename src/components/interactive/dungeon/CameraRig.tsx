@@ -27,7 +27,7 @@ const _probeRight = new Vector3();
 
 /* ── tuning constants ── */
 /** How fast the camera chases the player (0→1, higher = snappier) */
-const FOLLOW_LERP = 0.08;
+const FOLLOW_LERP = 0.12;
 /** Side-probe offset for multi-ray wall check */
 const PROBE_OFFSET = 0.5;
 /** Floor probe origin height above player */
@@ -39,7 +39,7 @@ const FLOOR_CLEARANCE = 0.5;
 /** Minimum absolute Y for camera */
 const MIN_Y = 0.4;
 /** Wall collision buffer */
-const WALL_BUF = 0.8;
+const WALL_BUF = 1.2;
 
 /* ── helpers ── */
 function clampX(v: number) {

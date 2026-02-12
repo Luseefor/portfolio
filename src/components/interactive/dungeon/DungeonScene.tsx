@@ -9,7 +9,7 @@ import CameraRig from './CameraRig';
 import DungeonAmbience from './DungeonAmbience';
 import DungeonWorld from './DungeonWorld';
 
-const FOG_COLOR = new Color('#0b0f14');
+const FOG_COLOR = new Color('#060810');
 
 export default function DungeonScene() {
   const playerBodyRef = useRef<RapierRigidBody | null>(null);
@@ -23,8 +23,8 @@ export default function DungeonScene() {
     const listener = listenerRef.current;
     camera.add(listener);
 
-    // Reduce far clipping plane to prevent rendering beyond dungeon
-    camera.far = 100;
+    camera.far = 120;
+    camera.near = 0.1;
     camera.updateProjectionMatrix();
 
     return () => {
@@ -34,32 +34,49 @@ export default function DungeonScene() {
 
   return (
     <group>
-      <color attach="background" args={['#050607']} />
-      <fogExp2 attach="fog" args={[FOG_COLOR, 0.025]} />
+      <color attach="background" args={['#030406']} />
+      <fogExp2 attach="fog" args={[FOG_COLOR, 0.035]} />
 
-      {/* Global lighting — tuned for enclosed dungeon atmosphere */}
-      <ambientLight intensity={0.3} color="#cfd6dc" />
-      <hemisphereLight intensity={0.35} color="#9bb7c8" groundColor="#1a1a1a" />
+      {/* ── Global base light — very dim for enclosed dungeon ── */}
+      <ambientLight intensity={0.08} color="#8899aa" />
+      <hemisphereLight intensity={0.12} color="#667788" groundColor="#111111" />
+
+      {/* ── Key directional light — primary shadow caster ── */}
       <directionalLight
-        position={[8, 10, 6]}
-        intensity={0.7}
-        color="#f4e4c8"
+        position={[10, 18, 8]}
+        intensity={0.35}
+        color="#ddc8a0"
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
         shadow-camera-near={2}
-        shadow-camera-far={40}
-        shadow-camera-left={-20}
-        shadow-camera-right={20}
-        shadow-camera-top={20}
-        shadow-camera-bottom={-20}
+        shadow-camera-far={50}
+        shadow-camera-left={-30}
+        shadow-camera-right={30}
+        shadow-camera-top={30}
+        shadow-camera-bottom={-30}
+        shadow-bias={-0.002}
       />
 
-      {/* Room lights */}
-      <pointLight position={[0, 3, 0]} intensity={2.5} color="#ffb26b" distance={22} decay={2} />
-      <pointLight position={[0, 3, 18]} intensity={2.8} color="#ffb26b" distance={22} decay={2} />
-      <pointLight position={[18, 3, 18]} intensity={2.5} color="#ffb26b" distance={22} decay={2} />
-      <pointLight position={[-18, 3, 18]} intensity={1.8} color="#9bb6ff" distance={18} decay={2} />
+      {/* ── Fill light from opposite side — prevents total blackout ── */}
+      <directionalLight
+        position={[-8, 12, -6]}
+        intensity={0.1}
+        color="#6688aa"
+        castShadow={false}
+      />
+
+      {/* ── Room anchor lights — warm pools at key positions ── */}
+      <pointLight position={[0, 4, 0]} intensity={3.0} color="#ff9944" distance={18} decay={2} />
+      <pointLight position={[0, 4, 56]} intensity={4.0} color="#ffaa55" distance={24} decay={2} />
+      <pointLight position={[52, 4, 0]} intensity={2.5} color="#ff8833" distance={16} decay={2} />
+      <pointLight position={[56, 4, 56]} intensity={2.0} color="#8899cc" distance={16} decay={2} />
+      <pointLight position={[-50, 4, 56]} intensity={1.5} color="#99bbff" distance={14} decay={2} />
+
+      {/* ── Corridor accent lights ── */}
+      <pointLight position={[0, 3, 28]} intensity={1.8} color="#ff9944" distance={12} decay={2} />
+      <pointLight position={[28, 3, 0]} intensity={1.5} color="#ff8833" distance={10} decay={2} />
+      <pointLight position={[34, 3, 56]} intensity={1.5} color="#ff9944" distance={10} decay={2} />
 
       <Suspense fallback={null}>
         <DungeonAmbience />

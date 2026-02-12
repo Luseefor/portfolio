@@ -187,27 +187,62 @@ const CORRIDOR_LAYOUT: CorridorSpec[] = [
   { id: 'corridor-e', center: [56, 0, 30], length: 24, width: 6, axis: 'z' },
 ];
 
-const WALL_SEGMENT_OVERLAP = 0.04;
-const WALL_VERTICAL_OVERLAP = 0.04;
+/* ══════════════════════════════════════════════════════
+   SEMANTIC WALL DECORATION SYSTEM
+   Single-height nodes, deterministic placement, no kitbash
+   ══════════════════════════════════════════════════════ */
+
 const WALL_BASE_SINK = 0.08;
-const WALL_MAX_ROWS = 12;
-const WALL_MAX_PLACEMENTS = 1200;
-const WALL_VARIANT_POOL = [
-  'Wall',
-  'Wall_Overgrown',
-  'Wall_Broken',
-  'Wall_Hole',
-  'Wall_Double_Broken',
-  'Wall_ArchRound_Broken',
-  'Wall_ArchRound_Overgrown',
-  'Wall_ArchRound_Overgrown_Broken',
-  'Wall_ArchRound',
-  'Wall_ArchGothic',
+const WALL_MAX_PLACEMENTS = 800;
+const WALL_TILE_OVERLAP = 0.04;
+
+// --- Node pools by ROLE ---
+const SOLID_WALLS = ['Wall', 'Wall_Half'] as const;
+const WEATHERED_WALLS = ['Wall_Broken', 'Wall_Overgrown', 'Wall_Hole'] as const;
+const ARCH_WALLS = ['Wall_ArchRound', 'Wall_ArchGothic'] as const;
+const STANDALONE_ARCHES = [
+  'Arch_Gothic', 'Arch_Round',
+  'Arch_Gothic_RoundColumn', 'Arch_Round_RoundColumn',
 ] as const;
-const PILLAR_INTERVAL = 4;
-const PILLAR_NODE_POOL = ['Column_Square', 'Column_Round'] as const;
-const STANDALONE_ARCH_POOL = ['Arch_Gothic', 'Arch_Round', 'Arch_Gothic_RoundColumn', 'Arch_Round_RoundColumn'] as const;
+const PILLAR_NODES = ['Column_Square', 'Column_Round'] as const;
+const TORCH_NODE = 'Torch' as const;
+const PROP_POOLS = {
+  barrels: ['Barrel', 'Crate'] as const,
+  pots: ['Pot1', 'Pot2', 'Pot3', 'Pot1_Broken', 'Pot2_Broken', 'Pot3_Broken'] as const,
+  chests: ['Chest_Base'] as const,
+  candles: ['Candles_1', 'Candles_2'] as const,
+};
+
+const TORCH_INTERVAL = 10;
+const TORCH_MOUNT_Y = 2.5;
+
 const DUNGEON_RUINS_GLB_URL = '/models/dungeon/structure/Modular%20Ruins%20Pack.glb';
+
+type NodeProfile = {
+  name: string;
+  rotationX: number;
+  footprint: number;
+  height: number;
+  depth: number;
+  anchor: Vec3;
+};
+
+type DecorPlacement = {
+  id: string;
+  name: string;
+  position: Vec3;
+  rotationX: number;
+  rotationY: number;
+  scale: number;
+  scaleY: number;
+  anchor: Vec3;
+};
+
+/** Torch light data exported for DungeonScene */
+export type TorchLight = {
+  id: string;
+  position: Vec3;
+};
 
 function hashText(value: string) {
   let hash = 2166136261;
@@ -217,6 +252,56 @@ function hashText(value: string) {
   }
   return hash >>> 0;
 }
+
+/**
+ * Measure a wall/prop node keeping its baked GLB scale.
+ */
+function measureNode(
+  nodes: Record<string, Object3D>,
+  name: string,
+): NodeProfile | null {
+  const source = nodes[name];
+  if (!source) return null;
+  const probe = source.clone(true);
+  const candidates = [0, -Math.PI / 2];
+  let best: NodeProfile | null = null;
+  let bestScore = -Infinity;
+
+  for (const rotX of candidates) {
+    probe.position.set(0, 0, 0);
+    probe.rotation.set(rotX, 0, 0);
+    // KEEP baked scale — GLB nodes are in cm with 100x scale
+    probe.updateMatrixWorld(true);
+    const box = new Box3().setFromObject(probe);
+    const sz = new Vector3();
+    const cn = new Vector3();
+    box.getSize(sz);
+    box.getCenter(cn);
+
+    const sX = Math.max(sz.x, 0.01);
+    const sY = Math.max(sz.y, 0.01);
+    const sZ = Math.max(sz.z, 0.01);
+    const footprint = Math.max(sX, sZ);
+    const depth = Math.min(sX, sZ);
+    const height = sY;
+    const score = height * (height / Math.max(depth, 0.01));
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = {
+        name,
+        rotationX: rotX,
+        footprint: Math.max(footprint, 0.01),
+        height: Math.max(height, 0.01),
+        depth: Math.max(depth, 0.01),
+        anchor: [-cn.x, -box.min.y, -cn.z],
+      };
+    }
+  }
+  return best;
+}
+
+/* ── room/corridor builders (unchanged) ── */
 
 function buildWallSegments(
   id: string,
@@ -388,6 +473,9 @@ function buildCorridor(id: string, center: Vec3, length: number, width: number, 
   return pieces;
 }
 
+/* ═══════════════════════════════════════════════════
+   DungeonWorld component
+   ═══════════════════════════════════════════════════ */
 export default function DungeonWorld() {
   const { nodes } = useGLTF(DUNGEON_RUINS_GLB_URL) as {
     nodes: Record<string, Object3D>;
@@ -401,6 +489,7 @@ export default function DungeonWorld() {
     ];
   }, []);
 
+  /* ── floor tile overlay ── */
   const floorPattern = useMemo(() => {
     if (!nodes || !FLOOR_OVERLAY) return [];
 
@@ -578,336 +667,187 @@ export default function DungeonWorld() {
       .filter(Boolean) as { id: string; object: Object3D }[];
   }, [floorPattern, nodes]);
 
+  /* ══════════════════════════════════════════════════
+     SEMANTIC WALL + PROP DECORATION
+     ══════════════════════════════════════════════════ */
   const wallDecor = useMemo(() => {
-    if (!nodes) return [];
+    if (!nodes) return { placements: [] as DecorPlacement[], torchLights: [] as TorchLight[] };
 
-    type DecorPlacement = {
-      id: string;
-      name: string;
-      position: Vec3;
-      rotationX: number;
-      rotationY: number;
-      scale: number;
-      scaleY: number;
-      anchor: Vec3;
-    };
-
-    type WallProfile = {
-      name: string;
-      rotationX: number;
-      footprint: number;
-      height: number;
-      depth: number;
-      anchor: Vec3;
-    };
-
-    /**
-     * Measure a wall node's dimensions by probing at candidate rotations.
-     * Selects the rotation where the mesh is tallest (Y) and widest (X or Z),
-     * yielding width (footprint), height, and depth. Anchor offsets place the
-     * node so its bottom sits at y=0 and it's centered on X/Z.
-     */
-    const getWallProfile = (name: string): WallProfile | null => {
-      const source = nodes[name];
-      if (!source) return null;
-      const probe = source.clone(true);
-      const candidateRotations = [0, -Math.PI / 2];
-      let best: WallProfile | null = null;
-      let bestScore = -Infinity;
-
-      for (const rotationX of candidateRotations) {
-        probe.position.set(0, 0, 0);
-        probe.rotation.set(rotationX, 0, 0);
-        // IMPORTANT: Do NOT reset scale — GLB nodes have baked 100x scale
-        // that transforms centimeter-space vertices to world units
-        probe.updateMatrixWorld(true);
-        const box = new Box3().setFromObject(probe);
-        const size = new Vector3();
-        const center = new Vector3();
-        box.getSize(size);
-        box.getCenter(center);
-
-        const sX = Math.max(size.x || 0.01, 0.01);
-        const sY = Math.max(size.y || 0.01, 0.01);
-        const sZ = Math.max(size.z || 0.01, 0.01);
-
-        // For wall-like geometry, height (Y) should be significant
-        // and depth (min of X, Z) should be thin relative to width (max of X, Z)
-        const footprint = Math.max(sX, sZ);
-        const depth = Math.min(sX, sZ);
-        const height = sY;
-
-        // Score: prefer tall orientation with good height-to-depth ratio
-        const score = height * (height / Math.max(depth, 0.01));
-
-        if (score > bestScore) {
-          bestScore = score;
-          best = {
-            name,
-            rotationX,
-            footprint: Math.max(footprint, 0.01),
-            height: Math.max(height, 0.01),
-            depth: Math.max(depth, 0.01),
-            anchor: [-center.x, -box.min.y, -center.z],
-          };
-        }
-      }
-      return best;
-    };
-
-    // --- Resolve base wall profile ---
-    const baseWallName =
-      (nodes.Wall ? 'Wall' : null) ??
-      Object.keys(nodes).find(
-        (n) =>
-          n.startsWith('Wall') &&
-          !n.includes('Half') &&
-          !n.includes('Hole') &&
-          !n.includes('Broken') &&
-          !n.includes('Overgrown'),
-      ) ??
-      null;
-    if (!baseWallName) return [];
-    const baseProfile = getWallProfile(baseWallName);
-    if (!baseProfile) return [];
-    if (baseProfile.footprint < 0.25 || baseProfile.height < 0.25) {
-      console.warn('[DungeonWalls] base wall profile too small', {
-        footprint: baseProfile.footprint,
-        height: baseProfile.height,
-        baseWallName,
+    // Measure all node profiles
+    const profiles = new Map<string, NodeProfile>();
+    const measurePool = (pool: readonly string[]) => {
+      pool.forEach((n) => {
+        const p = measureNode(nodes, n);
+        if (p) profiles.set(n, p);
       });
-      return [];
+    };
+    measurePool(SOLID_WALLS);
+    measurePool(WEATHERED_WALLS);
+    measurePool(ARCH_WALLS);
+    measurePool(STANDALONE_ARCHES);
+    measurePool(PILLAR_NODES);
+    measurePool([TORCH_NODE]);
+    Object.values(PROP_POOLS).flat().forEach((n) => {
+      const p = measureNode(nodes, n);
+      if (p) profiles.set(n, p);
+    });
+
+    const baseProfile = profiles.get('Wall') ?? profiles.values().next().value;
+    if (!baseProfile || baseProfile.footprint < 0.2 || baseProfile.height < 0.2) {
+      console.warn('[DungeonWalls] No valid base wall profile');
+      return { placements: [], torchLights: [] };
     }
 
-    // --- Build categorised profile pools ---
-    const wallProfiles = WALL_VARIANT_POOL
-      .map((n) => getWallProfile(n))
-      .filter(Boolean)
-      .filter((p) => {
-        const fpRatio = p!.footprint / baseProfile.footprint;
-        const hRatio = p!.height / baseProfile.height;
-        return fpRatio >= 0.45 && fpRatio <= 2.2 && hRatio >= 0.4 && hRatio <= 2.2;
-      }) as WallProfile[];
-    if (!wallProfiles.length) wallProfiles.push(baseProfile);
-
-    // Separate into categories for variant selection
-    const solidProfiles = wallProfiles.filter(
-      (p) =>
-        !p.name.includes('Broken') &&
-        !p.name.includes('Overgrown') &&
-        !p.name.includes('Double') &&
-        !p.name.includes('Arch') &&
-        !p.name.includes('Half') &&
-        !p.name.includes('Hole'),
-    );
-    const weatheredProfiles = wallProfiles.filter(
-      (p) =>
-        p.name.includes('Broken') ||
-        p.name.includes('Overgrown') ||
-        p.name.includes('Double'),
-    );
-    const detailProfiles = wallProfiles.filter(
-      (p) => p.name.includes('Hole'),
-    );
-    const fillProfiles = [...solidProfiles, ...(solidProfiles.length === 0 ? [baseProfile] : [])];
-
-    // --- Tiling geometry ---
-    const wallSpan = baseProfile.footprint;
-    const wallStep = Math.max(0.1, wallSpan * (1 - WALL_SEGMENT_OVERLAP));
-    const wallRowHeight = baseProfile.height;
-    const wallRowStep = Math.max(0.1, wallRowHeight * (1 - WALL_VERTICAL_OVERLAP));
-
+    const wallStep = baseProfile.footprint * (1 - WALL_TILE_OVERLAP);
     const placements: DecorPlacement[] = [];
-    let placementCounter = 0;
+    const torchLights: TorchLight[] = [];
+    let counter = 0;
 
-    /**
-     * Select a wall variant profile based on row position and deterministic hash.
-     * Bottom rows: mostly solid. Middle: mix. Top rows: more weathered/broken.
-     */
-    const pickVariant = (seed: string, rowT: number): WallProfile => {
+    // --- Deterministic variant picker ---
+    const pickWallVariant = (seed: string, isCorner: boolean): NodeProfile => {
       const hash = hashText(seed);
       const roll = hash % 100;
-
-      if (rowT <= 0.2) {
-        // Bottom rows: 85% solid, 10% detail, 5% weathered
-        if (roll < 85 && fillProfiles.length > 0) return fillProfiles[hash % fillProfiles.length];
-        if (roll < 95 && detailProfiles.length > 0) return detailProfiles[hash % detailProfiles.length];
-        if (weatheredProfiles.length > 0) return weatheredProfiles[hash % weatheredProfiles.length];
-      } else if (rowT <= 0.6) {
-        // Middle rows: 60% solid, 15% detail, 25% weathered
-        if (roll < 60 && fillProfiles.length > 0) return fillProfiles[hash % fillProfiles.length];
-        if (roll < 75 && detailProfiles.length > 0) return detailProfiles[hash % detailProfiles.length];
-        if (weatheredProfiles.length > 0) return weatheredProfiles[hash % weatheredProfiles.length];
+      if (isCorner) {
+        const pool = WEATHERED_WALLS.map((n) => profiles.get(n)).filter(Boolean) as NodeProfile[];
+        if (pool.length > 0) return pool[hash % pool.length];
+      }
+      if (roll < 82) {
+        const pool = SOLID_WALLS.map((n) => profiles.get(n)).filter(Boolean) as NodeProfile[];
+        if (pool.length > 0) return pool[hash % pool.length];
       } else {
-        // Top rows: 35% solid, 10% detail, 55% weathered
-        if (roll < 55 && weatheredProfiles.length > 0) return weatheredProfiles[hash % weatheredProfiles.length];
-        if (roll < 65 && detailProfiles.length > 0) return detailProfiles[hash % detailProfiles.length];
-        if (fillProfiles.length > 0) return fillProfiles[hash % fillProfiles.length];
+        const pool = WEATHERED_WALLS.map((n) => profiles.get(n)).filter(Boolean) as NodeProfile[];
+        if (pool.length > 0) return pool[hash % pool.length];
       }
       return baseProfile;
     };
 
-    // --- Tile walls onto box geometry ---
-    const wallPieces = pieces.filter((piece) => piece.material === wallMaterial);
+    // --- Tile single-row walls onto box-geometry wall pieces ---
+    const wallPieces = pieces.filter((p) => p.material === wallMaterial);
 
     wallPieces.forEach((piece) => {
-      if (placementCounter >= WALL_MAX_PLACEMENTS) return;
+      if (counter >= WALL_MAX_PLACEMENTS) return;
 
       const axis: 'x' | 'z' = piece.size[0] >= piece.size[2] ? 'x' : 'z';
       const length = axis === 'x' ? piece.size[0] : piece.size[2];
       const wallHeight = piece.size[1];
 
-      // Horizontal slots: cover the full wall length
       const slots = Math.max(1, Math.round(length / wallStep));
       const occupiedLength = slots * wallStep;
       const startOffset = -occupiedLength / 2 + wallStep / 2;
-
-      // Vertical rows: fill wall height
-      const rows = Math.max(1, Math.min(WALL_MAX_ROWS, Math.ceil(wallHeight / wallRowStep)));
-
       const rotationY = axis === 'x' ? 0 : Math.PI / 2;
       const baseY = piece.position[1] - wallHeight / 2 - WALL_BASE_SINK;
+      const scaleY = Math.max(0.5, Math.min(1.8, wallHeight / baseProfile.height));
 
-      let breakAll = false;
-      for (let row = 0; row < rows; row += 1) {
-        if (breakAll) break;
-        const rowT = rows <= 1 ? 0 : row / (rows - 1);
-        const y = baseY + row * wallRowStep;
+      for (let slot = 0; slot < slots; slot += 1) {
+        if (counter >= WALL_MAX_PLACEMENTS) break;
 
-        // Top row: compute scaleY to exactly fill remaining height
-        const remainingHeight = Math.max(0.1, wallHeight - row * wallRowStep);
-        const isTopRow = row === rows - 1 && rows > 1;
+        const offset = startOffset + slot * wallStep;
+        const x = piece.position[0] + (axis === 'x' ? offset : 0);
+        const z = piece.position[2] + (axis === 'z' ? offset : 0);
+        const isCorner = slot === 0 || slot === slots - 1;
 
-        for (let slot = 0; slot < slots; slot += 1) {
-          if (placementCounter >= WALL_MAX_PLACEMENTS) {
-            breakAll = true;
-            break;
+        const seed = `${piece.id}:${slot}`;
+        const profile = pickWallVariant(seed, isCorner);
+        const scaleXZ = Math.max(0.8, Math.min(1.2, wallStep / profile.footprint));
+
+        placements.push({
+          id: `wall-${counter++}`,
+          name: profile.name,
+          position: [x, baseY, z],
+          rotationX: profile.rotationX,
+          rotationY,
+          scale: scaleXZ,
+          scaleY,
+          anchor: profile.anchor,
+        });
+
+        // Torch placement every TORCH_INTERVAL
+        const torchSlotInterval = Math.max(1, Math.round(TORCH_INTERVAL / wallStep));
+        if (slot > 0 && slot % torchSlotInterval === 0) {
+          const torchProfile = profiles.get(TORCH_NODE);
+          if (torchProfile && counter < WALL_MAX_PLACEMENTS) {
+            const torchOff = 0.3;
+            const tx = axis === 'x' ? x : piece.position[0] + torchOff * Math.sign(piece.position[0] || 1);
+            const tz = axis === 'z' ? z : piece.position[2] + torchOff * Math.sign(piece.position[2] || 1);
+
+            placements.push({
+              id: `torch-${counter++}`,
+              name: TORCH_NODE,
+              position: [tx, TORCH_MOUNT_Y, tz],
+              rotationX: torchProfile.rotationX,
+              rotationY: rotationY + Math.PI,
+              scale: 1.0,
+              scaleY: 1.0,
+              anchor: torchProfile.anchor,
+            });
+
+            torchLights.push({
+              id: `tl-${torchLights.length}`,
+              position: [tx, TORCH_MOUNT_Y + 0.5, tz],
+            });
           }
-
-          // Index-based position: no cumulative float drift
-          const offset = startOffset + slot * wallStep;
-          const x = piece.position[0] + (axis === 'x' ? offset : 0);
-          const z = piece.position[2] + (axis === 'z' ? offset : 0);
-
-          const seed = `${piece.id}:${row}:${slot}`;
-          const profile = pickVariant(seed, rowT);
-
-          // Scale to fit: match footprint width and adjust height
-          const scaleXZ = Math.min(1.35, Math.max(0.7, wallSpan / Math.max(0.01, profile.footprint)));
-          const scaleY = isTopRow
-            ? Math.min(1.3, Math.max(0.5, remainingHeight / Math.max(0.01, profile.height)))
-            : Math.min(1.15, Math.max(0.85, wallRowStep / Math.max(0.01, profile.height)));
-
-          placements.push({
-            id: `wall-${placementCounter++}`,
-            name: profile.name,
-            position: [x, y, z],
-            rotationX: profile.rotationX,
-            rotationY,
-            scale: scaleXZ,
-            scaleY,
-            anchor: profile.anchor,
-          });
         }
       }
     });
 
-    // --- Pillar anchor points at segment joints ---
-    const pillarProfiles = PILLAR_NODE_POOL
-      .map((n) => getWallProfile(n))
-      .filter(Boolean) as WallProfile[];
+    // --- Pillars at room corners ---
+    const pillarProfiles = PILLAR_NODES.map((n) => profiles.get(n)).filter(Boolean) as NodeProfile[];
+    if (pillarProfiles.length > 0) {
+      ROOM_LAYOUT.forEach((room) => {
+        if (counter >= WALL_MAX_PLACEMENTS) return;
+        const [cx, , cz] = room.center;
+        const halfW = room.size.w / 2;
+        const halfD = room.size.d / 2;
 
-    if (pillarProfiles.length > 0 && placementCounter < WALL_MAX_PLACEMENTS) {
-      wallPieces.forEach((piece) => {
-        if (placementCounter >= WALL_MAX_PLACEMENTS) return;
+        [[cx - halfW, cz - halfD], [cx + halfW, cz - halfD],
+        [cx - halfW, cz + halfD], [cx + halfW, cz + halfD]].forEach(([cornerX, cornerZ], i) => {
+          if (counter >= WALL_MAX_PLACEMENTS) return;
+          const hash = hashText(`pillar-${room.id}-${i}`);
+          const profile = pillarProfiles[hash % pillarProfiles.length];
+          const pillarScaleY = Math.max(0.5, Math.min(1.5, WALL_HEIGHT / profile.height));
 
-        const axis: 'x' | 'z' = piece.size[0] >= piece.size[2] ? 'x' : 'z';
-        const length = axis === 'x' ? piece.size[0] : piece.size[2];
-        const wallHeight = piece.size[1];
-        const baseY = piece.position[1] - wallHeight / 2 - WALL_BASE_SINK;
-        const rotationY = axis === 'x' ? 0 : Math.PI / 2;
-
-        // Place pillars at every PILLAR_INTERVAL wall slots
-        const slots = Math.max(1, Math.round(length / wallStep));
-        const occupiedLength = slots * wallStep;
-        const startOffset = -occupiedLength / 2 + wallStep / 2;
-
-        for (let slot = 0; slot <= slots; slot += PILLAR_INTERVAL) {
-          if (placementCounter >= WALL_MAX_PLACEMENTS) break;
-
-          const pillarHash = hashText(`${piece.id}:pillar:${slot}`);
-          const pillarProfile = pillarProfiles[pillarHash % pillarProfiles.length];
-
-          // Vertical tiling of pillars to cover wall height
-          const pillarRows = Math.max(1, Math.ceil(wallHeight / Math.max(0.1, pillarProfile.height)));
-
-          for (let pRow = 0; pRow < pillarRows; pRow += 1) {
-            if (placementCounter >= WALL_MAX_PLACEMENTS) break;
-
-            const offset = startOffset + slot * wallStep - wallStep / 2;
-            const px = piece.position[0] + (axis === 'x' ? offset : 0);
-            const pz = piece.position[2] + (axis === 'z' ? offset : 0);
-            const py = baseY + pRow * pillarProfile.height * (1 - WALL_VERTICAL_OVERLAP);
-
-            const remainingH = Math.max(0.01, wallHeight - pRow * pillarProfile.height * (1 - WALL_VERTICAL_OVERLAP));
-            const pScaleY = pRow === pillarRows - 1 && pillarRows > 1
-              ? Math.min(1.2, Math.max(0.5, remainingH / Math.max(0.01, pillarProfile.height)))
-              : 1.0;
-
-            placements.push({
-              id: `pillar-${placementCounter++}`,
-              name: pillarProfile.name,
-              position: [px, py, pz],
-              rotationX: pillarProfile.rotationX,
-              rotationY,
-              scale: 1.0,
-              scaleY: pScaleY,
-              anchor: pillarProfile.anchor,
-            });
-          }
-        }
+          placements.push({
+            id: `pillar-${counter++}`,
+            name: profile.name,
+            position: [cornerX, -WALL_BASE_SINK, cornerZ],
+            rotationX: profile.rotationX,
+            rotationY: 0,
+            scale: 1.0,
+            scaleY: pillarScaleY,
+            anchor: profile.anchor,
+          });
+        });
       });
     }
 
-    // --- Archway placement at room openings ---
-    const archProfiles = STANDALONE_ARCH_POOL
-      .map((n) => getWallProfile(n))
-      .filter(Boolean) as WallProfile[];
-
-    if (archProfiles.length > 0 && placementCounter < WALL_MAX_PLACEMENTS) {
-      const archBaseY = -WALL_BASE_SINK;
-
-      const pushArch = (
-        seed: string,
-        x: number,
-        z: number,
-        rotationY: number,
-      ) => {
-        if (placementCounter >= WALL_MAX_PLACEMENTS) return;
-        const hash = hashText(seed);
-        const profile = archProfiles[hash % archProfiles.length];
-
-        // Scale arch width to match door opening
-        const archScale = Math.min(1.4, Math.max(0.7, DOOR_WIDTH / Math.max(0.01, profile.footprint)));
-        // Scale height proportionally but allow slight adjustment
-        const archScaleY = Math.min(1.5, Math.max(0.8, (WALL_HEIGHT * 0.45) / Math.max(0.01, profile.height)));
-
-        placements.push({
-          id: `arch-${seed}-${placementCounter++}`,
-          name: profile.name,
-          position: [x, archBaseY, z],
-          rotationX: profile.rotationX,
-          rotationY,
-          scale: archScale,
-          scaleY: archScaleY,
-          anchor: profile.anchor,
-        });
-      };
-
+    // --- Arches at room openings ---
+    const archProfiles = STANDALONE_ARCHES.map((n) => profiles.get(n)).filter(Boolean) as NodeProfile[];
+    if (archProfiles.length > 0) {
       ROOM_LAYOUT.forEach((room) => {
+        if (counter >= WALL_MAX_PLACEMENTS) return;
         const [cx, , cz] = room.center;
         const halfW = room.size.w / 2 - WALL_THICKNESS / 2;
         const halfD = room.size.d / 2 - WALL_THICKNESS / 2;
+
+        const pushArch = (seed: string, ax: number, az: number, rotY: number) => {
+          if (counter >= WALL_MAX_PLACEMENTS) return;
+          const hash = hashText(seed);
+          const profile = archProfiles[hash % archProfiles.length];
+          const archScale = Math.max(0.7, Math.min(1.4, DOOR_WIDTH / profile.footprint));
+          const archScaleY = Math.max(0.8, Math.min(1.5, (WALL_HEIGHT * 0.5) / profile.height));
+
+          placements.push({
+            id: `arch-${counter++}`,
+            name: profile.name,
+            position: [ax, -WALL_BASE_SINK, az],
+            rotationX: profile.rotationX,
+            rotationY: rotY,
+            scale: archScale,
+            scaleY: archScaleY,
+            anchor: profile.anchor,
+          });
+        };
+
         if (room.openings?.north) pushArch(`${room.id}-north`, cx, cz + halfD, Math.PI);
         if (room.openings?.south) pushArch(`${room.id}-south`, cx, cz - halfD, 0);
         if (room.openings?.east) pushArch(`${room.id}-east`, cx + halfW, cz, -Math.PI / 2);
@@ -915,11 +855,80 @@ export default function DungeonWorld() {
       });
     }
 
-    return placements;
+    // --- Props: barrels/crates at room corners, chests in special rooms ---
+    const propPool = [...PROP_POOLS.barrels, ...PROP_POOLS.pots];
+    ROOM_LAYOUT.forEach((room) => {
+      const [cx, , cz] = room.center;
+      const halfW = room.size.w / 2 - 1;
+      const halfD = room.size.d / 2 - 1;
+      const roomHash = hashText(room.id);
+
+      // Place props at 2 of 4 corners
+      const corners: [number, number][] = [
+        [cx - halfW, cz - halfD],
+        [cx + halfW, cz - halfD],
+        [cx - halfW, cz + halfD],
+        [cx + halfW, cz + halfD],
+      ];
+      const c1 = roomHash % 4;
+      const c2 = (roomHash + 2) % 4;
+      [corners[c1], corners[c2]].forEach(([px, pz], i) => {
+        if (counter >= WALL_MAX_PLACEMENTS) return;
+        const hash = hashText(`prop-${room.id}-${i}`);
+        const propName = propPool[hash % propPool.length];
+        const profile = profiles.get(propName);
+        if (!profile) return;
+        const inset = 1.2;
+        placements.push({
+          id: `prop-${counter++}`,
+          name: propName,
+          position: [px + (px > cx ? -inset : inset), 0, pz + (pz > cz ? -inset : inset)],
+          rotationX: profile.rotationX,
+          rotationY: (hash % 4) * Math.PI / 2,
+          scale: 1.0,
+          scaleY: 1.0,
+          anchor: profile.anchor,
+        });
+      });
+
+      // Chests in crypt + hidden alcove
+      if (room.id === 'room-d' || room.id === 'room-hidden') {
+        const chestProfile = profiles.get('Chest_Base');
+        if (chestProfile && counter < WALL_MAX_PLACEMENTS) {
+          placements.push({
+            id: `chest-${counter++}`,
+            name: 'Chest_Base',
+            position: [cx, 0, cz],
+            rotationX: chestProfile.rotationX,
+            rotationY: (roomHash % 4) * Math.PI / 2,
+            scale: 1.2,
+            scaleY: 1.2,
+            anchor: chestProfile.anchor,
+          });
+        }
+      }
+
+      // Candles near room centers
+      const candleProfile = profiles.get('Candles_1') ?? profiles.get('Candles_2');
+      if (candleProfile && counter < WALL_MAX_PLACEMENTS) {
+        placements.push({
+          id: `candles-${counter++}`,
+          name: candleProfile.name,
+          position: [cx + 1.5, 0, cz + 1.5],
+          rotationX: candleProfile.rotationX,
+          rotationY: 0,
+          scale: 1.0,
+          scaleY: 1.0,
+          anchor: candleProfile.anchor,
+        });
+      }
+    });
+
+    return { placements, torchLights };
   }, [nodes, pieces]);
 
   const wallDecorObjects = useMemo(() => {
-    return wallDecor
+    return wallDecor.placements
       .map((decor) => {
         const node = nodes?.[decor.name];
         if (!node) return null;
@@ -943,6 +952,7 @@ export default function DungeonWorld() {
       .filter(Boolean) as { id: string; object: Object3D; position: Vec3; rotation: Vec3; scale: Vec3 }[];
   }, [nodes, wallDecor]);
 
+  /* ── outer border pieces ── */
   const outerBorderPieces = useMemo(() => {
     const width = DUNGEON_BOUNDS.maxX - DUNGEON_BOUNDS.minX;
     const depth = DUNGEON_BOUNDS.maxZ - DUNGEON_BOUNDS.minZ;
@@ -1058,6 +1068,19 @@ export default function DungeonWorld() {
           </group>
         );
       })}
+
+      {/* Torch point lights */}
+      {wallDecor.torchLights.map((tl) => (
+        <pointLight
+          key={tl.id}
+          position={tl.position}
+          intensity={2.0}
+          color="#ff9944"
+          distance={10}
+          decay={2}
+          castShadow={false}
+        />
+      ))}
 
       <RigidBody type="fixed" colliders={false} name="dungeon-colliders">
         {pieces.map((piece) => (
