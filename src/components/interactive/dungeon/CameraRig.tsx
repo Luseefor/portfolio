@@ -7,29 +7,30 @@ import { Vector3 } from 'three';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import { getDungeonVisualLiftAt } from '@/lib/dungeonVisualLift';
 import {
+  CAMERA_COLLISION,
   CAMERA_DISTANCE,
+  CAMERA_FOLLOW,
   CAMERA_OFFSET,
   CAMERA_PITCH,
   CAMERA_SENSITIVITY,
-  CAMERA_FOLLOW,
-  CAMERA_COLLISION,
 } from '@/constants/camera';
 import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
 import { applyMouseDelta, clampCameraDistance, computeCameraDesired, computeSmoothingFactor } from './math/cameraMath';
 
 const targetPosition = new Vector3();
 const smoothedTargetPosition = new Vector3();
+const desiredPosition = new Vector3();
 const lookAtPosition = new Vector3();
 const smoothedLookAtPosition = new Vector3();
-const desiredPosition = new Vector3();
 const rayDirection = new Vector3();
-const TARGET_FOLLOW_SMOOTHING = 0.005;
-const FLOOR_PROBE_HEIGHT = 2.4;
-const FLOOR_PROBE_DISTANCE = 10;
-const CAMERA_FLOOR_CLEARANCE = 0.45;
-const CAMERA_MIN_Y = 0.35;
-const CAMERA_WALL_BUFFER = 0.8;
-const CAMERA_MIN_COLLISION_DISTANCE = 0.7;
+
+const TARGET_FOLLOW_SMOOTHING = 0.01;
+const CAMERA_FLOOR_CLEARANCE = 0.7;
+const CAMERA_MIN_Y = 0.5;
+const CAMERA_BORDER_BUFFER = Math.max(2.4, DUNGEON_BOUNDS.cameraPadding);
+const CAMERA_WALL_BUFFER = 0.55;
+const CAMERA_MIN_COLLISION_DISTANCE = 1.0;
+const COLLISION_RECOVERY_DAMPING = 6;
 
 function isFiniteVec3Like(value: { x: number; y: number; z: number }) {
   return Number.isFinite(value.x) && Number.isFinite(value.y) && Number.isFinite(value.z);
@@ -37,15 +38,15 @@ function isFiniteVec3Like(value: { x: number; y: number; z: number }) {
 
 function clampMapX(value: number) {
   return Math.min(
-    DUNGEON_BOUNDS.maxX - DUNGEON_BOUNDS.cameraPadding,
-    Math.max(DUNGEON_BOUNDS.minX + DUNGEON_BOUNDS.cameraPadding, value),
+    DUNGEON_BOUNDS.maxX - CAMERA_BORDER_BUFFER,
+    Math.max(DUNGEON_BOUNDS.minX + CAMERA_BORDER_BUFFER, value),
   );
 }
 
 function clampMapZ(value: number) {
   return Math.min(
-    DUNGEON_BOUNDS.maxZ - DUNGEON_BOUNDS.cameraPadding,
-    Math.max(DUNGEON_BOUNDS.minZ + DUNGEON_BOUNDS.cameraPadding, value),
+    DUNGEON_BOUNDS.maxZ - CAMERA_BORDER_BUFFER,
+    Math.max(DUNGEON_BOUNDS.minZ + CAMERA_BORDER_BUFFER, value),
   );
 }
 
@@ -62,15 +63,15 @@ export default function CameraRig({
   const { rapier, world } = useRapier();
   const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
   const mouseDown = useDungeonInput((state) => state.mouseDown);
-  const internalYaw = useRef(0);
-  const internalPitch = useRef(CAMERA_PITCH.initial);
+  const internalYawRef = useRef(0);
+  const internalPitchRef = useRef(CAMERA_PITCH.initial);
   const distanceRef = useRef(CAMERA_DISTANCE.default);
+  const collisionDistanceRef = useRef(CAMERA_DISTANCE.default);
   const lastClientRef = useRef<{ x: number; y: number } | null>(null);
   const initializedRef = useRef(false);
-  const lastFloorYRef = useRef(CAMERA_MIN_Y);
 
-  const yaw = yawRef ?? internalYaw;
-  const pitch = pitchRef ?? internalPitch;
+  const yaw = yawRef ?? internalYawRef;
+  const pitch = pitchRef ?? internalPitchRef;
 
   useEffect(() => {
     lastClientRef.current = null;
@@ -91,57 +92,29 @@ export default function CameraRig({
       pitch.current = next.pitch;
     };
 
-    const handleMouseMove = (event: MouseEvent) => {
+    const handlePointerMove = (event: PointerEvent) => {
       if (!isPointerLocked && !mouseDown) return;
-      const rawX =
-        event.movementX ||
-        (event as MouseEvent & { mozMovementX?: number }).mozMovementX ||
-        (event as MouseEvent & { webkitMovementX?: number }).webkitMovementX ||
-        0;
-      const rawY =
-        event.movementY ||
-        (event as MouseEvent & { mozMovementY?: number }).mozMovementY ||
-        (event as MouseEvent & { webkitMovementY?: number }).webkitMovementY ||
-        0;
-
-      if (rawX === 0 && rawY === 0 && isPointerLocked) {
-        if (lastClientRef.current) {
-          applyDelta(event.clientX - lastClientRef.current.x, event.clientY - lastClientRef.current.y);
-        }
-        lastClientRef.current = { x: event.clientX, y: event.clientY };
+      if (isPointerLocked) {
+        applyDelta(event.movementX || 0, event.movementY || 0);
         return;
       }
-
+      if (event.buttons <= 0) return;
+      if (lastClientRef.current) {
+        applyDelta(event.clientX - lastClientRef.current.x, event.clientY - lastClientRef.current.y);
+      }
       lastClientRef.current = { x: event.clientX, y: event.clientY };
-      applyDelta(rawX, rawY);
-    };
-
-    const handlePointerRawUpdate = (event: PointerEvent) => {
-      if (!isPointerLocked && !mouseDown) return;
-      applyDelta(event.movementX || 0, event.movementY || 0);
     };
 
     const handleWheel = (event: WheelEvent) => {
-      const hasTrackpad = typeof navigator !== 'undefined' && (navigator.maxTouchPoints ?? 0) > 0;
-      const hasDelta = Math.abs(event.deltaX) + Math.abs(event.deltaY) > 0.01;
-      const useWheelLook = isPointerLocked && hasTrackpad && hasDelta && !event.metaKey && !event.ctrlKey;
-
-      if (useWheelLook) {
-        event.preventDefault();
-        applyDelta(event.deltaX * 0.6, event.deltaY * 0.6);
-        return;
-      }
-
+      if (Math.abs(event.deltaY) < 0.01) return;
       const next = distanceRef.current + Math.sign(event.deltaY) * CAMERA_DISTANCE.scrollStep;
       distanceRef.current = clampCameraDistance(next);
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('pointerrawupdate', handlePointerRawUpdate);
-    window.addEventListener('wheel', handleWheel, { passive: false });
+    document.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('wheel', handleWheel, { passive: true });
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('pointerrawupdate', handlePointerRawUpdate);
+      document.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('wheel', handleWheel);
     };
   }, [isPointerLocked, mouseDown, pitch, yaw]);
@@ -150,11 +123,11 @@ export default function CameraRig({
     const body = targetBody?.current;
     if (!body) return;
 
-    const position = body.translation();
-    if (!isFiniteVec3Like(position)) {
-      return;
-    }
-    targetPosition.set(position.x, position.y, position.z);
+    const bodyPosition = body.translation();
+    if (!isFiniteVec3Like(bodyPosition)) return;
+
+    targetPosition.set(bodyPosition.x, bodyPosition.y, bodyPosition.z);
+
     if (!initializedRef.current) {
       smoothedTargetPosition.copy(targetPosition);
       lookAtPosition.set(
@@ -163,6 +136,7 @@ export default function CameraRig({
         targetPosition.z,
       );
       smoothedLookAtPosition.copy(lookAtPosition);
+      collisionDistanceRef.current = distanceRef.current;
       initializedRef.current = true;
     } else {
       const targetLerp = computeSmoothingFactor(delta, TARGET_FOLLOW_SMOOTHING);
@@ -175,83 +149,90 @@ export default function CameraRig({
       smoothedLookAtPosition.lerp(lookAtPosition, targetLerp);
     }
 
-    const desired = computeCameraDesired(
-      { x: smoothedTargetPosition.x, y: smoothedTargetPosition.y, z: smoothedTargetPosition.z },
+    // Raycast using intended distance, then smooth out pullback recovery.
+    const desiredForRay = computeCameraDesired(
+      {
+        x: smoothedTargetPosition.x,
+        y: smoothedTargetPosition.y,
+        z: smoothedTargetPosition.z,
+      },
       yaw.current,
       pitch.current,
       distanceRef.current,
       CAMERA_OFFSET,
     );
-    if (!isFiniteVec3Like(desired)) {
-      return;
-    }
-    desiredPosition.set(desired.x, desired.y, desired.z);
+    if (!isFiniteVec3Like(desiredForRay)) return;
+
+    desiredPosition.set(desiredForRay.x, desiredForRay.y, desiredForRay.z);
     desiredPosition.x = clampMapX(desiredPosition.x);
     desiredPosition.z = clampMapZ(desiredPosition.z);
 
-    rayDirection.copy(desiredPosition).sub(smoothedTargetPosition);
+    rayDirection.copy(desiredPosition).sub(smoothedLookAtPosition);
+    let collisionTargetDistance = distanceRef.current;
     const rayDistance = rayDirection.length();
     if (rayDistance > 0.01) {
       rayDirection.normalize();
       const ray = new rapier.Ray(
-        { x: smoothedTargetPosition.x, y: smoothedTargetPosition.y, z: smoothedTargetPosition.z },
+        { x: smoothedLookAtPosition.x, y: smoothedLookAtPosition.y, z: smoothedLookAtPosition.z },
         { x: rayDirection.x, y: rayDirection.y, z: rayDirection.z },
       );
       const hit = world.castRay(ray, rayDistance, true);
       if (hit && Number.isFinite(hit.toi)) {
-        const safeDistance = Math.max(
+        collisionTargetDistance = Math.max(
           Math.max(CAMERA_COLLISION.minCameraDistance, CAMERA_MIN_COLLISION_DISTANCE),
           hit.toi - Math.max(CAMERA_COLLISION.minDistanceFromWall, CAMERA_WALL_BUFFER),
         );
-        if (!Number.isFinite(safeDistance)) return;
-        desiredPosition.copy(smoothedTargetPosition).add(rayDirection.multiplyScalar(safeDistance));
-        desiredPosition.x = clampMapX(desiredPosition.x);
-        desiredPosition.z = clampMapZ(desiredPosition.z);
       }
     }
 
-    const probeOriginY = smoothedTargetPosition.y + FLOOR_PROBE_HEIGHT;
-    const probeFloorAt = (x: number, z: number) => {
-      const floorProbe = new rapier.Ray({ x, y: probeOriginY, z }, { x: 0, y: -1, z: 0 });
-      const floorHit = world.castRay(floorProbe, FLOOR_PROBE_DISTANCE, true);
-      if (!floorHit || !Number.isFinite(floorHit.toi)) return null;
-      return probeOriginY - floorHit.toi;
-    };
-
-    const floorAtDesired = probeFloorAt(desiredPosition.x, desiredPosition.z);
-    const floorAtTarget = probeFloorAt(smoothedTargetPosition.x, smoothedTargetPosition.z);
-    const fallbackFloor = Math.max(lastFloorYRef.current, smoothedTargetPosition.y);
-    const floorY =
-      floorAtDesired != null && floorAtTarget != null
-        ? Math.max(floorAtDesired, floorAtTarget)
-        : floorAtDesired ?? floorAtTarget ?? fallbackFloor;
-    lastFloorYRef.current = floorY;
-
-    const visualLift = Math.max(
-      getDungeonVisualLiftAt(desiredPosition.x, desiredPosition.z),
-      getDungeonVisualLiftAt(smoothedTargetPosition.x, smoothedTargetPosition.z),
-    );
-    const minAllowedY = Math.max(CAMERA_MIN_Y, floorY + visualLift + CAMERA_FLOOR_CLEARANCE);
-    if (desiredPosition.y < minAllowedY) {
-      desiredPosition.y = minAllowedY;
+    if (!Number.isFinite(collisionTargetDistance)) return;
+    if (collisionTargetDistance < collisionDistanceRef.current) {
+      collisionDistanceRef.current = collisionTargetDistance;
+    } else {
+      const recoverLerp = 1 - Math.exp(-COLLISION_RECOVERY_DAMPING * delta);
+      collisionDistanceRef.current +=
+        (collisionTargetDistance - collisionDistanceRef.current) * recoverLerp;
     }
+
+    const resolvedDesired = computeCameraDesired(
+      {
+        x: smoothedTargetPosition.x,
+        y: smoothedTargetPosition.y,
+        z: smoothedTargetPosition.z,
+      },
+      yaw.current,
+      pitch.current,
+      collisionDistanceRef.current,
+      CAMERA_OFFSET,
+    );
+    if (!isFiniteVec3Like(resolvedDesired)) return;
+
+    desiredPosition.set(resolvedDesired.x, resolvedDesired.y, resolvedDesired.z);
+    desiredPosition.x = clampMapX(desiredPosition.x);
+    desiredPosition.z = clampMapZ(desiredPosition.z);
+
+    const visualLift = getDungeonVisualLiftAt(smoothedTargetPosition.x, smoothedTargetPosition.z);
+    const minAllowedY = Math.max(CAMERA_MIN_Y, smoothedTargetPosition.y + visualLift + CAMERA_FLOOR_CLEARANCE);
+    const maxAllowedY = Math.max(minAllowedY + 0.5, CAMERA_COLLISION.maxCameraY);
+    desiredPosition.y = Math.max(minAllowedY, Math.min(maxAllowedY, desiredPosition.y));
 
     const lerpFactor = computeSmoothingFactor(delta, CAMERA_FOLLOW.smoothing);
     if (!Number.isFinite(lerpFactor)) return;
     camera.position.lerp(desiredPosition, lerpFactor);
-    if (camera.position.y < minAllowedY) {
-      camera.position.lerp(desiredPosition, 1);
-    }
-    const clampedX = clampMapX(camera.position.x);
-    const clampedZ = clampMapZ(camera.position.z);
-    camera.position.set(clampedX, camera.position.y, clampedZ);
+    camera.position.set(
+      clampMapX(camera.position.x),
+      Math.max(minAllowedY, Math.min(maxAllowedY, camera.position.y)),
+      clampMapZ(camera.position.z),
+    );
+
     if (!isFiniteVec3Like(camera.position)) {
       camera.position.set(
         clampMapX(smoothedTargetPosition.x),
-        Math.max(CAMERA_MIN_Y, smoothedTargetPosition.y + CAMERA_OFFSET.lookAtHeight),
+        minAllowedY + CAMERA_FLOOR_CLEARANCE,
         clampMapZ(smoothedTargetPosition.z + CAMERA_DISTANCE.default * 0.6),
       );
     }
+
     camera.lookAt(smoothedLookAtPosition);
   });
 
