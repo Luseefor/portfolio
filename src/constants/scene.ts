@@ -2,22 +2,22 @@ import { DUNGEON_SCALE } from './dungeonLayout';
 
 export const sceneLighting = {
   // Fog - atmospheric depth, not too dense to maintain readability
-  fogColor: '#1a1410',
-  fogDensity: 0.02 / DUNGEON_SCALE, // Lighter fog for blockout readability
+  fogColor: '#101418',
+  fogDensity: 0.0175 / DUNGEON_SCALE,
 
   // Ambient - soft base fill to prevent crushed blacks
-  ambientIntensity: 0.68,
-  ambientColor: '#f6e1c4',
+  ambientIntensity: 0.2,
+  ambientColor: '#cfd8df',
 
   // Hemisphere - sky/ground color bleed for natural feel
-  hemisphereIntensity: 0.65,
-  hemisphereSky: '#f7ead4',
-  hemisphereGround: '#241a14',
+  hemisphereIntensity: 0.35,
+  hemisphereSky: '#b8cad6',
+  hemisphereGround: '#1c1d1d',
 
   // Fill directional - subtle key light from above-right
-  fillDirectionalIntensity: 0.95,
-  fillDirectionalColor: '#ffe9cf',
-  fillDirectionalPosition: [6 * DUNGEON_SCALE, 12 * DUNGEON_SCALE, 6 * DUNGEON_SCALE] as const,
+  fillDirectionalIntensity: 0.72,
+  fillDirectionalColor: '#f8e4c7',
+  fillDirectionalPosition: [12 * DUNGEON_SCALE, 18 * DUNGEON_SCALE, 8 * DUNGEON_SCALE] as const,
 
   // Static torch accent lights (provide stable base illumination)
   torchLights: [
@@ -60,5 +60,5 @@ export const sceneLighting = {
 };
 
 export const rendererToneMapping = {
-  exposure: 1.35, // Higher for blockout readability
+  exposure: 1.15,
 };
