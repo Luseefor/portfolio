@@ -8,8 +8,8 @@ import { PORTFOLIO_CONTENT } from './portfolio-template';
 import { useStore } from '@/utils/store';
 import { getThemeColor, hexToRgba } from '@/utils/themes';
 
-const FuturisticCard = dynamic(() => import('./FuturisticCard'), { ssr: false });
 const ProjectDetailsModal = dynamic(() => import('./ProjectDetailsModal'), { ssr: false });
+type PortfolioProject = (typeof PORTFOLIO_CONTENT.projects.categories)[number]['items'][number];
 
 export default function ProjectsSection() {
   const { currentTheme, isDark } = useStore();
@@ -18,7 +18,7 @@ export default function ProjectsSection() {
     [currentTheme, isDark],
   );
   const themeFade = hexToRgba(themeColor, isDark ? 0.35 : 0.65);
-  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [selectedProject, setSelectedProject] = useState<PortfolioProject | null>(null);
 
   return (
     <section id="projects" className="relative py-32 px-6 md:px-12 max-w-7xl mx-auto">

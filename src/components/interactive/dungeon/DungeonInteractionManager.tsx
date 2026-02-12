@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ChestPOI, CHEST_POIS } from '@/constants/DungeonLayout';
+import { ChestPOI, CHEST_POIS } from '@/constants/dungeonLayout';
 import { clampVolume, useSettings, type Settings } from '@/lib/settings';
 import InteractionPrompt from './ui/InteractionPrompt';
 import ChestPanel from './ui/ChestPanel';
@@ -77,7 +77,7 @@ export function useDungeonInteraction() {
   useEffect(() => {
     uiOpenAudioRef.current = new Audio('/sounds/ui/ui_open.wav');
     uiCloseAudioRef.current = new Audio('/sounds/ui/ui_close.wav');
-    const safeVolume = clampVolume(masterVolume) * 0.5;
+    const safeVolume = 0.35;
     uiOpenAudioRef.current.volume = safeVolume;
     uiCloseAudioRef.current.volume = safeVolume;
     return () => {

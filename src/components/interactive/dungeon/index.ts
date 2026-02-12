@@ -1,6 +1,6 @@
 // Dungeon components// Barrel export for dungeon components
 export { ChestSystem } from './ChestSystem';
-export { CHEST_POIS, type ChestPOI } from '@/constants/DungeonLayout';
+export { CHEST_POIS, type ChestPOI } from '@/constants/dungeonLayout';
 export { DungeonUI, useDungeonInteraction } from './DungeonInteractionManager';
 export { default as Torch, TorchSystem } from './Torch';
 export { default as DungeonPostProcessing } from './DungeonPostProcessing';

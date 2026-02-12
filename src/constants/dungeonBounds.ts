@@ -1,8 +1,10 @@
+import { DUNGEON_LAYOUT_BOUNDS } from './dungeonLayout';
+
 export const DUNGEON_BOUNDS = {
-  minX: -73,
-  maxX: 73,
-  minZ: -21,
-  maxZ: 73,
-  cameraPadding: 1.2,
-  playerPadding: 1.4,
+  minX: DUNGEON_LAYOUT_BOUNDS.minX,
+  maxX: DUNGEON_LAYOUT_BOUNDS.maxX,
+  minZ: DUNGEON_LAYOUT_BOUNDS.minZ,
+  maxZ: DUNGEON_LAYOUT_BOUNDS.maxZ,
+  cameraPadding: 1.6,
+  playerPadding: 1.6,
 } as const;

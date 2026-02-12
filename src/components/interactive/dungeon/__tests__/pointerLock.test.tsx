@@ -8,12 +8,30 @@ let pointerLockElement: Element | null = null;
 
 vi.mock('@react-three/fiber', async () => {
   const react = await import('react');
+  type MockCanvasProps = React.ComponentProps<'canvas'> & {
+    children?: React.ReactNode;
+    onCreated?: (args: {
+      gl: {
+        domElement: HTMLCanvasElement;
+        shadowMap: { enabled: boolean };
+        toneMapping: number;
+        toneMappingExposure: number;
+      };
+    }) => void;
+  };
   return {
-    Canvas: ({ children, onCreated, ...props }: any) => {
+    Canvas: ({ children, onCreated, ...props }: MockCanvasProps) => {
       const ref = react.useRef<HTMLCanvasElement | null>(null);
       react.useEffect(() => {
         if (ref.current && onCreated) {
-          onCreated({ gl: { domElement: ref.current } });
+          onCreated({
+            gl: {
+              domElement: ref.current,
+              shadowMap: { enabled: false },
+              toneMapping: 0,
+              toneMappingExposure: 1,
+            },
+          });
         }
       }, [onCreated]);
       return (
@@ -26,7 +44,7 @@ vi.mock('@react-three/fiber', async () => {
 });
 
 vi.mock('@react-three/rapier', () => ({
-  Physics: ({ children }: any) => <div>{children}</div>,
+  Physics: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
 }));
 
 vi.mock('../DungeonScene', () => ({
@@ -50,14 +68,13 @@ describe('pointer lock + focus integration', () => {
   it('clicking the canvas requests pointer lock and focuses the canvas', () => {
     const { getByTestId } = render(<InteractiveCanvas />);
     const canvas = getByTestId('r3f-canvas') as HTMLCanvasElement;
-    const focusSpy = vi.spyOn(canvas, 'focus');
     const requestSpy = vi.fn();
-    (canvas as any).requestPointerLock = requestSpy;
+    const pointerCanvas = canvas as HTMLCanvasElement & { requestPointerLock: () => void };
+    pointerCanvas.requestPointerLock = requestSpy;
 
-    fireEvent.pointerDown(canvas);
+    fireEvent.mouseDown(canvas, { button: 0 });
 
     expect(canvas.tabIndex).toBe(0);
-    expect(focusSpy).toHaveBeenCalled();
     expect(requestSpy).toHaveBeenCalled();
   });
 

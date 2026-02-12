@@ -13,7 +13,7 @@ export default function TextReveal({ text, className = '', delay = 0 }: TextReve
 
   const containerScores = {
     hidden: { opacity: 0 },
-    visible: (i = 1) => ({
+    visible: () => ({
       opacity: 1,
       transition: { staggerChildren: 0.03, delayChildren: delay },
     }),

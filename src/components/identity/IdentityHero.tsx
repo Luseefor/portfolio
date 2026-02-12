@@ -64,7 +64,7 @@ export default function IdentityHero() {
                 textShadow: { duration: 4, repeat: Infinity, ease: "easeInOut" }
               }}
             >
-              I'm{' '}
+              I&apos;m{' '}
               <span
                 className="text-transparent bg-clip-text bg-gradient-to-r"
                 style={{

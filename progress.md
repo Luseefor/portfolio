@@ -1,0 +1,36 @@
+Original prompt: Refactor the entire camera system to behave like a modern MMORPG third-person camera with smooth orbit/zoom, robust collision against dungeon geometry, and world-boundary enforcement.
+
+- Started inspection of existing camera/input/world collision architecture.
+- Loaded develop-web-game skill and confirmed Playwright client paths.
+- Replaced legacy camera rig with modular CameraController + useThirdPersonCamera hook.
+- Camera system now splits: input capture, orbit/pivot math, collision resolution, and smoothing.
+- Added shared camera yaw handoff to player movement to keep movement camera-relative and fluid.
+- Implemented multi-sample ray collision (center + offsets) and damped pullback/recovery.
+- Enforced camera world bounds clamp with padding and vertical floor clearance.
+- Tuned camera constants for MMO-style orbit feel (distance, damping, shoulder offset, zoom range).
+- Updated pointer-lock test mocks for current Canvas onCreated shape and event path.
+- Unit test run status:
+  - PASS: animationState, movement.math, cameraRig.math, pointerLock
+  - FAIL (pre-existing unrelated mock issue): dungeonLayout.render (mock missing exported constants)
+- Browser validation:
+  - Turbopack dev cache was corrupted (internal panic), switched to webpack dev mode.
+  - Playwright screenshot captured gameplay scene after camera interactions.
+  - Headless run cannot keep pointer lock due to browser document policy (`WrongDocumentError`), but drag orbit + zoom + movement interactions executed and rendered.
+- Added runtime dev fullbright toggle on `L` in DungeonScene (switches fog/background/light intensities live).
+- Added HUD control hint for `L` fullbright mode.
+- Reworked DungeonWorld GLB fitting to include all structural pieces (floor/walls/arches/pillars/props) with per-kind fit rules.
+- Added visual segmentation for long wall pieces to avoid extreme texture/stretch artifacts.
+- Added internal orientation candidates (including local Y rotate for wall-like meshes) to avoid sideways/flattened fits.
+- Added per-kind scale clamps to prevent oversized arches/pillars and malformed wall proportions.
+- Build/test status after wall-visual pass: typecheck/lint/build/test all pass.
+- Playwright skill client currently points at http://127.0.0.1:3000/interactive but target server returns Page Not Found in this environment, so screenshot validation is blocked on local server availability.
+- Performance + torch visual pass:
+  - Removed duplicate scene-level torch point lights from `DungeonScene` (torch lighting now driven by world props only) to reduce light count and frame cost.
+  - Reduced dynamic prop budgets in `DungeonWorld` (`TORCH_PLACEMENT_LIMIT`, `POT_PLACEMENT_LIMIT`, `AMBIENT_PROP_PLACEMENT_LIMIT`) to cut draw + interaction overhead.
+  - Updated torch emissive logic so only top flame meshes glow (height-threshold based), instead of entire torch body.
+  - Switched torch lighting to single wall-mounted `spotLight` per torch with per-torch target object for visible light spot directionality.
+  - Added wall-attach offset so torch props sit against wall planes instead of floating.
+- Validation after patch:
+  - `npm run -s lint` ✅
+  - `npx next build --webpack` ✅
+  - `npx tsc --noEmit` ✅ (run after build regenerated `.next/types`)

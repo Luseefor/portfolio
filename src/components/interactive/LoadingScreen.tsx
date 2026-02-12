@@ -12,8 +12,15 @@ export default function LoadingScreen() {
       const timer = window.setTimeout(() => setHidden(true), 200);
       return () => window.clearTimeout(timer);
     }
-    setHidden(false);
   }, [active, progress]);
+
+  useEffect(() => {
+    if (!active) return;
+    const forceHideTimer = window.setTimeout(() => {
+      setHidden(true);
+    }, 9000);
+    return () => window.clearTimeout(forceHideTimer);
+  }, [active]);
 
   if (hidden) {
     return null;

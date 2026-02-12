@@ -1,14 +1,13 @@
 'use client';
 
-import { PositionalAudio } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
-import { useRef, useState, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { usePlayerState, playerStateSelectors } from '@/lib/playerState';
 import { clampVolume, useSettings } from '@/lib/settings';
 
-import { DUNGEON_SCALE, CHEST_POIS, type ChestPOI } from '@/constants/DungeonLayout';
+import { DUNGEON_SCALE, CHEST_POIS, type ChestPOI } from '@/constants/dungeonLayout';
 
 interface ChestProps {
   chest: ChestPOI;
@@ -20,8 +19,8 @@ interface ChestProps {
 
 function Chest({ chest, isOpen, isNearby, masterVolume }: ChestProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const audioRef = useRef<THREE.PositionalAudio>(null);
-  const [hasPlayedOpenSound, setHasPlayedOpenSound] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasPlayedOpenSoundRef = useRef(false);
   const baseSize = useMemo(() => {
     const scale = 0.9 * DUNGEON_SCALE;
     return {
@@ -32,14 +31,29 @@ function Chest({ chest, isOpen, isNearby, masterVolume }: ChestProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio('/sounds/props/chest_open.mp3');
+      audioRef.current.preload = 'auto';
+    }
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
   // Play open sound when chest opens
   useEffect(() => {
-    if (isOpen && !hasPlayedOpenSound && audioRef.current) {
-      audioRef.current.setVolume(clampVolume(masterVolume));
-      audioRef.current.play();
-      setHasPlayedOpenSound(true);
+    if (isOpen && !hasPlayedOpenSoundRef.current && audioRef.current) {
+      const safeVolume = clampVolume(masterVolume);
+      audioRef.current.volume = Number.isFinite(safeVolume) ? safeVolume : 0.7;
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+      hasPlayedOpenSoundRef.current = true;
     }
-  }, [isOpen, hasPlayedOpenSound, masterVolume]);
+  }, [isOpen, masterVolume]);
 
   // Glow effect when nearby
   useFrame((state) => {
@@ -70,15 +84,6 @@ function Chest({ chest, isOpen, isNearby, masterVolume }: ChestProps) {
         <boxGeometry args={[baseSize.width, baseSize.lidHeight, baseSize.depth]} />
         <meshStandardMaterial color="#8b6646" roughness={0.75} />
       </mesh>
-
-      {/* Positional audio for chest open sound */}
-      <PositionalAudio
-        ref={audioRef}
-        url="/sounds/props/chest_open.mp3"
-        distance={5}
-        loop={false}
-        autoplay={false}
-      />
 
       {/* Collider only when closed */}
       {!isOpen && (
