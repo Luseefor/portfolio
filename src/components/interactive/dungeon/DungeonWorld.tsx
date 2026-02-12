@@ -96,8 +96,8 @@ const underfloorMaterial = new MeshStandardMaterial({
   metalness: 0.01,
 });
 const seamFillMaterial = new MeshStandardMaterial({
-  color: '#4a4438',
-  roughness: 0.96,
+  color: '#2b2c29',
+  roughness: 0.98,
   metalness: 0.01,
 });
 
@@ -574,6 +574,7 @@ export default function DungeonWorld() {
     const baseFootprint = getTileFootprint(FLOOR_TILES.primary);
     if (baseFootprint <= 0) return [];
     const baseStep = Math.min(FLOOR_MAX_STEP, Math.max(FLOOR_MIN_STEP, baseFootprint));
+    const halfFootprint = baseStep * 0.5;
     const step = baseStep * (1 - FLOOR_TILE_OVERLAP);
 
     const isCompatibleFootprint = (name: string) => {
@@ -670,10 +671,10 @@ export default function DungeonWorld() {
       const maxX = cx + halfW;
       const minZ = cz - halfD;
       const maxZ = cz + halfD;
-      const gxStart = Math.ceil((minX - step / 2) / step);
-      const gxEnd = Math.floor((maxX - step / 2) / step);
-      const gzStart = Math.ceil((minZ - step / 2) / step);
-      const gzEnd = Math.floor((maxZ - step / 2) / step);
+      const gxStart = Math.ceil((minX - halfFootprint - step / 2) / step);
+      const gxEnd = Math.floor((maxX + halfFootprint - step / 2) / step);
+      const gzStart = Math.ceil((minZ - halfFootprint - step / 2) / step);
+      const gzEnd = Math.floor((maxZ + halfFootprint - step / 2) / step);
       const gxCount = Math.max(1, gxEnd - gxStart + 1);
       const gzCount = Math.max(1, gzEnd - gzStart + 1);
       const selectedTheme =
