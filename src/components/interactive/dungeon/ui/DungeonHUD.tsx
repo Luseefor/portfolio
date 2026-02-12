@@ -123,6 +123,12 @@ export default function DungeonHUD({
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
+              L
+            </span>
+            <span>Fullbright (Dev)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
               ESC
             </span>
             <span>Settings</span>

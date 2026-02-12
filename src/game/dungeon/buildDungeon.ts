@@ -67,17 +67,32 @@ export type DungeonBuildResult = {
   spawnPoint: Vec3;
 };
 
-type RoomSide = 'north' | 'south' | 'east' | 'west';
+type FloorCellTag = {
+  room: boolean;
+  corridor: boolean;
+  theme?: DungeonRoomTheme;
+};
+
+type FloorRect = {
+  ixMin: number;
+  ixMax: number;
+  izMin: number;
+  izMax: number;
+};
+
+type WallEdgeGroup = {
+  orientation: 'x' | 'z';
+  coord: number;
+  kind: 'room-wall' | 'corridor-wall';
+  nodeKey: string;
+  starts: number[];
+};
 
 const FLOOR_THICKNESS = 0.5;
+const FLOOR_OVERLAP = 0.08;
 const WALL_THICKNESS = 1;
 const WALL_HEIGHT = 7;
-const OPENING_PADDING = 0.75;
-const ARCH_HEIGHT = 4.6;
-const ARCH_THICKNESS = 1;
-const PILLAR_SIZE = 1.2;
-const BOUNDARY_WALL_HEIGHT = 11;
-const BOUNDARY_WALL_THICKNESS = 2.2;
+const WALL_OVERLAP = 0.12;
 const POSITION_SNAP = 0.5;
 const SIZE_SNAP = 0.25;
 
@@ -98,106 +113,13 @@ const WALL_BY_THEME: Partial<Record<DungeonRoomTheme, string>> = {
   treasury: 'Wall_Overgrown',
 };
 
-function snapPoint(point: Vec2, gridSize: number): Vec2 {
-  return [snapValue(point[0], gridSize), snapValue(point[1], gridSize)] as const;
+function cellKey(ix: number, iz: number) {
+  return `${ix},${iz}`;
 }
 
-function sideFromDelta(dx: number, dz: number): RoomSide {
-  if (Math.abs(dx) >= Math.abs(dz)) {
-    return dx >= 0 ? 'east' : 'west';
-  }
-  return dz >= 0 ? 'north' : 'south';
-}
-
-function pushRoomOpening(openings: Map<string, Set<RoomSide>>, roomId: string, side: RoomSide) {
-  const existing = openings.get(roomId);
-  if (existing) {
-    existing.add(side);
-    return;
-  }
-  openings.set(roomId, new Set<RoomSide>([side]));
-}
-
-function getDoorPoint(room: DungeonRoom, side: RoomSide, gridSize: number): Vec2 {
-  const [cx, , cz] = room.center;
-  const halfWidth = room.size.width / 2 - WALL_THICKNESS / 2;
-  const halfDepth = room.size.depth / 2 - WALL_THICKNESS / 2;
-
-  let point: Vec2 = [cx, cz];
-  if (side === 'north') point = [cx, cz + halfDepth];
-  else if (side === 'south') point = [cx, cz - halfDepth];
-  else if (side === 'east') point = [cx + halfWidth, cz];
-  else if (side === 'west') point = [cx - halfWidth, cz];
-
-  return snapPoint(point, gridSize);
-}
-
-type RouteConnection = {
-  fromRoom: DungeonRoom;
-  toRoom: DungeonRoom;
-  fromSide: RoomSide;
-  toSide: RoomSide;
-  waypoints: Vec2[];
-  startDoor: Vec2;
-  endDoor: Vec2;
-};
-
-function getRouteConnection(
-  route: DungeonRoute,
-  roomById: Map<string, DungeonRoom>,
-  gridSize: number,
-): RouteConnection | null {
-  const fromRoom = roomById.get(route.fromRoomId);
-  const toRoom = roomById.get(route.toRoomId);
-  if (!fromRoom || !toRoom) return null;
-
-  const fromCenter = snapPoint([fromRoom.center[0], fromRoom.center[2]], gridSize);
-  const toCenter = snapPoint([toRoom.center[0], toRoom.center[2]], gridSize);
-  const waypoints = ((route.waypoints ?? []).map((waypoint) => snapPoint(waypoint, gridSize)) as Vec2[]);
-
-  const startReference = waypoints.length > 0 ? waypoints[0] : toCenter;
-  const endReference = waypoints.length > 0 ? waypoints[waypoints.length - 1] : fromCenter;
-
-  const fromSide = sideFromDelta(
-    startReference[0] - fromCenter[0],
-    startReference[1] - fromCenter[1],
-  );
-  const toSide = sideFromDelta(
-    endReference[0] - toCenter[0],
-    endReference[1] - toCenter[1],
-  );
-
-  return {
-    fromRoom,
-    toRoom,
-    fromSide,
-    toSide,
-    waypoints,
-    startDoor: getDoorPoint(fromRoom, fromSide, gridSize),
-    endDoor: getDoorPoint(toRoom, toSide, gridSize),
-  };
-}
-
-function getRoutePoints(route: DungeonRoute, roomById: Map<string, DungeonRoom>, gridSize: number): Vec2[] {
-  const connection = getRouteConnection(route, roomById, gridSize);
-  if (!connection) return [];
-  return [connection.startDoor, ...connection.waypoints, connection.endDoor];
-}
-
-function collectRoomOpenings(layout: DungeonLayoutGraph, roomById: Map<string, DungeonRoom>) {
-  const openings = new Map<string, Set<RoomSide>>();
-  for (let i = 0; i < layout.routes.length; i += 1) {
-    const route = layout.routes[i];
-    const connection = getRouteConnection(route, roomById, layout.gridSize);
-    if (!connection) continue;
-    pushRoomOpening(openings, connection.fromRoom.id, connection.fromSide);
-    pushRoomOpening(openings, connection.toRoom.id, connection.toSide);
-  }
-  return openings;
-}
-
-function getRoomWallNode(theme: DungeonRoomTheme) {
-  return WALL_BY_THEME[theme] ?? DUNGEON_STRUCTURAL_KEYS.walls[0];
+function parseCellKey(key: string): [number, number] {
+  const [ixRaw, izRaw] = key.split(',');
+  return [Number(ixRaw), Number(izRaw)];
 }
 
 function normalizePiece(piece: DungeonBuildPiece): DungeonBuildPiece {
@@ -211,10 +133,6 @@ function normalizePiece(piece: DungeonBuildPiece): DungeonBuildPiece {
     ],
     rotationY: snapValue(piece.rotationY, 0.0001),
   };
-}
-
-function addPiece(pieces: DungeonBuildPiece[], piece: DungeonBuildPiece) {
-  pieces.push(normalizePiece(piece));
 }
 
 function addPieceAndCollider(
@@ -231,347 +149,391 @@ function addPieceAndCollider(
   });
 }
 
-function buildRoom(
-  room: DungeonRoom,
-  openings: Set<RoomSide> | undefined,
-  result: DungeonBuildResult,
+function getRoomWallNode(theme: DungeonRoomTheme | undefined) {
+  if (!theme) return DUNGEON_STRUCTURAL_KEYS.walls[0];
+  return WALL_BY_THEME[theme] ?? DUNGEON_STRUCTURAL_KEYS.walls[0];
+}
+
+function upsertFloorCell(
+  cells: Map<string, FloorCellTag>,
+  ix: number,
+  iz: number,
+  patch: FloorCellTag,
 ) {
-  const [cx, cy, cz] = room.center;
-  const halfWidth = room.size.width / 2;
-  const halfDepth = room.size.depth / 2;
-
-  const floorNode = FLOOR_BY_THEME[room.theme] ?? DUNGEON_STRUCTURAL_KEYS.floors[0];
-
-  addPieceAndCollider(result.pieces, result.colliders, {
-    id: `${room.id}-floor`,
-    kind: 'floor',
-    nodeKey: floorNode,
-    position: [cx, cy - FLOOR_THICKNESS / 2, cz],
-    size: [room.size.width, FLOOR_THICKNESS, room.size.depth],
-    rotationY: 0,
-    roomId: room.id,
-  });
-
-  result.walkableTiles.push({
-    x: cx,
-    z: cz,
-    halfSize: Math.max(room.size.width, room.size.depth) / 2,
-    lift: 0,
-  });
-
-  const openingWidth = Math.max(3.4, Math.min(6.5, room.size.width * 0.4));
-  const wallNode = getRoomWallNode(room.theme);
-  const wallY = cy + WALL_HEIGHT / 2;
-
-  const pushWallX = (
-    idSuffix: string,
-    x: number,
-    z: number,
-    width: number,
-    depth: number,
-    side: RoomSide,
-  ) => {
-    addPieceAndCollider(result.pieces, result.colliders, {
-      id: `${room.id}-${idSuffix}`,
-      kind: 'room-wall',
-      nodeKey: wallNode,
-      position: [x, wallY, z],
-      size: [width, WALL_HEIGHT, depth],
-      rotationY: side === 'east' || side === 'west' ? Math.PI / 2 : 0,
-      roomId: room.id,
-    });
-  };
-
-  const northOpen = openings?.has('north') ?? false;
-  const southOpen = openings?.has('south') ?? false;
-  const eastOpen = openings?.has('east') ?? false;
-  const westOpen = openings?.has('west') ?? false;
-
-  const pushArch = (side: RoomSide) => {
-    let position: [number, number, number] = [cx, cy + ARCH_HEIGHT / 2, cz];
-    let size: [number, number, number] = [openingWidth + 0.4, ARCH_HEIGHT, ARCH_THICKNESS];
-    let rotationY = 0;
-
-    if (side === 'north') {
-      position = [cx, cy + ARCH_HEIGHT / 2, cz + halfDepth - WALL_THICKNESS / 2];
-      rotationY = Math.PI;
-    } else if (side === 'south') {
-      position = [cx, cy + ARCH_HEIGHT / 2, cz - halfDepth + WALL_THICKNESS / 2];
-      rotationY = 0;
-    } else if (side === 'east') {
-      position = [cx + halfWidth - WALL_THICKNESS / 2, cy + ARCH_HEIGHT / 2, cz];
-      size = [ARCH_THICKNESS, ARCH_HEIGHT, openingWidth + 0.4];
-      rotationY = -Math.PI / 2;
-    } else if (side === 'west') {
-      position = [cx - halfWidth + WALL_THICKNESS / 2, cy + ARCH_HEIGHT / 2, cz];
-      size = [ARCH_THICKNESS, ARCH_HEIGHT, openingWidth + 0.4];
-      rotationY = Math.PI / 2;
+  const key = cellKey(ix, iz);
+  const existing = cells.get(key);
+  if (existing) {
+    existing.room = existing.room || patch.room;
+    existing.corridor = existing.corridor || patch.corridor;
+    if (patch.theme && !existing.theme) {
+      existing.theme = patch.theme;
     }
-
-    addPiece(result.pieces, {
-      id: `${room.id}-arch-${side}`,
-      kind: 'arch',
-      nodeKey: DUNGEON_STRUCTURAL_KEYS.arches[0],
-      position,
-      size,
-      rotationY,
-      roomId: room.id,
-    });
-  };
-
-  const northZ = cz + halfDepth - WALL_THICKNESS / 2;
-  const southZ = cz - halfDepth + WALL_THICKNESS / 2;
-  const eastX = cx + halfWidth - WALL_THICKNESS / 2;
-  const westX = cx - halfWidth + WALL_THICKNESS / 2;
-
-  const northLength = room.size.width;
-  const sideLength = room.size.depth;
-
-  if (northOpen) {
-    const segmentLength = Math.max(
-      1,
-      (northLength - (openingWidth + OPENING_PADDING * 2)) / 2,
-    );
-    const offset = openingWidth / 2 + segmentLength / 2 + OPENING_PADDING / 2;
-    pushWallX('wall-north-left', cx - offset, northZ, segmentLength, WALL_THICKNESS, 'north');
-    pushWallX('wall-north-right', cx + offset, northZ, segmentLength, WALL_THICKNESS, 'north');
-    pushArch('north');
-  } else {
-    pushWallX('wall-north', cx, northZ, northLength, WALL_THICKNESS, 'north');
+    cells.set(key, existing);
+    return;
   }
+  cells.set(key, { ...patch });
+}
 
-  if (southOpen) {
-    const segmentLength = Math.max(
-      1,
-      (northLength - (openingWidth + OPENING_PADDING * 2)) / 2,
-    );
-    const offset = openingWidth / 2 + segmentLength / 2 + OPENING_PADDING / 2;
-    pushWallX('wall-south-left', cx - offset, southZ, segmentLength, WALL_THICKNESS, 'south');
-    pushWallX('wall-south-right', cx + offset, southZ, segmentLength, WALL_THICKNESS, 'south');
-    pushArch('south');
-  } else {
-    pushWallX('wall-south', cx, southZ, northLength, WALL_THICKNESS, 'south');
-  }
+function addRectCells(
+  cells: Map<string, FloorCellTag>,
+  minX: number,
+  maxX: number,
+  minZ: number,
+  maxZ: number,
+  cellSize: number,
+  patch: FloorCellTag,
+) {
+  const ixMin = Math.floor(minX / cellSize);
+  const ixMax = Math.ceil(maxX / cellSize) - 1;
+  const izMin = Math.floor(minZ / cellSize);
+  const izMax = Math.ceil(maxZ / cellSize) - 1;
 
-  if (eastOpen) {
-    const segmentLength = Math.max(
-      1,
-      (sideLength - (openingWidth + OPENING_PADDING * 2)) / 2,
-    );
-    const offset = openingWidth / 2 + segmentLength / 2 + OPENING_PADDING / 2;
-    pushWallX('wall-east-near', eastX, cz - offset, WALL_THICKNESS, segmentLength, 'east');
-    pushWallX('wall-east-far', eastX, cz + offset, WALL_THICKNESS, segmentLength, 'east');
-    pushArch('east');
-  } else {
-    pushWallX('wall-east', eastX, cz, WALL_THICKNESS, sideLength, 'east');
-  }
-
-  if (westOpen) {
-    const segmentLength = Math.max(
-      1,
-      (sideLength - (openingWidth + OPENING_PADDING * 2)) / 2,
-    );
-    const offset = openingWidth / 2 + segmentLength / 2 + OPENING_PADDING / 2;
-    pushWallX('wall-west-near', westX, cz - offset, WALL_THICKNESS, segmentLength, 'west');
-    pushWallX('wall-west-far', westX, cz + offset, WALL_THICKNESS, segmentLength, 'west');
-    pushArch('west');
-  } else {
-    pushWallX('wall-west', westX, cz, WALL_THICKNESS, sideLength, 'west');
-  }
-
-  const pillarOffsetX = Math.max(2.2, halfWidth - 1.6);
-  const pillarOffsetZ = Math.max(2.2, halfDepth - 1.6);
-  const pillarNode = DUNGEON_STRUCTURAL_KEYS.pillars[room.id.length % DUNGEON_STRUCTURAL_KEYS.pillars.length];
-  const pillarPositions: Array<[number, number, number]> = [
-    [cx - pillarOffsetX, cy + WALL_HEIGHT / 2, cz - pillarOffsetZ],
-    [cx + pillarOffsetX, cy + WALL_HEIGHT / 2, cz - pillarOffsetZ],
-    [cx - pillarOffsetX, cy + WALL_HEIGHT / 2, cz + pillarOffsetZ],
-    [cx + pillarOffsetX, cy + WALL_HEIGHT / 2, cz + pillarOffsetZ],
-  ];
-
-  for (let i = 0; i < pillarPositions.length; i += 1) {
-    const [px, py, pz] = pillarPositions[i];
-    addPieceAndCollider(result.pieces, result.colliders, {
-      id: `${room.id}-pillar-${i}`,
-      kind: 'pillar',
-      nodeKey: pillarNode,
-      position: [px, py, pz],
-      size: [PILLAR_SIZE, WALL_HEIGHT, PILLAR_SIZE],
-      rotationY: 0,
-      roomId: room.id,
-    });
-  }
-
-  if (room.props && room.props.length > 0) {
-    for (let i = 0; i < room.props.length; i += 1) {
-      const prop = room.props[i];
-      const position: [number, number, number] = [
-        cx + prop.offset[0],
-        cy + prop.offset[1],
-        cz + prop.offset[2],
-      ];
-      addPiece(result.pieces, {
-        id: `${room.id}-prop-${i}`,
-        kind: 'prop',
-        nodeKey: prop.key,
-        position,
-        size: [0.9, 1.8, 0.9],
-        rotationY: prop.rotationY ?? 0,
-        roomId: room.id,
-      });
-
-      if (/torch/i.test(prop.key)) {
-        result.torchAnchors.push({
-          id: `${room.id}-torch-${i}`,
-          position,
-          rotationY: prop.rotationY ?? 0,
-          source: 'room',
-        });
-      }
+  for (let ix = ixMin; ix <= ixMax; ix += 1) {
+    for (let iz = izMin; iz <= izMax; iz += 1) {
+      upsertFloorCell(cells, ix, iz, patch);
     }
   }
 }
 
-function pushCorridorSegment(
+function addRoomCells(cells: Map<string, FloorCellTag>, room: DungeonRoom, cellSize: number) {
+  const [cx, , cz] = room.center;
+  addRectCells(
+    cells,
+    cx - room.size.width / 2,
+    cx + room.size.width / 2,
+    cz - room.size.depth / 2,
+    cz + room.size.depth / 2,
+    cellSize,
+    {
+      room: true,
+      corridor: false,
+      theme: room.theme,
+    },
+  );
+}
+
+function getRoutePoints(route: DungeonRoute, roomById: Map<string, DungeonRoom>, gridSize: number): Vec2[] {
+  const from = roomById.get(route.fromRoomId);
+  const to = roomById.get(route.toRoomId);
+  if (!from || !to) {
+    return [];
+  }
+
+  const snap = (value: number) => snapValue(value, gridSize);
+
+  return [
+    [snap(from.center[0]), snap(from.center[2])],
+    ...((route.waypoints ?? []).map((waypoint) => [snap(waypoint[0]), snap(waypoint[1])] as Vec2)),
+    [snap(to.center[0]), snap(to.center[2])],
+  ];
+}
+
+function addCorridorSegmentCells(
+  cells: Map<string, FloorCellTag>,
   start: Vec2,
   end: Vec2,
-  route: DungeonRoute,
-  routeIndex: number,
-  result: DungeonBuildResult,
+  width: number,
+  cellSize: number,
 ) {
   const dx = end[0] - start[0];
   const dz = end[1] - start[1];
 
   if (Math.abs(dx) > 0.001 && Math.abs(dz) > 0.001) {
     const corner: Vec2 = [end[0], start[1]];
-    pushCorridorSegment(start, corner, route, routeIndex, result);
-    pushCorridorSegment(corner, end, route, routeIndex, result);
+    addCorridorSegmentCells(cells, start, corner, width, cellSize);
+    addCorridorSegmentCells(cells, corner, end, width, cellSize);
     return;
   }
 
-  const axis: 'x' | 'z' = Math.abs(dx) >= Math.abs(dz) ? 'x' : 'z';
-  const length = axis === 'x' ? Math.abs(dx) : Math.abs(dz);
-  if (length < 0.5) return;
+  if (Math.abs(dx) <= 0.001 && Math.abs(dz) <= 0.001) return;
 
-  const centerX = (start[0] + end[0]) / 2;
-  const centerZ = (start[1] + end[1]) / 2;
-  const pointToToken = (point: Vec2) =>
-    `${snapValue(point[0], 0.01).toFixed(2)}_${snapValue(point[1], 0.01).toFixed(2)}`;
-  const segmentKey = `${route.id}-segment-${routeIndex}-${pointToToken(start)}__${pointToToken(end)}`;
-
-  const floorSize: [number, number, number] =
-    axis === 'x'
-      ? [length + WALL_THICKNESS, FLOOR_THICKNESS, route.width + WALL_THICKNESS]
-      : [route.width + WALL_THICKNESS, FLOOR_THICKNESS, length + WALL_THICKNESS];
-
-  addPieceAndCollider(result.pieces, result.colliders, {
-    id: `${segmentKey}-floor`,
-    kind: 'corridor-floor',
-    nodeKey: DUNGEON_STRUCTURAL_KEYS.floors[route.kind === 'main' ? 0 : 1],
-    position: [centerX, -FLOOR_THICKNESS / 2, centerZ],
-    size: floorSize,
-    rotationY: 0,
-    routeId: route.id,
-  });
-
-  result.walkableTiles.push({
-    x: centerX,
-    z: centerZ,
-    halfSize: axis === 'x' ? length / 2 : route.width / 2,
-    lift: 0,
-  });
-
-  const wallNode = DUNGEON_STRUCTURAL_KEYS.walls[route.kind === 'main' ? 0 : 1];
-  const corridorWallDepth = axis === 'x' ? WALL_THICKNESS : length + WALL_THICKNESS;
-  const corridorWallWidth = axis === 'x' ? length + WALL_THICKNESS : WALL_THICKNESS;
-  const wallY = WALL_HEIGHT / 2;
-  const offset = route.width / 2 - WALL_THICKNESS / 2;
-
-  if (axis === 'x') {
-    addPieceAndCollider(result.pieces, result.colliders, {
-      id: `${segmentKey}-wall-north`,
-      kind: 'corridor-wall',
-      nodeKey: wallNode,
-      position: [centerX, wallY, centerZ + offset],
-      size: [corridorWallWidth, WALL_HEIGHT, corridorWallDepth],
-      rotationY: 0,
-      routeId: route.id,
-    });
-
-    addPieceAndCollider(result.pieces, result.colliders, {
-      id: `${segmentKey}-wall-south`,
-      kind: 'corridor-wall',
-      nodeKey: wallNode,
-      position: [centerX, wallY, centerZ - offset],
-      size: [corridorWallWidth, WALL_HEIGHT, corridorWallDepth],
-      rotationY: 0,
-      routeId: route.id,
-    });
+  if (Math.abs(dx) > Math.abs(dz)) {
+    addRectCells(
+      cells,
+      Math.min(start[0], end[0]) - cellSize * 0.5,
+      Math.max(start[0], end[0]) + cellSize * 0.5,
+      start[1] - width * 0.5,
+      start[1] + width * 0.5,
+      cellSize,
+      {
+        room: false,
+        corridor: true,
+      },
+    );
   } else {
-    addPieceAndCollider(result.pieces, result.colliders, {
-      id: `${segmentKey}-wall-east`,
-      kind: 'corridor-wall',
-      nodeKey: wallNode,
-      position: [centerX + offset, wallY, centerZ],
-      size: [corridorWallWidth, WALL_HEIGHT, corridorWallDepth],
-      rotationY: Math.PI / 2,
-      routeId: route.id,
-    });
-
-    addPieceAndCollider(result.pieces, result.colliders, {
-      id: `${segmentKey}-wall-west`,
-      kind: 'corridor-wall',
-      nodeKey: wallNode,
-      position: [centerX - offset, wallY, centerZ],
-      size: [corridorWallWidth, WALL_HEIGHT, corridorWallDepth],
-      rotationY: Math.PI / 2,
-      routeId: route.id,
-    });
-  }
-
-  if (length >= 8) {
-    const torchOffset = route.width / 2 - 0.8;
-    if (axis === 'x') {
-      result.torchAnchors.push({
-        id: `${segmentKey}-torch-north`,
-        position: [centerX, 2.2, centerZ + torchOffset],
-        rotationY: Math.PI,
-        source: 'corridor',
-      });
-      result.torchAnchors.push({
-        id: `${segmentKey}-torch-south`,
-        position: [centerX, 2.2, centerZ - torchOffset],
-        rotationY: 0,
-        source: 'corridor',
-      });
-    } else {
-      result.torchAnchors.push({
-        id: `${segmentKey}-torch-east`,
-        position: [centerX + torchOffset, 2.2, centerZ],
-        rotationY: -Math.PI / 2,
-        source: 'corridor',
-      });
-      result.torchAnchors.push({
-        id: `${segmentKey}-torch-west`,
-        position: [centerX - torchOffset, 2.2, centerZ],
-        rotationY: Math.PI / 2,
-        source: 'corridor',
-      });
-    }
+    addRectCells(
+      cells,
+      start[0] - width * 0.5,
+      start[0] + width * 0.5,
+      Math.min(start[1], end[1]) - cellSize * 0.5,
+      Math.max(start[1], end[1]) + cellSize * 0.5,
+      cellSize,
+      {
+        room: false,
+        corridor: true,
+      },
+    );
   }
 }
 
-function buildRoute(route: DungeonRoute, roomById: Map<string, DungeonRoom>, layout: DungeonLayoutGraph, result: DungeonBuildResult) {
-  const points = getRoutePoints(route, roomById, layout.gridSize);
-  if (points.length < 2) return;
+function buildFloorCells(layout: DungeonLayoutGraph) {
+  const cells = new Map<string, FloorCellTag>();
+  const roomById = new Map(layout.rooms.map((room) => [room.id, room]));
 
-  for (let i = 0; i < points.length - 1; i += 1) {
-    pushCorridorSegment(points[i], points[i + 1], route, i, result);
+  for (let i = 0; i < layout.rooms.length; i += 1) {
+    addRoomCells(cells, layout.rooms[i], layout.gridSize);
+  }
+
+  for (let i = 0; i < layout.routes.length; i += 1) {
+    const route = layout.routes[i];
+    const points = getRoutePoints(route, roomById, layout.gridSize);
+    if (points.length < 2) continue;
+    for (let p = 0; p < points.length - 1; p += 1) {
+      addCorridorSegmentCells(cells, points[p], points[p + 1], route.width, layout.gridSize);
+    }
+  }
+
+  return cells;
+}
+
+function mergeFloorRects(cells: Set<string>): FloorRect[] {
+  const unvisited = new Set(cells);
+  const rects: FloorRect[] = [];
+
+  while (unvisited.size > 0) {
+    const key = unvisited.values().next().value as string;
+    const [ixStart, izStart] = parseCellKey(key);
+
+    let width = 1;
+    while (unvisited.has(cellKey(ixStart + width, izStart))) {
+      width += 1;
+    }
+
+    let height = 1;
+    heightLoop: while (true) {
+      const iz = izStart + height;
+      for (let dx = 0; dx < width; dx += 1) {
+        if (!unvisited.has(cellKey(ixStart + dx, iz))) {
+          break heightLoop;
+        }
+      }
+      height += 1;
+    }
+
+    for (let dz = 0; dz < height; dz += 1) {
+      for (let dx = 0; dx < width; dx += 1) {
+        unvisited.delete(cellKey(ixStart + dx, izStart + dz));
+      }
+    }
+
+    rects.push({
+      ixMin: ixStart,
+      ixMax: ixStart + width - 1,
+      izMin: izStart,
+      izMax: izStart + height - 1,
+    });
+  }
+
+  return rects;
+}
+
+function rectKeys(rect: FloorRect): string[] {
+  const keys: string[] = [];
+  for (let ix = rect.ixMin; ix <= rect.ixMax; ix += 1) {
+    for (let iz = rect.izMin; iz <= rect.izMax; iz += 1) {
+      keys.push(cellKey(ix, iz));
+    }
+  }
+  return keys;
+}
+
+function rectIsCorridorOnly(rect: FloorRect, cellMap: Map<string, FloorCellTag>) {
+  const keys = rectKeys(rect);
+  for (let i = 0; i < keys.length; i += 1) {
+    const tag = cellMap.get(keys[i]);
+    if (!tag) continue;
+    if (tag.room) return false;
+  }
+  return true;
+}
+
+function dominantRectTheme(rect: FloorRect, cellMap: Map<string, FloorCellTag>): DungeonRoomTheme | undefined {
+  const counts = new Map<DungeonRoomTheme, number>();
+  const keys = rectKeys(rect);
+
+  for (let i = 0; i < keys.length; i += 1) {
+    const tag = cellMap.get(keys[i]);
+    if (!tag?.theme) continue;
+    counts.set(tag.theme, (counts.get(tag.theme) ?? 0) + 1);
+  }
+
+  let bestTheme: DungeonRoomTheme | undefined;
+  let bestCount = -1;
+  for (const [theme, count] of counts.entries()) {
+    if (count > bestCount) {
+      bestTheme = theme;
+      bestCount = count;
+    }
+  }
+
+  return bestTheme;
+}
+
+function pushMergedFloors(
+  layout: DungeonLayoutGraph,
+  result: DungeonBuildResult,
+  cellMap: Map<string, FloorCellTag>,
+) {
+  const rects = mergeFloorRects(new Set(cellMap.keys()));
+  for (let i = 0; i < rects.length; i += 1) {
+    const rect = rects[i];
+    const cellsX = rect.ixMax - rect.ixMin + 1;
+    const cellsZ = rect.izMax - rect.izMin + 1;
+    const centerX = (rect.ixMin + rect.ixMax + 1) * layout.gridSize * 0.5;
+    const centerZ = (rect.izMin + rect.izMax + 1) * layout.gridSize * 0.5;
+
+    const corridorOnly = rectIsCorridorOnly(rect, cellMap);
+    const theme = dominantRectTheme(rect, cellMap);
+
+    const kind: DungeonPieceKind = corridorOnly ? 'corridor-floor' : 'floor';
+    const nodeKey = corridorOnly
+      ? DUNGEON_STRUCTURAL_KEYS.floors[0]
+      : FLOOR_BY_THEME[theme ?? 'hall'] ?? DUNGEON_STRUCTURAL_KEYS.floors[0];
+
+    addPieceAndCollider(result.pieces, result.colliders, {
+      id: `floor-rect-${i}`,
+      kind,
+      nodeKey,
+      position: [centerX, -FLOOR_THICKNESS * 0.5, centerZ],
+      size: [
+        cellsX * layout.gridSize + FLOOR_OVERLAP,
+        FLOOR_THICKNESS,
+        cellsZ * layout.gridSize + FLOOR_OVERLAP,
+      ],
+      rotationY: 0,
+    });
+  }
+
+  for (const key of cellMap.keys()) {
+    const [ix, iz] = parseCellKey(key);
+    result.walkableTiles.push({
+      x: (ix + 0.5) * layout.gridSize,
+      z: (iz + 0.5) * layout.gridSize,
+      halfSize: layout.gridSize * 0.5,
+      lift: 0,
+    });
+  }
+}
+
+function collectWallEdges(
+  layout: DungeonLayoutGraph,
+  cellMap: Map<string, FloorCellTag>,
+): Map<string, WallEdgeGroup> {
+  const groups = new Map<string, WallEdgeGroup>();
+
+  const pushEdge = (
+    orientation: 'x' | 'z',
+    coord: number,
+    start: number,
+    kind: 'room-wall' | 'corridor-wall',
+    nodeKey: string,
+  ) => {
+    const key = `${orientation}|${coord}|${kind}|${nodeKey}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.starts.push(start);
+      return;
+    }
+    groups.set(key, {
+      orientation,
+      coord,
+      kind,
+      nodeKey,
+      starts: [start],
+    });
+  };
+
+  for (const [key, tag] of cellMap.entries()) {
+    const [ix, iz] = parseCellKey(key);
+    const wallKind: 'room-wall' | 'corridor-wall' = tag.room ? 'room-wall' : 'corridor-wall';
+    const wallNode = getRoomWallNode(tag.theme);
+
+    if (!cellMap.has(cellKey(ix, iz + 1))) {
+      pushEdge('x', iz + 1, ix, wallKind, wallNode);
+    }
+    if (!cellMap.has(cellKey(ix, iz - 1))) {
+      pushEdge('x', iz, ix, wallKind, wallNode);
+    }
+    if (!cellMap.has(cellKey(ix + 1, iz))) {
+      pushEdge('z', ix + 1, iz, wallKind, wallNode);
+    }
+    if (!cellMap.has(cellKey(ix - 1, iz))) {
+      pushEdge('z', ix, iz, wallKind, wallNode);
+    }
+  }
+
+  return groups;
+}
+
+function pushMergedWalls(
+  layout: DungeonLayoutGraph,
+  result: DungeonBuildResult,
+  wallGroups: Map<string, WallEdgeGroup>,
+) {
+  const wallY = WALL_HEIGHT * 0.5;
+
+  for (const [groupKey, group] of wallGroups.entries()) {
+    const starts = [...new Set(group.starts)].sort((a, b) => a - b);
+    if (!starts.length) continue;
+
+    let runStart = starts[0];
+    let previous = starts[0];
+
+    const emitRun = (start: number, end: number) => {
+      const cells = end - start + 1;
+      if (group.orientation === 'x') {
+        const centerX = (start + end + 1) * layout.gridSize * 0.5;
+        const centerZ = group.coord * layout.gridSize;
+        addPieceAndCollider(result.pieces, result.colliders, {
+          id: `wall-${groupKey}-${start}-${end}`,
+          kind: group.kind,
+          nodeKey: group.nodeKey,
+          position: [centerX, wallY, centerZ],
+          size: [cells * layout.gridSize + WALL_OVERLAP, WALL_HEIGHT, WALL_THICKNESS],
+          rotationY: 0,
+        });
+      } else {
+        const centerX = group.coord * layout.gridSize;
+        const centerZ = (start + end + 1) * layout.gridSize * 0.5;
+        addPieceAndCollider(result.pieces, result.colliders, {
+          id: `wall-${groupKey}-${start}-${end}`,
+          kind: group.kind,
+          nodeKey: group.nodeKey,
+          position: [centerX, wallY, centerZ],
+          size: [WALL_THICKNESS, WALL_HEIGHT, cells * layout.gridSize + WALL_OVERLAP],
+          rotationY: Math.PI * 0.5,
+        });
+      }
+    };
+
+    for (let i = 1; i < starts.length; i += 1) {
+      const value = starts[i];
+      if (value === previous + 1) {
+        previous = value;
+        continue;
+      }
+      emitRun(runStart, previous);
+      runStart = value;
+      previous = value;
+    }
+
+    emitRun(runStart, previous);
   }
 }
 
 function buildSpawnPlatform(layout: DungeonLayoutGraph, result: DungeonBuildResult) {
   const platform = layout.spawnPlatform;
+
   addPieceAndCollider(result.pieces, result.colliders, {
     id: 'spawn-platform',
     kind: 'spawn-platform',
@@ -585,7 +547,7 @@ function buildSpawnPlatform(layout: DungeonLayoutGraph, result: DungeonBuildResu
   result.walkableTiles.push({
     x: platform.center[0],
     z: platform.center[2],
-    halfSize: Math.max(platform.size.width, platform.size.depth) / 2,
+    halfSize: Math.min(platform.size.width, platform.size.depth) * 0.5,
     lift: platform.size.height * 0.45,
   });
 
@@ -594,62 +556,82 @@ function buildSpawnPlatform(layout: DungeonLayoutGraph, result: DungeonBuildResu
     result.torchAnchors.push({
       id: `spawn-landmark-${i}`,
       position: [torch[0], torch[1], torch[2]],
-      rotationY: i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2,
+      rotationY: i % 2 === 0 ? Math.PI * 0.5 : -Math.PI * 0.5,
       source: 'spawn',
     });
   }
 }
 
-function buildBoundaryWalls(result: DungeonBuildResult) {
-  const bounds = result.bounds;
-  const centerX = (bounds.minX + bounds.maxX) / 2;
-  const centerZ = (bounds.minZ + bounds.maxZ) / 2;
-  const width = bounds.maxX - bounds.minX;
-  const depth = bounds.maxZ - bounds.minZ;
-  const y = BOUNDARY_WALL_HEIGHT / 2;
+function pushRoomTorchAnchors(layout: DungeonLayoutGraph, result: DungeonBuildResult) {
+  for (let i = 0; i < layout.rooms.length; i += 1) {
+    const room = layout.rooms[i];
+    if (!room.props?.length) continue;
 
-  const boundarySpecs: Array<{
-    id: string;
-    position: [number, number, number];
-    size: [number, number, number];
-    rotationY: number;
-  }> = [
-    {
-      id: 'boundary-east',
-      position: [bounds.maxX + BOUNDARY_WALL_THICKNESS / 2, y, centerZ],
-      size: [BOUNDARY_WALL_THICKNESS, BOUNDARY_WALL_HEIGHT, depth + BOUNDARY_WALL_THICKNESS * 2],
-      rotationY: Math.PI / 2,
-    },
-    {
-      id: 'boundary-west',
-      position: [bounds.minX - BOUNDARY_WALL_THICKNESS / 2, y, centerZ],
-      size: [BOUNDARY_WALL_THICKNESS, BOUNDARY_WALL_HEIGHT, depth + BOUNDARY_WALL_THICKNESS * 2],
-      rotationY: Math.PI / 2,
-    },
-    {
-      id: 'boundary-north',
-      position: [centerX, y, bounds.maxZ + BOUNDARY_WALL_THICKNESS / 2],
-      size: [width + BOUNDARY_WALL_THICKNESS * 2, BOUNDARY_WALL_HEIGHT, BOUNDARY_WALL_THICKNESS],
-      rotationY: 0,
-    },
-    {
-      id: 'boundary-south',
-      position: [centerX, y, bounds.minZ - BOUNDARY_WALL_THICKNESS / 2],
-      size: [width + BOUNDARY_WALL_THICKNESS * 2, BOUNDARY_WALL_HEIGHT, BOUNDARY_WALL_THICKNESS],
-      rotationY: 0,
-    },
-  ];
+    const [cx, cy, cz] = room.center;
+    for (let p = 0; p < room.props.length; p += 1) {
+      const prop = room.props[p];
+      if (!/torch/i.test(prop.key)) continue;
 
-  for (let i = 0; i < boundarySpecs.length; i += 1) {
-    const spec = boundarySpecs[i];
-    addPieceAndCollider(result.pieces, result.colliders, {
-      id: spec.id,
-      kind: 'boundary-wall',
-      nodeKey: DUNGEON_STRUCTURAL_KEYS.walls[0],
-      position: spec.position,
-      size: spec.size,
-      rotationY: spec.rotationY,
-    });
+      result.torchAnchors.push({
+        id: `${room.id}-torch-${p}`,
+        position: [cx + prop.offset[0], cy + prop.offset[1], cz + prop.offset[2]],
+        rotationY: prop.rotationY ?? 0,
+        source: 'room',
+      });
+    }
+  }
+}
+
+function pushCorridorTorchAnchors(layout: DungeonLayoutGraph, result: DungeonBuildResult) {
+  const roomById = new Map(layout.rooms.map((room) => [room.id, room]));
+
+  for (let i = 0; i < layout.routes.length; i += 1) {
+    const route = layout.routes[i];
+    const points = getRoutePoints(route, roomById, layout.gridSize);
+    for (let p = 0; p < points.length - 1; p += 1) {
+      const start = points[p];
+      const end = points[p + 1];
+      const dx = end[0] - start[0];
+      const dz = end[1] - start[1];
+
+      if (Math.abs(dx) > 0.001 && Math.abs(dz) > 0.001) continue;
+
+      const axis: 'x' | 'z' = Math.abs(dx) >= Math.abs(dz) ? 'x' : 'z';
+      const length = axis === 'x' ? Math.abs(dx) : Math.abs(dz);
+      if (length < 12) continue;
+
+      const centerX = (start[0] + end[0]) * 0.5;
+      const centerZ = (start[1] + end[1]) * 0.5;
+      const offset = route.width * 0.5 - 1;
+
+      if (axis === 'x') {
+        result.torchAnchors.push({
+          id: `${route.id}-${p}-torch-north`,
+          position: [centerX, 2.2, centerZ + offset],
+          rotationY: Math.PI,
+          source: 'corridor',
+        });
+        result.torchAnchors.push({
+          id: `${route.id}-${p}-torch-south`,
+          position: [centerX, 2.2, centerZ - offset],
+          rotationY: 0,
+          source: 'corridor',
+        });
+      } else {
+        result.torchAnchors.push({
+          id: `${route.id}-${p}-torch-east`,
+          position: [centerX + offset, 2.2, centerZ],
+          rotationY: -Math.PI * 0.5,
+          source: 'corridor',
+        });
+        result.torchAnchors.push({
+          id: `${route.id}-${p}-torch-west`,
+          position: [centerX - offset, 2.2, centerZ],
+          rotationY: Math.PI * 0.5,
+          source: 'corridor',
+        });
+      }
+    }
   }
 }
 
@@ -670,21 +652,15 @@ export function buildDungeon(layout: DungeonLayoutGraph = DUNGEON_LAYOUT_GRAPH):
     spawnPoint: layout.spawnPoint,
   };
 
-  const roomById = new Map(layout.rooms.map((room) => [room.id, room]));
-  const roomOpenings = collectRoomOpenings(layout, roomById);
+  const cellMap = buildFloorCells(layout);
+  pushMergedFloors(layout, result, cellMap);
+
+  const wallGroups = collectWallEdges(layout, cellMap);
+  pushMergedWalls(layout, result, wallGroups);
 
   buildSpawnPlatform(layout, result);
-
-  for (let i = 0; i < layout.rooms.length; i += 1) {
-    const room = layout.rooms[i];
-    buildRoom(room, roomOpenings.get(room.id), result);
-  }
-
-  for (let i = 0; i < layout.routes.length; i += 1) {
-    buildRoute(layout.routes[i], roomById, layout, result);
-  }
-
-  buildBoundaryWalls(result);
+  pushRoomTorchAnchors(layout, result);
+  pushCorridorTorchAnchors(layout, result);
 
   return result;
 }

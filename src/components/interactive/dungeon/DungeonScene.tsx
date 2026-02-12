@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { AudioListener, Color } from 'three';
 import { Physics, type RapierRigidBody } from '@react-three/rapier';
 import { useThree } from '@react-three/fiber';
@@ -12,7 +12,10 @@ import { CAMERA_PITCH } from '@/constants/camera';
 import { BUILT_DUNGEON } from '@/game/dungeon/buildDungeon';
 
 const FOG_COLOR = new Color('#101418');
-const DEV_FULLBRIGHT = false;
+const BASE_BACKGROUND = '#0a0d10';
+const FULLBRIGHT_BACKGROUND = '#a3afbb';
+const BASE_FOG_DENSITY = 0.0175;
+const FULLBRIGHT_FOG_DENSITY = 0.0028;
 const TORCH_LIGHTS = BUILT_DUNGEON.torchAnchors.slice(0, 36).map((anchor, index) => ({
   id: anchor.id,
   position: anchor.position,
@@ -37,6 +40,7 @@ export default function DungeonScene() {
   const cameraPitchRef = useRef(CAMERA_PITCH.initial);
   const { camera } = useThree();
   const listenerRef = useRef<AudioListener | null>(null);
+  const [fullbrightEnabled, setFullbrightEnabled] = useState(false);
 
   useEffect(() => {
     if (!listenerRef.current) {
@@ -49,18 +53,40 @@ export default function DungeonScene() {
     };
   }, [camera]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== 'KeyL' || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target) {
+        const isTypingTarget =
+          target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+        if (isTypingTarget) return;
+      }
+      setFullbrightEnabled((current) => !current);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <group>
-      <color attach="background" args={['#0a0d10']} />
-      <fogExp2 attach="fog" args={[FOG_COLOR, 0.0175]} />
+      <color attach="background" args={[fullbrightEnabled ? FULLBRIGHT_BACKGROUND : BASE_BACKGROUND]} />
+      <fogExp2
+        attach="fog"
+        args={[FOG_COLOR, fullbrightEnabled ? FULLBRIGHT_FOG_DENSITY : BASE_FOG_DENSITY]}
+      />
 
       {/* Global lighting */}
-      <ambientLight intensity={0.2} color="#cfd8df" />
-      <hemisphereLight intensity={0.35} color="#b8cad6" groundColor="#1c1d1d" />
+      <ambientLight intensity={fullbrightEnabled ? 1.45 : 0.2} color="#cfd8df" />
+      <hemisphereLight
+        intensity={fullbrightEnabled ? 0.9 : 0.35}
+        color={fullbrightEnabled ? '#e8f2ff' : '#b8cad6'}
+        groundColor={fullbrightEnabled ? '#7f8a93' : '#1c1d1d'}
+      />
       <directionalLight
-        position={[12, 18, 8]}
-        intensity={0.72}
-        color="#f8e4c7"
+        position={fullbrightEnabled ? [0, 20, 0] : [12, 18, 8]}
+        intensity={fullbrightEnabled ? 1.25 : 0.72}
+        color={fullbrightEnabled ? '#ffffff' : '#f8e4c7'}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
@@ -71,18 +97,12 @@ export default function DungeonScene() {
         shadow-camera-top={20}
         shadow-camera-bottom={-20}
       />
-      {DEV_FULLBRIGHT ? (
-        <>
-          <ambientLight intensity={1.1} color="#ffffff" />
-          <directionalLight position={[0, 18, 0]} intensity={1.4} color="#ffffff" />
-        </>
-      ) : null}
 
       {TORCH_LIGHTS.map((light) => (
         <pointLight
           key={`torch-light-${light.id}`}
           position={light.position}
-          intensity={light.intensity}
+          intensity={fullbrightEnabled ? light.intensity * 0.45 : light.intensity}
           color={light.color}
           distance={light.distance}
           decay={2}

@@ -433,6 +433,7 @@ export default function PlayerController({
       ref={rigidBodyRef}
       position={START_POSITION}
       colliders={false}
+      ccd
       enabledRotations={[false, false, false]}
       linearDamping={0.2}
       angularDamping={0.2}
