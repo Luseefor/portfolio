@@ -27,7 +27,7 @@ const rayDirection = new Vector3();
 const TARGET_FOLLOW_SMOOTHING = 0.01;
 const CAMERA_FLOOR_CLEARANCE = 0.7;
 const CAMERA_MIN_Y = 0.5;
-const CAMERA_BORDER_BUFFER = Math.max(2.4, DUNGEON_BOUNDS.cameraPadding);
+const CAMERA_WALL_HARD_MARGIN = Math.max(CAMERA_DISTANCE.default + 0.6, DUNGEON_BOUNDS.cameraPadding + 3.2);
 const CAMERA_WALL_BUFFER = 0.55;
 const CAMERA_MIN_COLLISION_DISTANCE = 1.0;
 const COLLISION_RECOVERY_DAMPING = 6;
@@ -43,15 +43,15 @@ function finiteOr(value: number, fallback: number) {
 
 function clampMapX(value: number) {
   return Math.min(
-    DUNGEON_BOUNDS.maxX - CAMERA_BORDER_BUFFER,
-    Math.max(DUNGEON_BOUNDS.minX + CAMERA_BORDER_BUFFER, value),
+    DUNGEON_BOUNDS.maxX - CAMERA_WALL_HARD_MARGIN,
+    Math.max(DUNGEON_BOUNDS.minX + CAMERA_WALL_HARD_MARGIN, value),
   );
 }
 
 function clampMapZ(value: number) {
   return Math.min(
-    DUNGEON_BOUNDS.maxZ - CAMERA_BORDER_BUFFER,
-    Math.max(DUNGEON_BOUNDS.minZ + CAMERA_BORDER_BUFFER, value),
+    DUNGEON_BOUNDS.maxZ - CAMERA_WALL_HARD_MARGIN,
+    Math.max(DUNGEON_BOUNDS.minZ + CAMERA_WALL_HARD_MARGIN, value),
   );
 }
 
