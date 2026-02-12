@@ -4,8 +4,13 @@ import MessageBubble from '../ui/MessageBubble';
 import InputZone from '../ui/InputZone';
 import TypingIndicator from '../ui/TypingIndicator';
 
+type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
 interface ChatViewProps {
-  messages: any[];
+  messages: ChatMessage[];
   input: string;
   setInput: (v: string) => void;
   onSend: () => void;

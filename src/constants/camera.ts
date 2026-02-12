@@ -12,27 +12,31 @@ import { MathUtils } from 'three';
 // ========================================
 export const CAMERA_DISTANCE = {
   /** Default camera distance from player */
-  default: 4.8,
+  default: 5.4,
   /** Minimum zoom distance */
-  min: 2.5,
+  min: 2.2,
   /** Maximum zoom distance */
-  max: 6.5,
+  max: 9,
   /** Zoom step per scroll wheel tick */
-  scrollStep: 0.4,
+  scrollStep: 0.45,
 } as const;
 
 // ========================================
 // OFFSET SETTINGS
 // ========================================
 export const CAMERA_OFFSET = {
-  /** Height above player pivot (eye level offset) */
-  height: 2.6,
-  /** Horizontal offset for over-shoulder view (0 = centered) */
-  side: 0.6,
+  /** Height above player pivot (legacy offset used by helper math) */
+  height: 2.25,
+  /** Horizontal offset for over-shoulder view */
+  side: 0.42,
   /** Additional backward bias to keep the head in frame */
-  back: 0.2,
+  back: 0.3,
   /** Look-at height offset (where camera points at on player) */
-  lookAtHeight: 1.6,
+  lookAtHeight: 1.35,
+  /** Stable orbit pivot height for MMO camera feel */
+  pivotHeight: 1.5,
+  /** Shoulder offset for slight asymmetric framing */
+  shoulder: 0.42,
 } as const;
 
 // ========================================
@@ -44,13 +48,23 @@ export const CAMERA_FOLLOW = {
    * Lower = smoother/slower, Higher = snappier
    * Formula: lerp(current, target, 1 - pow(smoothing, delta))
    */
-  smoothing: 0.0004,
+  smoothing: 0.0008,
 
   /**
    * Alternative: Direct lerp factor per frame (0.08-0.15 range)
    * Use this if not using exponential smoothing
    */
-  lerpFactor: 0.12,
+  lerpFactor: 0.14,
+} as const;
+
+export const CAMERA_DAMPING = {
+  rotation: 16,
+  pitch: 16,
+  pivot: 12,
+  lookAt: 14,
+  position: 15,
+  zoom: 10,
+  collisionRecovery: 8,
 } as const;
 
 // ========================================
@@ -80,11 +94,17 @@ export const CAMERA_PITCH = {
 // ========================================
 export const CAMERA_COLLISION = {
   /** Minimum distance from collision surface */
-  minDistanceFromWall: 0.3,
+  minDistanceFromWall: 0.32,
   /** Minimum allowed camera distance when colliding */
-  minCameraDistance: 0.5,
+  minCameraDistance: 1.05,
   /** Hard vertical ceiling for camera world-space Y */
   maxCameraY: 28,
+  /** Approximate camera body radius for multi-ray collision probing */
+  radius: 0.35,
+  /** Keep camera above floor/steps by this amount */
+  minGroundClearance: 0.7,
+  /** Additional map-border padding for camera clamp */
+  boundsPadding: 2,
 } as const;
 
 // ========================================

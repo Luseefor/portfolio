@@ -12,6 +12,13 @@ interface LetterGlitchProps {
   opacity?: number;
 }
 
+interface LetterCell {
+  char: string;
+  color: string;
+  targetColor: string;
+  colorProgress: number;
+}
+
 const LetterGlitch: React.FC<LetterGlitchProps> = ({
   glitchColors = ['#2b4539', '#61dca3', '#61b3dc'],
   glitchSpeed = 50,
@@ -23,7 +30,7 @@ const LetterGlitch: React.FC<LetterGlitchProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
-  const letters = useRef<any[]>([]);
+  const letters = useRef<LetterCell[]>([]);
   const grid = useRef({ columns: 0, rows: 0 });
   const context = useRef<CanvasRenderingContext2D | null>(null);
   const lastGlitchTime = useRef(Date.now());
@@ -233,7 +240,7 @@ const LetterGlitch: React.FC<LetterGlitchProps> = ({
     resizeCanvas();
     animate();
 
-    let resizeTimeout: any;
+    let resizeTimeout: ReturnType<typeof setTimeout>;
     const handleResize = () => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {

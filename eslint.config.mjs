@@ -6,6 +6,15 @@ import prettier from 'eslint-config-prettier';
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      // React Compiler lint rules are too strict for the current legacy codebase and
+      // produce false positives on deterministic game loops and mutable render state.
+      'react-hooks/purity': 'off',
+      'react-hooks/immutability': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+    },
+  },
   prettier,
   // Override default ignores of eslint-config-next.
   globalIgnores([

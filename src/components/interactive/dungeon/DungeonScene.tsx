@@ -5,15 +5,18 @@ import { AudioListener, Color } from 'three';
 import { Physics, type RapierRigidBody } from '@react-three/rapier';
 import { useThree } from '@react-three/fiber';
 import PlayerController from './PlayerController';
-import CameraRig from './CameraRig';
+import CameraController from './CameraController';
 import DungeonAmbience from './DungeonAmbience';
 import DungeonWorld from './DungeonWorld';
+import { CAMERA_PITCH } from '@/constants/camera';
 
 const FOG_COLOR = new Color('#0b0f14');
 const DEV_FULLBRIGHT = false;
 
 export default function DungeonScene() {
   const playerBodyRef = useRef<RapierRigidBody | null>(null);
+  const cameraYawRef = useRef(0);
+  const cameraPitchRef = useRef(CAMERA_PITCH.initial);
   const { camera } = useThree();
   const listenerRef = useRef<AudioListener | null>(null);
 
@@ -71,8 +74,8 @@ export default function DungeonScene() {
         <Suspense fallback={null}>
           <DungeonWorld />
         </Suspense>
-        <CameraRig targetBody={playerBodyRef} />
-        <PlayerController bodyRef={playerBodyRef} />
+        <CameraController targetBody={playerBodyRef} yawRef={cameraYawRef} pitchRef={cameraPitchRef} />
+        <PlayerController bodyRef={playerBodyRef} cameraYawRef={cameraYawRef} />
       </Physics>
     </group>
   );

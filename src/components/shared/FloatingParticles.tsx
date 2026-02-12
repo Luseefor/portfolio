@@ -15,6 +15,20 @@ interface FloatingParticlesProps {
   gravityStrength?: number;
 }
 
+interface FloatingParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  opacity: number;
+  baseOpacity: number;
+  glowMultiplier: number;
+  life: number;
+  maxLife: number;
+  id: number;
+}
+
 export default function FloatingParticles({
   particleCount = 60,
   particleSize = 1.5,
@@ -31,7 +45,7 @@ export default function FloatingParticles({
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>(undefined);
   const mouseRef = useRef({ x: -1000, y: -1000, active: false });
-  const particlesRef = useRef<any[]>([]);
+  const particlesRef = useRef<FloatingParticle[]>([]);
   const [, setCanvasSize] = useState({ width: 0, height: 0 });
 
   const createParticle = useCallback(

@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { motion, type HTMLMotionProps } from 'framer-motion';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+-=[]{}|;:,.<>?';
 
 interface HyperTextProps {
   text: string;
   duration?: number;
-  framerProps?: any;
+  framerProps?: HTMLMotionProps<'span'>;
   className?: string;
   animateOnLoad?: boolean;
 }

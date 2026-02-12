@@ -43,8 +43,10 @@ function clampPlayerZ(value: number) {
 
 export default function PlayerController({
   bodyRef,
+  cameraYawRef,
 }: {
   bodyRef?: MutableRefObject<RapierRigidBody | null>;
+  cameraYawRef?: MutableRefObject<number>;
 }) {
   const internalBodyRef = useRef<RapierRigidBody | null>(null);
   const rigidBodyRef = bodyRef ?? internalBodyRef;
@@ -164,11 +166,17 @@ export default function PlayerController({
     if (grounded) groundedTimer.current = 0;
     else groundedTimer.current += delta;
 
-    camera.getWorldDirection(forward);
-    forward.y = 0;
+    const cameraYaw = cameraYawRef?.current;
+    if (Number.isFinite(cameraYaw)) {
+      const safeYaw = cameraYaw as number;
+      forward.set(Math.sin(safeYaw), 0, Math.cos(safeYaw));
+    } else {
+      camera.getWorldDirection(forward);
+      forward.y = 0;
+    }
     if (forward.lengthSq() < 1e-4) forward.set(0, 0, 1);
     forward.normalize();
-    right.copy(forward).cross(up).normalize().multiplyScalar(-1);
+    right.set(forward.z, 0, -forward.x).normalize();
 
     const forwardPressed = keys.forward || inputRef.current.forward;
     const backwardPressed = keys.backward || inputRef.current.backward;
