@@ -1,59 +1,243 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { CHEST_POIS, DUNGEON_LAYOUT_GRAPH } from '@/constants/dungeonLayout';
+import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
 import { usePlayerState, playerStateSelectors } from '@/lib/playerState';
 
 interface DungeonHUDProps {
-  roomLabel?: string;
   chestsOpened: number;
   totalChests: number;
+  openedChestIds: ReadonlySet<string>;
+}
+
+const MINIMAP_WIDTH = 220;
+const MINIMAP_HEIGHT = 156;
+const MINIMAP_PADDING = 10;
+const MINIMAP_GRID_STEP = 18;
+const DUNGEON_SPAN_X = Math.max(1, DUNGEON_BOUNDS.maxX - DUNGEON_BOUNDS.minX);
+const DUNGEON_SPAN_Z = Math.max(1, DUNGEON_BOUNDS.maxZ - DUNGEON_BOUNDS.minZ);
+const ROOM_BY_ID = new Map(DUNGEON_LAYOUT_GRAPH.rooms.map((room) => [room.id, room]));
+const MINIMAP_INNER_WIDTH = MINIMAP_WIDTH - MINIMAP_PADDING * 2;
+const MINIMAP_INNER_HEIGHT = MINIMAP_HEIGHT - MINIMAP_PADDING * 2;
+const ROUTE_WIDTH_SCALE = ((MINIMAP_INNER_WIDTH / DUNGEON_SPAN_X) + (MINIMAP_INNER_HEIGHT / DUNGEON_SPAN_Z)) * 0.5;
+
+function worldToMinimap(x: number, z: number) {
+  const nx = (x - DUNGEON_BOUNDS.minX) / DUNGEON_SPAN_X;
+  const nz = (z - DUNGEON_BOUNDS.minZ) / DUNGEON_SPAN_Z;
+  return {
+    x: MINIMAP_PADDING + nx * (MINIMAP_WIDTH - MINIMAP_PADDING * 2),
+    y: MINIMAP_PADDING + nz * (MINIMAP_HEIGHT - MINIMAP_PADDING * 2),
+  };
 }
 
 export default function DungeonHUD({
-  roomLabel = 'Ancient Ruins',
   chestsOpened,
   totalChests,
+  openedChestIds,
 }: DungeonHUDProps) {
+  const position = usePlayerState(playerStateSelectors.position);
+  const look = usePlayerState(playerStateSelectors.look);
   const speed = usePlayerState(playerStateSelectors.speed);
   const grounded = usePlayerState(playerStateSelectors.grounded);
   const isMoving = usePlayerState(playerStateSelectors.isMoving);
+  const playerPoint = worldToMinimap(position.x, position.z);
+  const lookMagnitude = Math.hypot(look.x, look.z);
+  const lookX = lookMagnitude > 0.0001 ? look.x / lookMagnitude : 0;
+  const lookY = lookMagnitude > 0.0001 ? look.z / lookMagnitude : -1;
+  const beamNearLength = 4;
+  const beamFarLength = 30;
+  const beamNearHalfWidth = 2.8;
+  const beamFarHalfWidth = 11.5;
+  const nearCenterX = playerPoint.x + lookX * beamNearLength;
+  const nearCenterY = playerPoint.y + lookY * beamNearLength;
+  const farCenterX = playerPoint.x + lookX * beamFarLength;
+  const farCenterY = playerPoint.y + lookY * beamFarLength;
+  const perpendicularX = -lookY;
+  const perpendicularY = lookX;
 
   return (
     <>
-      {/* Top-left: Room label */}
+      {/* Top-left: Minimap */}
       <div className="pointer-events-none fixed left-6 top-6 z-30">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="rounded-xl border border-amber-500/20 bg-gradient-to-r from-stone-900/90 to-stone-800/90 px-4 py-3 shadow-[0_0_20px_rgba(0,0,0,0.3)] backdrop-blur-md"
+          className="w-[264px] rounded-xl border border-amber-500/20 bg-gradient-to-br from-stone-900/95 to-stone-800/90 p-3 shadow-[0_0_24px_rgba(0,0,0,0.35)] backdrop-blur-md"
         >
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/10">
-              <svg
-                className="h-4 w-4 text-amber-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+          <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.24em]">
+            <span className="text-amber-400/90">Minimap</span>
+            <span className="font-mono tracking-[0.12em] text-stone-400">{chestsOpened}/{totalChests}</span>
+          </div>
+          <svg
+            viewBox={`0 0 ${MINIMAP_WIDTH} ${MINIMAP_HEIGHT}`}
+            className="h-[156px] w-[220px] rounded-lg border border-stone-700/80 bg-stone-950/90"
+            role="img"
+            aria-label="Dungeon minimap"
+          >
+            <defs>
+              <radialGradient id="minimap-bg-glow" cx="50%" cy="50%" r="85%">
+                <stop offset="0%" stopColor="rgba(32,38,44,0.35)" />
+                <stop offset="100%" stopColor="rgba(6,8,10,0.95)" />
+              </radialGradient>
+              <filter id="beam-glow" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="2.1" />
+              </filter>
+            </defs>
+            <rect
+              x={0}
+              y={0}
+              width={MINIMAP_WIDTH}
+              height={MINIMAP_HEIGHT}
+              fill="url(#minimap-bg-glow)"
+              stroke="rgba(148,163,184,0.22)"
+              strokeWidth={1}
+              rx={8}
+            />
+            {Array.from({ length: Math.floor(MINIMAP_WIDTH / MINIMAP_GRID_STEP) }).map((_, index) => {
+              const x = (index + 1) * MINIMAP_GRID_STEP;
+              return (
+                <line
+                  key={`grid-v-${x}`}
+                  x1={x}
+                  y1={1}
+                  x2={x}
+                  y2={MINIMAP_HEIGHT - 1}
+                  stroke="rgba(148,163,184,0.08)"
+                  strokeWidth={0.6}
                 />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              );
+            })}
+            {Array.from({ length: Math.floor(MINIMAP_HEIGHT / MINIMAP_GRID_STEP) }).map((_, index) => {
+              const y = (index + 1) * MINIMAP_GRID_STEP;
+              return (
+                <line
+                  key={`grid-h-${y}`}
+                  x1={1}
+                  y1={y}
+                  x2={MINIMAP_WIDTH - 1}
+                  y2={y}
+                  stroke="rgba(148,163,184,0.08)"
+                  strokeWidth={0.6}
                 />
-              </svg>
+              );
+            })}
+            {DUNGEON_LAYOUT_GRAPH.rooms.map((room) => {
+              const minX = room.center[0] - room.size.width / 2;
+              const maxX = room.center[0] + room.size.width / 2;
+              const minZ = room.center[2] - room.size.depth / 2;
+              const maxZ = room.center[2] + room.size.depth / 2;
+              const topLeft = worldToMinimap(minX, minZ);
+              const bottomRight = worldToMinimap(maxX, maxZ);
+              return (
+                <rect
+                  key={room.id}
+                  x={topLeft.x}
+                  y={topLeft.y}
+                  width={Math.max(2, bottomRight.x - topLeft.x)}
+                  height={Math.max(2, bottomRight.y - topLeft.y)}
+                  fill="none"
+                  stroke="rgba(245,158,11,0.28)"
+                  strokeWidth={1}
+                  rx={2}
+                />
+              );
+            })}
+            {DUNGEON_LAYOUT_GRAPH.routes.map((route) => {
+              const fromRoom = ROOM_BY_ID.get(route.fromRoomId);
+              const toRoom = ROOM_BY_ID.get(route.toRoomId);
+              if (!fromRoom || !toRoom) return null;
+              const routeStroke = Math.max(2, Math.min(5.5, route.width * ROUTE_WIDTH_SCALE * 0.26));
+              const points = [
+                [fromRoom.center[0], fromRoom.center[2]],
+                ...(route.waypoints ?? []),
+                [toRoom.center[0], toRoom.center[2]],
+              ]
+                .map(([x, z]) => {
+                  const point = worldToMinimap(x, z);
+                  return `${point.x},${point.y}`;
+                })
+                .join(' ');
+              return (
+                <g key={route.id}>
+                  <polyline
+                    points={points}
+                    fill="none"
+                    stroke="rgba(245,158,11,0.2)"
+                    strokeWidth={routeStroke + 2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <polyline
+                    points={points}
+                    fill="none"
+                    stroke="rgba(245,158,11,0.36)"
+                    strokeWidth={routeStroke}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              );
+            })}
+            {CHEST_POIS.map((chest) => {
+              const point = worldToMinimap(chest.position[0], chest.position[2]);
+              const isOpened = openedChestIds.has(chest.id);
+              return (
+                <g key={chest.id}>
+                  <circle
+                    cx={point.x}
+                    cy={point.y}
+                    r={isOpened ? 2.1 : 2.9}
+                    fill={isOpened ? 'rgba(107,114,128,0.95)' : 'rgba(251,191,36,0.98)'}
+                  />
+                  {!isOpened && (
+                    <circle
+                      cx={point.x}
+                      cy={point.y}
+                      r={4.3}
+                      fill="none"
+                      stroke="rgba(251,191,36,0.35)"
+                      strokeWidth={0.9}
+                    />
+                  )}
+                </g>
+              );
+            })}
+            <polygon
+              points={`${nearCenterX + perpendicularX * beamNearHalfWidth},${nearCenterY + perpendicularY * beamNearHalfWidth} ${farCenterX + perpendicularX * beamFarHalfWidth},${farCenterY + perpendicularY * beamFarHalfWidth} ${farCenterX - perpendicularX * beamFarHalfWidth},${farCenterY - perpendicularY * beamFarHalfWidth} ${nearCenterX - perpendicularX * beamNearHalfWidth},${nearCenterY - perpendicularY * beamNearHalfWidth}`}
+              fill="rgba(255,255,255,0.11)"
+              filter="url(#beam-glow)"
+            />
+            <polygon
+              points={`${playerPoint.x},${playerPoint.y} ${farCenterX + perpendicularX * (beamFarHalfWidth * 0.45)},${farCenterY + perpendicularY * (beamFarHalfWidth * 0.45)} ${farCenterX - perpendicularX * (beamFarHalfWidth * 0.45)},${farCenterY - perpendicularY * (beamFarHalfWidth * 0.45)}`}
+              fill="rgba(255,255,255,0.18)"
+            />
+            <circle cx={playerPoint.x} cy={playerPoint.y} r={8} fill="rgba(255,255,255,0.2)" />
+            <circle cx={playerPoint.x} cy={playerPoint.y} r={5.2} fill="rgba(255,255,255,0.34)" />
+            <circle cx={playerPoint.x} cy={playerPoint.y} r={2.9} fill="rgba(255,255,255,1)" />
+            <text
+              x={MINIMAP_WIDTH - 13}
+              y={14}
+              fill="rgba(226,232,240,0.88)"
+              fontSize={8}
+              fontWeight={700}
+              textAnchor="middle"
+            >
+              N
+            </text>
+          </svg>
+          <div className="mt-2 flex items-center justify-between text-[9px] font-medium uppercase tracking-[0.14em] text-stone-400">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-white" />
+              <span>You</span>
             </div>
-            <div>
-              <div className="text-[9px] font-bold uppercase tracking-[0.3em] text-amber-400/70">
-                Location
-              </div>
-              <div className="text-sm font-semibold text-amber-100">{roomLabel}</div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-amber-400" />
+              <span>Unopened</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-stone-500" />
+              <span>Opened</span>
             </div>
           </div>
         </motion.div>
@@ -117,9 +301,21 @@ export default function DungeonHUD({
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
-              C / R
+              Q
+            </span>
+            <span>Dash</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
+              C
             </span>
             <span>Roll</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
+              R
+            </span>
+            <span>Attack</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">

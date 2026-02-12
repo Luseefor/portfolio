@@ -6,8 +6,10 @@ import { Physics, type RapierRigidBody } from '@react-three/rapier';
 import { useThree } from '@react-three/fiber';
 import PlayerController from './PlayerController';
 import CameraController from './CameraController';
+import { ChestSystem } from './ChestSystem';
 import DungeonAmbience from './DungeonAmbience';
 import DungeonWorld from './DungeonWorld';
+import type { ChestPOI } from '@/constants/dungeonLayout';
 import { CAMERA_PITCH } from '@/constants/camera';
 
 const FOG_COLOR = new Color('#101418');
@@ -16,7 +18,19 @@ const FULLBRIGHT_BACKGROUND = '#a3afbb';
 const BASE_FOG_DENSITY = 0.0175;
 const FULLBRIGHT_FOG_DENSITY = 0.0028;
 
-export default function DungeonScene() {
+type DungeonSceneProps = {
+  activeChestId: string | null;
+  nearbyChestId: string | null;
+  onChestOpen: (chest: ChestPOI) => void;
+  onNearbyChange: (chestId: string | null) => void;
+};
+
+export default function DungeonScene({
+  activeChestId,
+  nearbyChestId,
+  onChestOpen,
+  onNearbyChange,
+}: DungeonSceneProps) {
   const playerBodyRef = useRef<RapierRigidBody | null>(null);
   const cameraYawRef = useRef(0);
   const cameraPitchRef = useRef(CAMERA_PITCH.initial);
@@ -88,6 +102,12 @@ export default function DungeonScene() {
         <Suspense fallback={null}>
           <DungeonWorld />
         </Suspense>
+        <ChestSystem
+          onChestOpen={onChestOpen}
+          onNearbyChange={onNearbyChange}
+          activeChestId={activeChestId}
+          nearbyChestId={nearbyChestId}
+        />
         <CameraController targetBody={playerBodyRef} yawRef={cameraYawRef} pitchRef={cameraPitchRef} />
         <PlayerController bodyRef={playerBodyRef} cameraYawRef={cameraYawRef} />
       </Physics>

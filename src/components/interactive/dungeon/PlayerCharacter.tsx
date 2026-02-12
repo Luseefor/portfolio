@@ -4,14 +4,16 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useAnimations, useGLTF } from '@react-three/drei';
 import { Mesh, type Group } from 'three';
 
-export type PlayerAnimation = 'idle' | 'walk' | 'run' | 'jump' | 'dash';
+export type PlayerAnimation = 'idle' | 'walk' | 'run' | 'jump' | 'roll' | 'dash' | 'attack';
 
 const CLIP_PATTERNS: Record<PlayerAnimation, RegExp[]> = {
   idle: [/idle/i, /breath/i, /stand/i],
   walk: [/walk/i, /walkforward/i, /walk_fwd/i],
   run: [/run/i, /sprint/i, /jog/i],
-  jump: [/roll/i, /jump/i, /leap/i],
-  dash: [/dash/i, /quick/i, /quickstep/i, /sprint/i, /roll/i, /slide/i],
+  jump: [/jump/i, /leap/i, /recievehit/i, /receivehit/i],
+  roll: [/roll/i, /dodge/i],
+  dash: [/dash/i, /quick/i, /quickstep/i, /slide/i],
+  attack: [/dagger[_\s]?attack2/i, /dagger[_\s]?attack/i, /punch/i, /attack/i],
 };
 
 function pickClipName(names: string[], state: PlayerAnimation) {
@@ -36,13 +38,23 @@ function pickClipName(names: string[], state: PlayerAnimation) {
     const jumpClip = findByPatterns(CLIP_PATTERNS.jump);
     if (jumpClip) return jumpClip;
   }
+  if (state === 'roll') {
+    const rollClip = findByPatterns(CLIP_PATTERNS.roll);
+    if (rollClip) return rollClip;
+  }
   if (state === 'dash') {
     const dashClip = findByPatterns(CLIP_PATTERNS.dash);
     if (dashClip) return dashClip;
     const runClip = findByPatterns(CLIP_PATTERNS.run);
     if (runClip) return runClip;
-    const jumpClip = findByPatterns(CLIP_PATTERNS.jump);
-    if (jumpClip) return jumpClip;
+    const rollClip = findByPatterns(CLIP_PATTERNS.roll);
+    if (rollClip) return rollClip;
+  }
+  if (state === 'attack') {
+    const attackClip = findByPatterns(CLIP_PATTERNS.attack, true);
+    if (attackClip) return attackClip;
+    const punchClip = findByPatterns([/punch/i], true);
+    if (punchClip) return punchClip;
   }
   if (state === 'run') {
     const runClip = findByPatterns(CLIP_PATTERNS.run);
@@ -88,6 +100,8 @@ export default function PlayerCharacter({ animation = 'idle' }: { animation?: Pl
     });
     action.reset().fadeIn(0.15).play();
     if (animation === 'dash') action.timeScale = 1.45;
+    else if (animation === 'attack') action.timeScale = 1.2;
+    else if (animation === 'roll') action.timeScale = 1.2;
     else if (animation === 'run') action.timeScale = 1.25;
     else if (animation === 'walk') action.timeScale = 1.05;
     else action.timeScale = 1.0;

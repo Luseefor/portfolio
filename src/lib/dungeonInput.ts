@@ -14,6 +14,7 @@ type DungeonInputState = {
     dash: boolean;
     jump: boolean;
     roll: boolean;
+    attack: boolean;
   };
   lastEvent: string;
   setHasFocus: (hasFocus: boolean) => void;
@@ -39,6 +40,7 @@ export const useDungeonInput = create<DungeonInputState>((set) => ({
     dash: false,
     jump: false,
     roll: false,
+    attack: false,
   },
   lastEvent: 'n/a',
   setHasFocus: (hasFocus) => set({ hasFocus }),
@@ -62,6 +64,7 @@ export const useDungeonInput = create<DungeonInputState>((set) => ({
         dash: false,
         jump: false,
         roll: false,
+        attack: false,
       },
       lastEvent: 'reset',
     }),

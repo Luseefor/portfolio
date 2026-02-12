@@ -8,6 +8,16 @@ import ChestPanel from './ui/ChestPanel';
 import DungeonHUD from './ui/DungeonHUD';
 import DungeonSettingsMenu from './ui/DungeonSettingsMenu';
 
+function safePauseAudio(audio: HTMLAudioElement | null) {
+  if (!audio) return;
+  if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) return;
+  try {
+    audio.pause();
+  } catch {
+    // Ignore pause errors in non-browser test environments.
+  }
+}
+
 /**
  * DungeonUI
  *
@@ -19,9 +29,7 @@ interface DungeonUIProps {
   nearbyChestId: string | null;
   activePanel: ChestPOI | null;
   isSettingsOpen: boolean;
-  onChestOpen: (chest: ChestPOI) => void;
   onClosePanel: () => void;
-  onOpenSettings: () => void;
   onCloseSettings: () => void;
 }
 
@@ -33,16 +41,15 @@ export function DungeonUI({
   onClosePanel,
   onCloseSettings,
 }: DungeonUIProps) {
-  const showInteractionPrompt =
-    nearbyChestId !== null && !openedChests.has(nearbyChestId) && !activePanel && !isSettingsOpen;
+  const showInteractionPrompt = nearbyChestId !== null && !activePanel && !isSettingsOpen;
 
   return (
     <>
       {/* HUD */}
       <DungeonHUD
-        roomLabel="Ancient Ruins"
         chestsOpened={openedChests.size}
         totalChests={CHEST_POIS.length}
+        openedChestIds={openedChests}
       />
 
       {/* Interaction Prompt */}
@@ -82,11 +89,11 @@ export function useDungeonInteraction() {
     uiCloseAudioRef.current.volume = safeVolume;
     return () => {
       if (uiOpenAudioRef.current) {
-        uiOpenAudioRef.current.pause();
+        safePauseAudio(uiOpenAudioRef.current);
         uiOpenAudioRef.current = null;
       }
       if (uiCloseAudioRef.current) {
-        uiCloseAudioRef.current.pause();
+        safePauseAudio(uiCloseAudioRef.current);
         uiCloseAudioRef.current = null;
       }
     };
@@ -118,12 +125,10 @@ export function useDungeonInteraction() {
 
   const handleChestOpen = useCallback(
     (chest: ChestPOI) => {
-      if (openedChests.has(chest.id)) return;
       setOpenedChests((prev) => new Set([...prev, chest.id]));
       setActivePanel(chest);
-      playUIOpenSound();
     },
-    [openedChests, playUIOpenSound],
+    [],
   );
 
   const handleNearbyChange = useCallback((chestId: string | null) => {
@@ -132,8 +137,7 @@ export function useDungeonInteraction() {
 
   const handleClosePanel = useCallback(() => {
     setActivePanel(null);
-    playUICloseSound();
-  }, [playUICloseSound]);
+  }, []);
 
   const handleOpenSettings = useCallback(() => {
     setIsSettingsOpen(true);
@@ -158,7 +162,7 @@ export function useDungeonInteraction() {
 
       if ((e.key === 'e' || e.key === 'E') && nearbyChestId) {
         const chest = CHEST_POIS.find((c) => c.id === nearbyChestId);
-        if (chest && !openedChests.has(chest.id)) {
+        if (chest) {
           handleChestOpen(chest);
         }
       }
@@ -174,7 +178,6 @@ export function useDungeonInteraction() {
     nearbyChestId,
     isSettingsOpen,
     activePanel,
-    openedChests,
     handleChestOpen,
     handleClosePanel,
     handleOpenSettings,

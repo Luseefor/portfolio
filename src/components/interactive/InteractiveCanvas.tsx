@@ -5,10 +5,21 @@ import { Canvas } from '@react-three/fiber';
 import { ACESFilmicToneMapping } from 'three';
 import LoadingScreen from './LoadingScreen';
 import DungeonScene from './dungeon/DungeonScene';
+import { DungeonUI, useDungeonInteraction } from './dungeon/DungeonInteractionManager';
 import { rendererToneMapping } from '@/constants/scene';
 import { useDungeonInput } from '@/lib/dungeonInput';
 
 export default function InteractiveCanvas() {
+  const {
+    openedChests,
+    nearbyChestId,
+    activePanel,
+    isSettingsOpen,
+    handleChestOpen,
+    handleNearbyChange,
+    handleClosePanel,
+    handleCloseSettings,
+  } = useDungeonInteraction();
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
   const setHasFocus = useDungeonInput((state) => state.setHasFocus);
   const setPointerLocked = useDungeonInput((state) => state.setPointerLocked);
@@ -145,8 +156,10 @@ export default function InteractiveCanvas() {
           setKeys({ jump: pressed });
           break;
         case 'KeyC':
-        case 'KeyR':
           setKeys({ roll: pressed });
+          break;
+        case 'KeyR':
+          setKeys({ attack: pressed });
           break;
       }
     };
@@ -163,6 +176,7 @@ export default function InteractiveCanvas() {
         dash: false,
         jump: false,
         roll: false,
+        attack: false,
       });
 
     window.addEventListener('keydown', onKeyDown);
@@ -220,8 +234,21 @@ export default function InteractiveCanvas() {
         onFocus={handleFocus}
         onBlur={handleBlur}
       >
-        <DungeonScene />
+        <DungeonScene
+          activeChestId={activePanel?.id ?? null}
+          nearbyChestId={nearbyChestId}
+          onChestOpen={handleChestOpen}
+          onNearbyChange={handleNearbyChange}
+        />
       </Canvas>
+      <DungeonUI
+        openedChests={openedChests}
+        nearbyChestId={nearbyChestId}
+        activePanel={activePanel}
+        isSettingsOpen={isSettingsOpen}
+        onClosePanel={handleClosePanel}
+        onCloseSettings={handleCloseSettings}
+      />
       <LoadingScreen />
     </div>
   );

@@ -34,3 +34,74 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
   - `npm run -s lint` ✅
   - `npx next build --webpack` ✅
   - `npx tsc --noEmit` ✅ (run after build regenerated `.next/types`)
+- Chest interaction + content pass (user request: use closed/open GLBs, 10 scattered room chests, UI popup, open/close sounds):
+  - Expanded `CHEST_POIS` to 10 entries, distributed across all dungeon rooms (1-2 per room with broad map scatter).
+  - Reworked `ChestSystem` rendering from blockout geometry to actual assets:
+    - `/models/dungeon/props/closed_chest.glb`
+    - `/models/dungeon/props/open_chest.glb`
+  - Added click-to-open chest interaction directly on chest meshes.
+  - Chest now uses open model while its panel is active, and closes when panel closes.
+  - Added chest audio transitions:
+    - open: `/sounds/props/chest_open.mp3`
+    - close: `/sounds/ui/ui_close.wav`
+  - Wired chest gameplay/UI fully into active scene:
+    - `InteractiveCanvas` now mounts `DungeonUI` and `useDungeonInteraction`.
+    - `DungeonScene` now mounts `ChestSystem` inside physics and receives interaction props.
+  - Updated interaction logic so chests are reopenable and prompt visibility is based on nearby + panel closed.
+  - Added player-state publishing in `PlayerController` each frame so proximity/HUD systems receive live position/speed/grounded data.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npx tsc --noEmit` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Chest placement/visibility polish pass:
+  - Rebuilt `ChestSystem` placement to align chests like props using dungeon node/collider analysis:
+    - scans nearby node positions around each chest,
+    - checks floor support under chest footprint,
+    - avoids obstacle collider overlap,
+    - resolves chest Y from floor top so chests no longer sink.
+  - Increased chest model/collider size by 1.5x from previous baseline.
+  - Added animated large exclamation marker above closed chests (bob + pulse + glow) for visibility.
+  - Kept open/close chest model swap behavior tied to panel open/close state.
+  - Reduced `CHEST_POIS` to exactly 10 entries after earlier overcount.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npx tsc --noEmit` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Minimap polish pass (requested):
+  - Restored passageway rendering on minimap using dungeon routes as corridor-width strokes.
+  - Added camera-facing beam on minimap tied to mouse look direction (`look` vector), rendered as a divergent glowing white cone.
+  - Kept room outlines + chest markers; player marker remains white glowing circle.
+- State wiring:
+  - Extended shared player state with `look: Vec3`.
+  - PlayerController now publishes `look` from camera-relative forward each frame.
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Skill loop note:
+  - Attempted to run `develop-web-game` Playwright client, but blocked because `playwright` package is not installed in this workspace context (only `@playwright/test` present).
+- Jump/Roll reliability fix pass:
+  - Replaced hardcoded grounded check (`position.y <= 2.05`) with downward raycast grounding so elevated floor sections still count as grounded.
+  - Added coyote-time + jump-buffer timing constants and switched jump queueing to `jumpJustPressed` (prevents hold-to-auto-repeat behavior).
+  - Reset jump/ground timers on blur reset to avoid stale input state.
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Jump animation fallback tweak:
+  - Character asset has no dedicated jump clip; added jump clip fallback patterns to include receive-hit naming so jump no longer collapses to idle.
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/movement.math.test.ts` ✅
+- Jump/Roll feel tuning pass:
+  - Increased jump coyote+buffer windows (`0.24s`) for better run-jump reliability.
+  - Increased grounded ray length and grounded upward velocity threshold to reduce false airborne states on uneven traversal.
+  - Added slight run-jump impulse boost (`JUMP_SPEED * 1.08`) so running jumps clear edges more consistently.
+  - Increased roll duration (`0.62s`) and allowed roll start during coyote window to avoid missed rolls at floor seams.
+  - Preserved vertical velocity behavior during roll for smoother continuity (less abrupt mid-roll cut feel).
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
