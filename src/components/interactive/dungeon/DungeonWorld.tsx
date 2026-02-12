@@ -42,7 +42,9 @@ type FloorPatternKind = 'rings' | 'checker' | 'spokes' | 'stripes';
 const WALL_HEIGHT = 21;
 const DEFAULT_ROOM_HEIGHT = 18;
 const DEFAULT_CORRIDOR_HEIGHT = 15;
-const WALL_THICKNESS = 0.8;
+const WALL_THICKNESS = 1.6;
+const WALL_JOIN_OVERLAP = 0.28;
+const WALL_DOOR_SEAL = 0.14;
 const FLOOR_THICKNESS = 0.45;
 const CEILING_THICKNESS = 0.35;
 const DOOR_WIDTH = 6;
@@ -56,11 +58,11 @@ const UNDERFLOOR_SIZE: Vec3 = [220, 0.2, 220];
 const UNDERFLOOR_Y = -0.2;
 const SEAM_FILL_SIZE: Vec3 = [220, 0.12, 220];
 const SEAM_FILL_Y = -0.08;
-const OUTER_BORDER_THICKNESS = 1.2;
+const OUTER_BORDER_THICKNESS = 2.2;
 const OUTER_BORDER_HEIGHT = 28;
 const OUTER_BORDER_SINK = 0.4;
-const WALL_COLLIDER_THICKNESS = 1.8;
-const WALL_COLLIDER_LENGTH_PAD = 0.2;
+const WALL_COLLIDER_THICKNESS = 2.6;
+const WALL_COLLIDER_LENGTH_PAD = 0.55;
 const WALKABLE_COLLIDER_OVERLAP = 1.8;
 const WALKABLE_COLLIDER_THICKNESS = 0.36;
 const WALKABLE_COLLIDER_Y = -0.18;
@@ -351,7 +353,7 @@ function buildWallSegments(
       return [
         {
           id: `${id}-${side}`,
-          size: [size.w, wallHeight, WALL_THICKNESS],
+          size: [size.w + WALL_JOIN_OVERLAP, wallHeight, WALL_THICKNESS],
           position: [
             cx,
             wallY,
@@ -364,7 +366,7 @@ function buildWallSegments(
     return [
       {
         id: `${id}-${side}`,
-        size: [WALL_THICKNESS, wallHeight, size.d],
+        size: [WALL_THICKNESS, wallHeight, size.d + WALL_JOIN_OVERLAP],
         position: [
           cx + (side === 'east' ? halfW - WALL_THICKNESS / 2 : -halfW + WALL_THICKNESS / 2),
           wallY,
@@ -377,10 +379,10 @@ function buildWallSegments(
 
   const segments: BoxPiece[] = [];
   if (side === 'north' || side === 'south') {
-    const segLength = (size.w - DOOR_WIDTH) / 2;
+    const segLength = Math.max(0.1, (size.w - DOOR_WIDTH) / 2 + WALL_JOIN_OVERLAP * 0.5 + WALL_DOOR_SEAL);
     const z = cz + (side === 'north' ? halfD - WALL_THICKNESS / 2 : -halfD + WALL_THICKNESS / 2);
-    const leftX = cx - (DOOR_WIDTH / 2 + segLength / 2);
-    const rightX = cx + (DOOR_WIDTH / 2 + segLength / 2);
+    const leftX = cx - (DOOR_WIDTH / 2 + segLength / 2 - WALL_DOOR_SEAL * 0.5);
+    const rightX = cx + (DOOR_WIDTH / 2 + segLength / 2 - WALL_DOOR_SEAL * 0.5);
     segments.push(
       {
         id: `${id}-${side}-left`,
@@ -396,10 +398,10 @@ function buildWallSegments(
       },
     );
   } else {
-    const segLength = (size.d - DOOR_WIDTH) / 2;
+    const segLength = Math.max(0.1, (size.d - DOOR_WIDTH) / 2 + WALL_JOIN_OVERLAP * 0.5 + WALL_DOOR_SEAL);
     const x = cx + (side === 'east' ? halfW - WALL_THICKNESS / 2 : -halfW + WALL_THICKNESS / 2);
-    const nearZ = cz - (DOOR_WIDTH / 2 + segLength / 2);
-    const farZ = cz + (DOOR_WIDTH / 2 + segLength / 2);
+    const nearZ = cz - (DOOR_WIDTH / 2 + segLength / 2 - WALL_DOOR_SEAL * 0.5);
+    const farZ = cz + (DOOR_WIDTH / 2 + segLength / 2 - WALL_DOOR_SEAL * 0.5);
     segments.push(
       {
         id: `${id}-${side}-near`,
@@ -476,8 +478,8 @@ function buildCorridor(
   });
 
   const wallSize: Vec3 = axis === 'z'
-    ? [WALL_THICKNESS, corridorHeight, length]
-    : [length, corridorHeight, WALL_THICKNESS];
+    ? [WALL_THICKNESS, corridorHeight, length + WALL_JOIN_OVERLAP]
+    : [length + WALL_JOIN_OVERLAP, corridorHeight, WALL_THICKNESS];
   const offset = width / 2 - WALL_THICKNESS / 2;
   if (axis === 'z') {
     pieces.push(
