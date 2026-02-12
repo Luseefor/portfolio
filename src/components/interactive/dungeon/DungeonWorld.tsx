@@ -193,26 +193,27 @@ const CORRIDOR_LAYOUT: CorridorSpec[] = [
    ══════════════════════════════════════════════════════ */
 
 const WALL_BASE_SINK = 0.08;
-const WALL_MAX_PLACEMENTS = 300;
+const WALL_MAX_PLACEMENTS = 800;
 const WALL_TILE_OVERLAP = 0.04;
 
 // --- Node pools by ROLE ---
-const SOLID_WALLS = ['Wall'] as const;
-const WEATHERED_WALLS = ['Wall_Broken', 'Wall_Overgrown'] as const;
-const ARCH_WALLS = ['Wall_ArchRound'] as const;
+const SOLID_WALLS = ['Wall', 'Wall_Half'] as const;
+const WEATHERED_WALLS = ['Wall_Broken', 'Wall_Overgrown', 'Wall_Hole'] as const;
+const ARCH_WALLS = ['Wall_ArchRound', 'Wall_ArchGothic'] as const;
 const STANDALONE_ARCHES = [
   'Arch_Gothic', 'Arch_Round',
+  'Arch_Gothic_RoundColumn', 'Arch_Round_RoundColumn',
 ] as const;
-const PILLAR_NODES = ['Column_Square'] as const;
+const PILLAR_NODES = ['Column_Square', 'Column_Round'] as const;
 const TORCH_NODE = 'Torch' as const;
 const PROP_POOLS = {
   barrels: ['Barrel', 'Crate'] as const,
-  pots: ['Pot1', 'Pot2'] as const,
+  pots: ['Pot1', 'Pot2', 'Pot3', 'Pot1_Broken', 'Pot2_Broken', 'Pot3_Broken'] as const,
   chests: ['Chest_Base'] as const,
-  candles: ['Candles_1'] as const,
+  candles: ['Candles_1', 'Candles_2'] as const,
 };
 
-const TORCH_INTERVAL = 16;
+const TORCH_INTERVAL = 10;
 const TORCH_MOUNT_Y = 2.5;
 
 const DUNGEON_RUINS_GLB_URL = '/models/dungeon/structure/Modular%20Ruins%20Pack.glb';
