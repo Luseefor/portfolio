@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { Vector3, MathUtils, Quaternion, Euler } from 'three';
 import type { MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useRapier, type RapierRigidBody } from '@react-three/rapier';
+import { useRapier, type RapierRigidBody, interactionGroups } from '@react-three/rapier';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import {
   CAMERA_DISTANCE,
@@ -22,7 +22,7 @@ const WALL_BUF = 0.2;
 const PIVOT_HEIGHT = 1.5; // Head/Chest height
 const FPS_FORWARD_OFFSET = 0.45; // Clear face mesh
 const SPHERE_RADIUS = 0.25;
-const MIN_RAY_DIST = 0.5;
+const MIN_RAY_DIST = 0.1; // Reduced to 0.1 since we ignore player collider
 const ZOOM_RECOVERY_SPEED = 3.0; // Faster recovery for action feel
 
 /* ── helpers ── */
@@ -180,9 +180,6 @@ export default function CameraRig({
       _offset.set(0, 0, -FPS_FORWARD_OFFSET).applyQuaternion(_quat);
       _idealPos.copy(_pivot).add(_offset);
 
-      // Clamp FPS pos to bounds too? 
-      // Physics should keep player in bounds, but camera offset might poke out.
-      // Usually fine.
       camera.position.copy(_idealPos);
     } else {
       // Third Person: Boom Arm
@@ -197,6 +194,9 @@ export default function CameraRig({
       let targetDist = idealDist;
 
       if (idealDist > MIN_RAY_DIST && sphereShape.current) {
+        // Start almost at pivot to catch close walls
+        // We use interactionGroups to ignore player collider (Group 0)
+        // Camera Ray is Group 2, filter 1 (World)
         _origin.copy(_pivot).addScaledVector(_rayDir, MIN_RAY_DIST);
         const maxToi = idealDist - MIN_RAY_DIST + WALL_BUF;
 
@@ -207,7 +207,7 @@ export default function CameraRig({
           sphereShape.current,
           maxToi,
           true,
-          undefined,
+          interactionGroups(2, [1]), // Ray G2, filter G1 (World only)
           undefined,
           undefined
         );

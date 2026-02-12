@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { Box3, MeshStandardMaterial, Vector3, type Object3D } from 'three';
-import { CuboidCollider, RigidBody } from '@react-three/rapier';
+import { CuboidCollider, RigidBody, interactionGroups } from '@react-three/rapier';
 import { useGLTF } from '@react-three/drei';
 import { clearDungeonVisualLiftTiles, setDungeonVisualLiftTiles } from '@/lib/dungeonVisualLift';
 import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
@@ -1081,7 +1081,7 @@ export default function DungeonWorld() {
         />
       ))}
 
-      <RigidBody type="fixed" colliders={false} name="dungeon-colliders">
+      <RigidBody type="fixed" colliders={false} name="dungeon-colliders" collisionGroups={interactionGroups(1, [0, 2])}>
         {pieces.map((piece) => (
           (() => {
             const isWallPiece = piece.material === wallMaterial;
