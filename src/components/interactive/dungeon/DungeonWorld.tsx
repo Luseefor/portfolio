@@ -5,8 +5,9 @@ import { useGLTF } from '@react-three/drei';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import {
   Box3,
+  DoubleSide,
+  Material,
   Mesh,
-  MeshBasicMaterial,
   MeshStandardMaterial,
   Object3D,
   Vector3,
@@ -22,16 +23,18 @@ import { clearDungeonVisualLiftTiles, setDungeonVisualLiftTiles } from '@/lib/du
 
 const RUINS_GLB_PATH = '/models/dungeon/structure/Modular Ruins Pack.glb';
 const FLOOR_NODE_FALLBACKS = ['Floor_Standard', 'Floor_Squares', 'Floor_SquareLarge'] as const;
+const CEILING_NODE_FALLBACKS = ['Floor_Standard_Half', 'Floor_Standard', 'Floor_Squares'] as const;
+const BUSH_NODE_FALLBACKS = ['Bush_1x1', 'Bush_2x1', 'Bush_Round', 'Bush_2x2', 'Bush_Large'] as const;
+const WALL_NODE_FALLBACKS = [
+  'Wall',
+  'Wall_Overgrown',
+  'Wall_Broken',
+  'Window_Bars',
+  'Window_Bars_Overgrown',
+] as const;
+const WALL_BACKER_NODE_FALLBACKS = ['Wall', 'Wall_Overgrown', 'Wall_Broken'] as const;
 
 const FLOOR_KINDS = new Set<DungeonPieceKind>(['floor', 'corridor-floor', 'spawn-platform']);
-const BORDER_LINE_SOURCE_KINDS = new Set<DungeonPieceKind>([
-  'floor',
-  'corridor-floor',
-  'spawn-platform',
-  'room-wall',
-  'corridor-wall',
-  'boundary-wall',
-]);
 const BORDER_WALL_SOURCE_KINDS = new Set<DungeonPieceKind>([
   'floor',
   'corridor-floor',
@@ -47,12 +50,29 @@ const WALL_BORDER_Y = 0.05;
 const BASE_BORDER_WALL_HEIGHT = 7.4;
 const BORDER_WALL_HEIGHT = BASE_BORDER_WALL_HEIGHT * 1.5;
 const BORDER_WALL_THICKNESS = 0.24;
+const WALL_FLOOR_LEVEL_Y = 0;
+const WALL_FLOOR_SINK = 0.16;
+const WALL_PANEL_MAX_LENGTH = 4.2;
+const WALL_PANEL_MIN_LENGTH = 1.2;
+const WALL_FACE_SAMPLE_OFFSET = 0.7;
+const WALL_FRONT_OFFSET_Y = 0;
+const WALL_BACKER_OFFSET = 0.14;
+const WALL_BACKER_THICKNESS = 0.2;
+const WALL_BACKER_EXPAND_X = 0.28;
+const WALL_BACKER_EXPAND_Y = 0.34;
 const BORDER_COLLIDER_PAD = 0.06;
 const BORDER_COLLIDER_HEIGHT_PAD = 0.12;
 const SPAWN_BORDER_HIDE_PADDING = 1.4;
 const FLOOR_UNDERLAY_THICKNESS = 0.08;
 const FLOOR_UNDERLAY_EXPAND = 0.24;
 const FLOOR_UNDERLAY_DROP = 0.02;
+const FLOOR_VISUAL_OVERHANG = 0.42;
+const CEILING_CLEARANCE = 8.2;
+const CEILING_THICKNESS = 0.28;
+const CEILING_EXPAND = 0.18;
+const CEILING_CAP_THICKNESS = 0.08;
+const CEILING_CAP_EXPAND = 0.32;
+const CEILING_CAP_RISE = 0.03;
 const SPAWN_UNDERLAY_THICKNESS = 0.14;
 const SPAWN_UNDERLAY_EXPAND = 0.9;
 const SPAWN_UNDERLAY_DROP = 0.04;
@@ -65,11 +85,20 @@ const floorUnderlayMaterial = new MeshStandardMaterial({
   roughness: 0.98,
   metalness: 0.01,
 });
-const borderMaterial = new MeshBasicMaterial({ color: '#ffe100' });
-const borderWallMaterial = new MeshBasicMaterial({
-  color: '#ffe100',
-  transparent: true,
-  opacity: 0.28,
+const ceilingFallbackMaterial = new MeshStandardMaterial({
+  color: '#6d6659',
+  roughness: 0.92,
+  metalness: 0.04,
+});
+const ceilingCapMaterial = new MeshStandardMaterial({
+  color: '#7c807f',
+  roughness: 0.95,
+  metalness: 0.02,
+});
+const wallFallbackMaterial = new MeshStandardMaterial({
+  color: '#5f655f',
+  roughness: 0.9,
+  metalness: 0.03,
 });
 
 type BorderSegment = {
@@ -88,6 +117,42 @@ type UnitSegment = {
 
 type FloorVisual = {
   piece: DungeonBuildPiece;
+  object: Object3D | null;
+};
+
+type CeilingVisual = {
+  id: string;
+  position: [number, number, number];
+  size: [number, number, number];
+  rotationY: number;
+  object: Object3D | null;
+};
+
+type WallPanel = {
+  id: string;
+  position: [number, number, number];
+  size: [number, number, number];
+  rotationY: number;
+  axis: 'x' | 'z';
+};
+
+type WallVisual = WallPanel & {
+  object: Object3D | null;
+};
+
+type WallBackerVisual = {
+  id: string;
+  position: [number, number, number];
+  size: [number, number, number];
+  rotationY: number;
+  object: Object3D | null;
+};
+
+type BushVisual = {
+  id: string;
+  position: [number, number, number];
+  rotationY: number;
+  size: [number, number, number];
   object: Object3D | null;
 };
 
@@ -134,6 +199,23 @@ function markFloorMeshForShadows(object: Object3D) {
   });
 }
 
+function cloneMaterialDoubleSided(material: Material) {
+  const cloned = material.clone();
+  cloned.side = DoubleSide;
+  return cloned;
+}
+
+function setObjectMaterialsDoubleSided(object: Object3D) {
+  object.traverse((child) => {
+    if (!(child instanceof Mesh)) return;
+    if (Array.isArray(child.material)) {
+      child.material = child.material.map((material) => cloneMaterialDoubleSided(material));
+    } else if (child.material) {
+      child.material = cloneMaterialDoubleSided(child.material);
+    }
+  });
+}
+
 function hashString(input: string) {
   let hash = 0;
   for (let i = 0; i < input.length; i += 1) {
@@ -161,6 +243,36 @@ function floorNodeCandidates(piece: DungeonBuildPiece): readonly string[] {
   }
 
   return [preferred, ...rotated];
+}
+
+function ceilingNodeCandidates(piece: DungeonBuildPiece): readonly string[] {
+  const start = hashString(`ceiling-${piece.id}`) % CEILING_NODE_FALLBACKS.length;
+  const rotated: string[] = [
+    ...CEILING_NODE_FALLBACKS.slice(start),
+    ...CEILING_NODE_FALLBACKS.slice(0, start),
+  ];
+  return rotated;
+}
+
+function wallNodeCandidates(panelId: string): readonly string[] {
+  const start = hashString(`wall-${panelId}`) % WALL_NODE_FALLBACKS.length;
+  const rotated: string[] = [...WALL_NODE_FALLBACKS.slice(start), ...WALL_NODE_FALLBACKS.slice(0, start)];
+  return rotated;
+}
+
+function wallBackerNodeCandidates(panelId: string): readonly string[] {
+  const start = hashString(`wall-backer-${panelId}`) % WALL_BACKER_NODE_FALLBACKS.length;
+  const rotated: string[] = [
+    ...WALL_BACKER_NODE_FALLBACKS.slice(start),
+    ...WALL_BACKER_NODE_FALLBACKS.slice(0, start),
+  ];
+  return rotated;
+}
+
+function bushNodeCandidates(id: string): readonly string[] {
+  const start = hashString(`bush-${id}`) % BUSH_NODE_FALLBACKS.length;
+  const rotated: string[] = [...BUSH_NODE_FALLBACKS.slice(start), ...BUSH_NODE_FALLBACKS.slice(0, start)];
+  return rotated;
 }
 
 function buildScaledFloorObject(
@@ -321,7 +433,7 @@ function buildVerticalBorderWalls(segments: BorderSegment[]): BorderSegment[] {
 
   for (let i = 0; i < segments.length; i += 1) {
     const segment = segments[i];
-    const wallBaseY = segment.position[1] + BORDER_HEIGHT * 0.5;
+    const wallBaseY = WALL_FLOOR_LEVEL_Y - WALL_FLOOR_SINK;
     walls.push({
       id: `wall-${segment.id}`,
       position: [
@@ -338,6 +450,100 @@ function buildVerticalBorderWalls(segments: BorderSegment[]): BorderSegment[] {
   }
 
   return walls;
+}
+
+function splitWallIntoPanels(wall: BorderSegment): WallPanel[] {
+  const alongX = wall.size[0] >= wall.size[2];
+  const majorLength = alongX ? wall.size[0] : wall.size[2];
+  const thickness = alongX ? wall.size[2] : wall.size[0];
+
+  if (majorLength <= WALL_PANEL_MIN_LENGTH) {
+    return [
+      {
+        id: `${wall.id}-panel-0`,
+        position: wall.position,
+        size: [majorLength, wall.size[1], thickness],
+        rotationY: alongX ? 0 : Math.PI * 0.5,
+        axis: alongX ? 'x' : 'z',
+      },
+    ];
+  }
+
+  const panelCount = Math.max(1, Math.ceil(majorLength / WALL_PANEL_MAX_LENGTH));
+  const panelLength = majorLength / panelCount;
+  const panels: WallPanel[] = [];
+
+  for (let i = 0; i < panelCount; i += 1) {
+    const offset = -majorLength * 0.5 + panelLength * (i + 0.5);
+    if (alongX) {
+      panels.push({
+        id: `${wall.id}-panel-${i}`,
+        position: [wall.position[0] + offset, wall.position[1], wall.position[2]],
+        size: [panelLength, wall.size[1], thickness],
+        rotationY: 0,
+        axis: 'x',
+      });
+    } else {
+      panels.push({
+        id: `${wall.id}-panel-${i}`,
+        position: [wall.position[0], wall.position[1], wall.position[2] + offset],
+        size: [panelLength, wall.size[1], thickness],
+        rotationY: Math.PI * 0.5,
+        axis: 'z',
+      });
+    }
+  }
+
+  return panels;
+}
+
+function pointInsideFloorPiece(x: number, z: number, piece: DungeonBuildPiece) {
+  const halfX = piece.size[0] * 0.5;
+  const halfZ = piece.size[2] * 0.5;
+  return (
+    x >= piece.position[0] - halfX &&
+    x <= piece.position[0] + halfX &&
+    z >= piece.position[2] - halfZ &&
+    z <= piece.position[2] + halfZ
+  );
+}
+
+function pointInsideAnyFloor(x: number, z: number, floorPieces: DungeonBuildPiece[]) {
+  for (let i = 0; i < floorPieces.length; i += 1) {
+    if (pointInsideFloorPiece(x, z, floorPieces[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function orientWallPanelTowardInterior(panel: WallPanel, floorPieces: DungeonBuildPiece[]): WallPanel {
+  const alongX = panel.axis === 'x';
+  const probe = Math.max(WALL_FACE_SAMPLE_OFFSET, Math.min(panel.size[0], panel.size[2]) + 0.2);
+  let rotationY = panel.rotationY;
+
+  if (alongX) {
+    const hasPositiveZFloor = pointInsideAnyFloor(panel.position[0], panel.position[2] + probe, floorPieces);
+    const hasNegativeZFloor = pointInsideAnyFloor(panel.position[0], panel.position[2] - probe, floorPieces);
+    if (hasPositiveZFloor && !hasNegativeZFloor) {
+      rotationY = 0;
+    } else if (hasNegativeZFloor && !hasPositiveZFloor) {
+      rotationY = Math.PI;
+    }
+  } else {
+    const hasPositiveXFloor = pointInsideAnyFloor(panel.position[0] + probe, panel.position[2], floorPieces);
+    const hasNegativeXFloor = pointInsideAnyFloor(panel.position[0] - probe, panel.position[2], floorPieces);
+    if (hasPositiveXFloor && !hasNegativeXFloor) {
+      rotationY = Math.PI * 0.5;
+    } else if (hasNegativeXFloor && !hasPositiveXFloor) {
+      rotationY = -Math.PI * 0.5;
+    }
+  }
+
+  return {
+    ...panel,
+    rotationY: rotationY + WALL_FRONT_OFFSET_Y,
+  };
 }
 
 function isSegmentInsideSpawnCutout(segment: BorderSegment) {
@@ -375,12 +581,64 @@ export default function DungeonWorld() {
         return { piece, object: null };
       }
 
-      const floorObject = buildScaledFloorObject(sourceNode, piece.size);
+      const floorObject = buildScaledFloorObject(sourceNode, [
+        piece.size[0] + FLOOR_VISUAL_OVERHANG,
+        piece.size[1],
+        piece.size[2] + FLOOR_VISUAL_OVERHANG,
+      ]);
       if (!floorObject) {
         return { piece, object: null };
       }
 
       return { piece, object: floorObject };
+    });
+  }, [floorPieces, resolveNode]);
+
+  const ceilingVisuals = useMemo<CeilingVisual[]>(() => {
+    return floorPieces.map((piece) => {
+      const nodeCandidates = ceilingNodeCandidates(piece);
+      const sourceNode = resolveNode(nodeCandidates[0], nodeCandidates.slice(1), `ceiling:${piece.id}`);
+      const size: [number, number, number] = [
+        piece.size[0] + CEILING_EXPAND,
+        CEILING_THICKNESS,
+        piece.size[2] + CEILING_EXPAND,
+      ];
+      const position: [number, number, number] = [
+        piece.position[0],
+        piece.position[1] + piece.size[1] * 0.5 + CEILING_CLEARANCE,
+        piece.position[2],
+      ];
+
+      if (!sourceNode) {
+        return {
+          id: `ceiling-${piece.id}`,
+          position,
+          size,
+          rotationY: piece.rotationY,
+          object: null,
+        };
+      }
+
+      const object = buildScaledFloorObject(sourceNode, size);
+      if (!object) {
+        return {
+          id: `ceiling-${piece.id}`,
+          position,
+          size,
+          rotationY: piece.rotationY,
+          object: null,
+        };
+      }
+
+      setObjectMaterialsDoubleSided(object);
+
+      return {
+        id: `ceiling-${piece.id}`,
+        position,
+        size,
+        rotationY: piece.rotationY,
+        object,
+      };
     });
   }, [floorPieces, resolveNode]);
 
@@ -391,23 +649,163 @@ export default function DungeonWorld() {
     [dungeon.colliders, floorIds],
   );
 
-  const borderSegments = useMemo(
-    () =>
-      buildBorderSegments(dungeon.pieces.filter((piece) => BORDER_LINE_SOURCE_KINDS.has(piece.kind))).filter(
-        (segment) => !isSegmentInsideSpawnCutout(segment),
-      ),
-    [dungeon.pieces],
-  );
-
   const borderWallSegments = useMemo(
     () => buildBorderSegments(dungeon.pieces.filter((piece) => BORDER_WALL_SOURCE_KINDS.has(piece.kind))),
     [dungeon.pieces],
   );
 
-  const borderWalls = useMemo(
+  const borderWallsRaw = useMemo(
     () => buildVerticalBorderWalls(borderWallSegments),
     [borderWallSegments],
   );
+
+  const borderWalls = useMemo(
+    () => borderWallsRaw.filter((wall) => !isSegmentInsideSpawnCutout(wall)),
+    [borderWallsRaw],
+  );
+
+  const wallPanels = useMemo(
+    () =>
+      borderWalls
+        .flatMap((wall) => splitWallIntoPanels(wall))
+        .map((panel) => orientWallPanelTowardInterior(panel, floorPieces)),
+    [borderWalls, floorPieces],
+  );
+
+  const wallVisuals = useMemo<WallVisual[]>(
+    () =>
+      wallPanels.map((panel) => {
+        const candidates = wallNodeCandidates(panel.id);
+        const sourceNode = resolveNode(candidates[0], candidates.slice(1), `wall:${panel.id}`);
+        if (!sourceNode) {
+          return { ...panel, object: null };
+        }
+
+        const object = buildScaledFloorObject(sourceNode, panel.size);
+        if (!object) {
+          return { ...panel, object: null };
+        }
+
+        setObjectMaterialsDoubleSided(object);
+        return { ...panel, object };
+      }),
+    [resolveNode, wallPanels],
+  );
+
+  const wallBackers = useMemo<WallBackerVisual[]>(
+    () =>
+      wallPanels.map((panel) => {
+        const candidates = wallBackerNodeCandidates(panel.id);
+        const sourceNode = resolveNode(candidates[0], candidates.slice(1), `wall-backer:${panel.id}`);
+        const size: [number, number, number] = [
+          panel.size[0] + WALL_BACKER_EXPAND_X,
+          panel.size[1] + WALL_BACKER_EXPAND_Y,
+          WALL_BACKER_THICKNESS,
+        ];
+        const normalX = Math.sin(panel.rotationY);
+        const normalZ = Math.cos(panel.rotationY);
+        const position: [number, number, number] = [
+          panel.position[0] - normalX * WALL_BACKER_OFFSET,
+          panel.position[1],
+          panel.position[2] - normalZ * WALL_BACKER_OFFSET,
+        ];
+
+        if (!sourceNode) {
+          return {
+            id: `backer-${panel.id}`,
+            position,
+            size,
+            rotationY: panel.rotationY,
+            object: null,
+          };
+        }
+
+        const object = buildScaledFloorObject(sourceNode, size);
+        if (!object) {
+          return {
+            id: `backer-${panel.id}`,
+            position,
+            size,
+            rotationY: panel.rotationY,
+            object: null,
+          };
+        }
+
+        setObjectMaterialsDoubleSided(object);
+        return {
+          id: `backer-${panel.id}`,
+          position,
+          size,
+          rotationY: panel.rotationY,
+          object,
+        };
+      }),
+    [resolveNode, wallPanels],
+  );
+
+  const bushVisuals = useMemo<BushVisual[]>(() => {
+    const bushes: BushVisual[] = [];
+
+    for (let i = 0; i < wallPanels.length; i += 1) {
+      const panel = wallPanels[i];
+      if (hashString(panel.id) % 6 !== 0) continue;
+
+      const normalX = Math.sin(panel.rotationY);
+      const normalZ = Math.cos(panel.rotationY);
+      const sampleDistance = 0.9;
+
+      const posInsideX = panel.position[0] + normalX * sampleDistance;
+      const posInsideZ = panel.position[2] + normalZ * sampleDistance;
+      const negInsideX = panel.position[0] - normalX * sampleDistance;
+      const negInsideZ = panel.position[2] - normalZ * sampleDistance;
+
+      const positiveHasFloor = pointInsideAnyFloor(posInsideX, posInsideZ, floorPieces);
+      const negativeHasFloor = pointInsideAnyFloor(negInsideX, negInsideZ, floorPieces);
+
+      let side = 1;
+      if (positiveHasFloor && !negativeHasFloor) side = 1;
+      else if (negativeHasFloor && !positiveHasFloor) side = -1;
+
+      const nodeCandidates = bushNodeCandidates(panel.id);
+      const sourceNode = resolveNode(nodeCandidates[0], nodeCandidates.slice(1), `bush:${panel.id}`);
+
+      const sizeSeed = hashString(`bush-size-${panel.id}`) % 3;
+      const size: [number, number, number] =
+        sizeSeed === 0 ? [2.2, 1.5, 2.1] : sizeSeed === 1 ? [2.8, 1.9, 2.6] : [3.4, 2.3, 3.2];
+
+      const position: [number, number, number] = [
+        panel.position[0] + normalX * side * 0.7,
+        0.18,
+        panel.position[2] + normalZ * side * 0.7,
+      ];
+
+      if (!sourceNode) {
+        bushes.push({
+          id: `bush-${panel.id}`,
+          position,
+          rotationY: (hashString(`bush-rot-${panel.id}`) % 6283) / 1000,
+          size,
+          object: null,
+        });
+        continue;
+      }
+
+      const object = buildScaledFloorObject(sourceNode, size);
+      if (!object) continue;
+      markFloorMeshForShadows(object);
+      object.updateMatrixWorld(true);
+
+      bushes.push({
+        id: `bush-${panel.id}`,
+        position,
+        rotationY: (hashString(`bush-rot-${panel.id}`) % 6283) / 1000,
+        size,
+        object,
+      });
+    }
+
+    return bushes;
+  }, [floorPieces, resolveNode, wallPanels]);
 
   const borderColliders = useMemo(
     () =>
@@ -432,6 +830,36 @@ export default function DungeonWorld() {
 
   return (
       <group name="dungeon-world-debug-layout">
+      {ceilingVisuals.map((ceiling) => (
+        <group
+          key={ceiling.id}
+          position={ceiling.position}
+          rotation={[0, ceiling.rotationY, 0]}
+        >
+          <mesh
+            position={[0, ceiling.size[1] * 0.5 + CEILING_CAP_THICKNESS * 0.5 + CEILING_CAP_RISE, 0]}
+            material={ceilingCapMaterial}
+            castShadow={false}
+            receiveShadow
+          >
+            <boxGeometry
+              args={[
+                ceiling.size[0] + CEILING_CAP_EXPAND,
+                CEILING_CAP_THICKNESS,
+                ceiling.size[2] + CEILING_CAP_EXPAND,
+              ]}
+            />
+          </mesh>
+          {ceiling.object ? (
+            <primitive object={ceiling.object} />
+          ) : (
+            <mesh material={ceilingFallbackMaterial} castShadow={false} receiveShadow>
+              <boxGeometry args={ceiling.size} />
+            </mesh>
+          )}
+        </group>
+      ))}
+
       {floorVisuals.map(({ piece, object }) => (
         <group key={piece.id} position={piece.position} rotation={[0, piece.rotationY, 0]}>
           {(() => {
@@ -463,28 +891,34 @@ export default function DungeonWorld() {
         </group>
       ))}
 
-      {borderSegments.map((segment) => (
-        <mesh
-          key={segment.id}
-          position={segment.position}
-          material={borderMaterial}
-          castShadow={false}
-          receiveShadow={false}
-        >
-          <boxGeometry args={segment.size} />
-        </mesh>
+      {wallBackers.map((backer) => (
+        <group key={backer.id} position={backer.position} rotation={[0, backer.rotationY, 0]}>
+          {backer.object ? (
+            <primitive object={backer.object} />
+          ) : (
+            <mesh material={wallFallbackMaterial} castShadow={false} receiveShadow={false}>
+              <boxGeometry args={backer.size} />
+            </mesh>
+          )}
+        </group>
       ))}
 
-      {borderWalls.map((wall) => (
-        <mesh
-          key={wall.id}
-          position={wall.position}
-          material={borderWallMaterial}
-          castShadow={false}
-          receiveShadow={false}
-        >
-          <boxGeometry args={wall.size} />
-        </mesh>
+      {wallVisuals.map((wall) => (
+        <group key={wall.id} position={wall.position} rotation={[0, wall.rotationY, 0]}>
+          {wall.object ? (
+            <primitive object={wall.object} />
+          ) : (
+            <mesh material={wallFallbackMaterial} castShadow={false} receiveShadow>
+              <boxGeometry args={wall.size} />
+            </mesh>
+          )}
+        </group>
+      ))}
+
+      {bushVisuals.map((bush) => (
+        <group key={bush.id} position={bush.position} rotation={[0, bush.rotationY, 0]}>
+          {bush.object ? <primitive object={bush.object} /> : null}
+        </group>
       ))}
 
       <RigidBody type="fixed" colliders={false} name="dungeon-world-colliders">
