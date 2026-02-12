@@ -1,8 +1,8 @@
 export const DUNGEON_BOUNDS = {
-  minX: -65,
-  maxX: 75,
-  minZ: -25,
-  maxZ: 85,
+  minX: -73,
+  maxX: 73,
+  minZ: -21,
+  maxZ: 73,
   cameraPadding: 1.2,
   playerPadding: 1.4,
 } as const;

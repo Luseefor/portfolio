@@ -10,6 +10,7 @@ import DungeonAmbience from './DungeonAmbience';
 import DungeonWorld from './DungeonWorld';
 
 const FOG_COLOR = new Color('#0b0f14');
+const DEV_FULLBRIGHT = process.env.NODE_ENV !== 'production';
 
 export default function DungeonScene() {
   const playerBodyRef = useRef<RapierRigidBody | null>(null);
@@ -22,11 +23,6 @@ export default function DungeonScene() {
     }
     const listener = listenerRef.current;
     camera.add(listener);
-
-    // Reduce far clipping plane to prevent rendering beyond dungeon
-    camera.far = 100;
-    camera.updateProjectionMatrix();
-
     return () => {
       camera.remove(listener);
     };
@@ -35,14 +31,14 @@ export default function DungeonScene() {
   return (
     <group>
       <color attach="background" args={['#050607']} />
-      <fogExp2 attach="fog" args={[FOG_COLOR, 0.025]} />
+      <fogExp2 attach="fog" args={[FOG_COLOR, 0.03]} />
 
-      {/* Global lighting — tuned for enclosed dungeon atmosphere */}
-      <ambientLight intensity={0.3} color="#cfd6dc" />
-      <hemisphereLight intensity={0.35} color="#9bb7c8" groundColor="#1a1a1a" />
+      {/* Global lighting */}
+      <ambientLight intensity={0.22} color="#cfd6dc" />
+      <hemisphereLight intensity={0.32} color="#9bb7c8" groundColor="#1a1a1a" />
       <directionalLight
         position={[8, 10, 6]}
-        intensity={0.7}
+        intensity={0.8}
         color="#f4e4c8"
         castShadow
         shadow-mapSize-width={1024}
@@ -54,12 +50,18 @@ export default function DungeonScene() {
         shadow-camera-top={20}
         shadow-camera-bottom={-20}
       />
+      {DEV_FULLBRIGHT ? (
+        <>
+          <ambientLight intensity={1.1} color="#ffffff" />
+          <directionalLight position={[0, 18, 0]} intensity={1.4} color="#ffffff" />
+        </>
+      ) : null}
 
       {/* Room lights */}
-      <pointLight position={[0, 3, 0]} intensity={2.5} color="#ffb26b" distance={22} decay={2} />
-      <pointLight position={[0, 3, 18]} intensity={2.8} color="#ffb26b" distance={22} decay={2} />
-      <pointLight position={[18, 3, 18]} intensity={2.5} color="#ffb26b" distance={22} decay={2} />
-      <pointLight position={[-18, 3, 18]} intensity={1.8} color="#9bb6ff" distance={18} decay={2} />
+      <pointLight position={[0, 3, 0]} intensity={2.0} color="#ffb26b" distance={14} decay={2} />
+      <pointLight position={[0, 3, 18]} intensity={2.3} color="#ffb26b" distance={14} decay={2} />
+      <pointLight position={[18, 3, 18]} intensity={2.0} color="#ffb26b" distance={14} decay={2} />
+      <pointLight position={[-18, 3, 18]} intensity={1.4} color="#9bb6ff" distance={12} decay={2} />
 
       <Suspense fallback={null}>
         <DungeonAmbience />

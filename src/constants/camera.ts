@@ -12,13 +12,13 @@ import { MathUtils } from 'three';
 // ========================================
 export const CAMERA_DISTANCE = {
   /** Default camera distance from player */
-  default: 12,
+  default: 4.8,
   /** Minimum zoom distance */
-  min: 5,
+  min: 2.5,
   /** Maximum zoom distance */
-  max: 18,
+  max: 6.5,
   /** Zoom step per scroll wheel tick */
-  scrollStep: 0.6,
+  scrollStep: 0.4,
 } as const;
 
 // ========================================
@@ -26,13 +26,13 @@ export const CAMERA_DISTANCE = {
 // ========================================
 export const CAMERA_OFFSET = {
   /** Height above player pivot (eye level offset) */
-  height: 4.5,
+  height: 2.6,
   /** Horizontal offset for over-shoulder view (0 = centered) */
   side: 0.6,
   /** Additional backward bias to keep the head in frame */
-  back: 1.0,
+  back: 0.2,
   /** Look-at height offset (where camera points at on player) */
-  lookAtHeight: 1.2,
+  lookAtHeight: 1.6,
 } as const;
 
 // ========================================
@@ -68,11 +68,11 @@ export const CAMERA_SENSITIVITY = {
 // ========================================
 export const CAMERA_PITCH = {
   /** Minimum pitch angle (looking up) in radians */
-  min: MathUtils.degToRad(-15),
+  min: MathUtils.degToRad(-30),
   /** Maximum pitch angle (looking down) in radians */
-  max: MathUtils.degToRad(55),
+  max: MathUtils.degToRad(35),
   /** Default starting pitch */
-  initial: MathUtils.degToRad(15),
+  initial: MathUtils.degToRad(-8),
 } as const;
 
 // ========================================
@@ -80,11 +80,9 @@ export const CAMERA_PITCH = {
 // ========================================
 export const CAMERA_COLLISION = {
   /** Minimum distance from collision surface */
-  minDistanceFromWall: 0.6,
+  minDistanceFromWall: 0.3,
   /** Minimum allowed camera distance when colliding */
-  minCameraDistance: 2.0,
-  /** Maximum camera Y (ceiling clearance) — just under wall height */
-  maxCameraY: 19,
+  minCameraDistance: 0.5,
 } as const;
 
 // ========================================
