@@ -43,10 +43,8 @@ function clampPlayerZ(value: number) {
 
 export default function PlayerController({
   bodyRef,
-  onBodyReady,
 }: {
   bodyRef?: MutableRefObject<RapierRigidBody | null>;
-  onBodyReady?: (body: RapierRigidBody) => void;
 }) {
   const internalBodyRef = useRef<RapierRigidBody | null>(null);
   const rigidBodyRef = bodyRef ?? internalBodyRef;
@@ -72,7 +70,6 @@ export default function PlayerController({
   const visualLiftRef = useRef(0);
   const stepAudioRef = useRef<HTMLAudioElement[]>([]);
   const jumpAudioRef = useRef<HTMLAudioElement | null>(null);
-  const bodyReadyRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -149,10 +146,6 @@ export default function PlayerController({
   useFrame((_, delta) => {
     const body = rigidBodyRef.current;
     if (!body) return;
-    if (!bodyReadyRef.current) {
-      onBodyReady?.(body);
-      bodyReadyRef.current = true;
-    }
 
     const position = body.translation();
     const linvel = body.linvel();

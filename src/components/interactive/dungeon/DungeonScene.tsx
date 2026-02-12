@@ -13,7 +13,6 @@ const FOG_COLOR = new Color('#060810');
 
 export default function DungeonScene() {
   const playerBodyRef = useRef<RapierRigidBody | null>(null);
-  const [playerBody, setPlayerBody] = useState<RapierRigidBody | null>(null);
   const { camera } = useThree();
   const listenerRef = useRef<AudioListener | null>(null);
 
@@ -101,16 +100,8 @@ export default function DungeonScene() {
         <Suspense fallback={null}>
           <DungeonWorld />
         </Suspense>
-        <CameraRig targetBody={playerBody ?? playerBodyRef} />
-        <PlayerController
-          bodyRef={playerBodyRef}
-          onBodyReady={(body) => {
-            if (playerBodyRef.current !== body) {
-              playerBodyRef.current = body;
-            }
-            setPlayerBody(body);
-          }}
-        />
+        <CameraRig targetBody={playerBodyRef} />
+        <PlayerController bodyRef={playerBodyRef} />
       </Physics>
     </group>
   );
