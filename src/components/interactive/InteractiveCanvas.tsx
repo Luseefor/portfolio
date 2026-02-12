@@ -138,6 +138,9 @@ export default function InteractiveCanvas() {
         case 'ShiftRight':
           setKeys({ run: pressed });
           break;
+        case 'KeyQ':
+          setKeys({ dash: pressed });
+          break;
         case 'Space':
           setKeys({ jump: pressed });
           break;
@@ -157,6 +160,7 @@ export default function InteractiveCanvas() {
         left: false,
         right: false,
         run: false,
+        dash: false,
         jump: false,
         roll: false,
       });

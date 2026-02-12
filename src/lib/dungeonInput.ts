@@ -11,6 +11,7 @@ type DungeonInputState = {
     left: boolean;
     right: boolean;
     run: boolean;
+    dash: boolean;
     jump: boolean;
     roll: boolean;
   };
@@ -35,6 +36,7 @@ export const useDungeonInput = create<DungeonInputState>((set) => ({
     left: false,
     right: false,
     run: false,
+    dash: false,
     jump: false,
     roll: false,
   },
@@ -57,6 +59,7 @@ export const useDungeonInput = create<DungeonInputState>((set) => ({
         left: false,
         right: false,
         run: false,
+        dash: false,
         jump: false,
         roll: false,
       },

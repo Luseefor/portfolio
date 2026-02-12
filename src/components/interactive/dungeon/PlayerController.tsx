@@ -78,6 +78,7 @@ export default function PlayerController({
     left: false,
     right: false,
     run: false,
+    dash: false,
     jump: false,
     roll: false,
   });
@@ -149,6 +150,9 @@ export default function PlayerController({
         case 'ShiftRight':
           inputRef.current.run = pressed;
           break;
+        case 'KeyQ':
+          inputRef.current.dash = pressed;
+          break;
         case 'Space':
           inputRef.current.jump = pressed;
           break;
@@ -168,6 +172,7 @@ export default function PlayerController({
         left: false,
         right: false,
         run: false,
+        dash: false,
         jump: false,
         roll: false,
       };
@@ -224,6 +229,7 @@ export default function PlayerController({
     const leftPressed = keys.left || inputRef.current.left;
     const rightPressed = keys.right || inputRef.current.right;
     const runPressed = keys.run || inputRef.current.run;
+    const dashPressed = keys.dash || inputRef.current.dash;
     const jumpPressed = keys.jump || inputRef.current.jump;
     const rollPressed = keys.roll || inputRef.current.roll;
 
@@ -234,7 +240,6 @@ export default function PlayerController({
     if (rightPressed) moveDir.add(right);
 
     const hasInput = moveDir.lengthSq() > 0.001;
-    const dashPressed = runPressed;
     const dashJustPressed = dashPressed && !dashButtonPrevRef.current;
     dashButtonPrevRef.current = dashPressed;
 
