@@ -72,19 +72,19 @@ export const DUNGEON_LAYOUT_GRAPH: DungeonLayoutGraph = {
   seed: 1337,
   gridSize: 2,
   spawnRoomId: 'spawn-hall',
-  spawnPoint: [0, 1.8, 0],
+  spawnPoint: [0, 2.5, -2.5],
   spawnPlatform: {
-    center: [0, 0.4, 0],
+    center: [0, 0.4, -2.5],
     size: {
-      width: 8,
-      depth: 8,
+      width: 6,
+      depth: 6,
       height: 0.8,
     },
     landmarkTorches: [
-      [-3.2, 2.2, -3.2],
-      [3.2, 2.2, -3.2],
-      [-3.2, 2.2, 3.2],
-      [3.2, 2.2, 3.2],
+      [-2.8, 2.2, -5.0],
+      [2.8, 2.2, -5.0],
+      [-2.8, 2.2, 0.0],
+      [2.8, 2.2, 0.0],
     ],
   },
   rooms: [

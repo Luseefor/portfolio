@@ -109,19 +109,6 @@ function sideFromDelta(dx: number, dz: number): RoomSide {
   return dz >= 0 ? 'north' : 'south';
 }
 
-function oppositeSide(side: RoomSide): RoomSide {
-  switch (side) {
-    case 'north':
-      return 'south';
-    case 'south':
-      return 'north';
-    case 'east':
-      return 'west';
-    case 'west':
-      return 'east';
-  }
-}
-
 function pushRoomOpening(openings: Map<string, Set<RoomSide>>, roomId: string, side: RoomSide) {
   const existing = openings.get(roomId);
   if (existing) {
@@ -131,39 +118,80 @@ function pushRoomOpening(openings: Map<string, Set<RoomSide>>, roomId: string, s
   openings.set(roomId, new Set<RoomSide>([side]));
 }
 
-function getRoutePoints(route: DungeonRoute, roomById: Map<string, DungeonRoom>, gridSize: number): Vec2[] {
+function getDoorPoint(room: DungeonRoom, side: RoomSide, gridSize: number): Vec2 {
+  const [cx, , cz] = room.center;
+  const halfWidth = room.size.width / 2 - WALL_THICKNESS / 2;
+  const halfDepth = room.size.depth / 2 - WALL_THICKNESS / 2;
+
+  let point: Vec2 = [cx, cz];
+  if (side === 'north') point = [cx, cz + halfDepth];
+  else if (side === 'south') point = [cx, cz - halfDepth];
+  else if (side === 'east') point = [cx + halfWidth, cz];
+  else if (side === 'west') point = [cx - halfWidth, cz];
+
+  return snapPoint(point, gridSize);
+}
+
+type RouteConnection = {
+  fromRoom: DungeonRoom;
+  toRoom: DungeonRoom;
+  fromSide: RoomSide;
+  toSide: RoomSide;
+  waypoints: Vec2[];
+  startDoor: Vec2;
+  endDoor: Vec2;
+};
+
+function getRouteConnection(
+  route: DungeonRoute,
+  roomById: Map<string, DungeonRoom>,
+  gridSize: number,
+): RouteConnection | null {
   const fromRoom = roomById.get(route.fromRoomId);
   const toRoom = roomById.get(route.toRoomId);
-  if (!fromRoom || !toRoom) return [];
+  if (!fromRoom || !toRoom) return null;
 
-  return [
-    snapPoint([fromRoom.center[0], fromRoom.center[2]], gridSize),
-    ...((route.waypoints ?? []).map((waypoint) => snapPoint(waypoint, gridSize)) as Vec2[]),
-    snapPoint([toRoom.center[0], toRoom.center[2]], gridSize),
-  ];
+  const fromCenter = snapPoint([fromRoom.center[0], fromRoom.center[2]], gridSize);
+  const toCenter = snapPoint([toRoom.center[0], toRoom.center[2]], gridSize);
+  const waypoints = ((route.waypoints ?? []).map((waypoint) => snapPoint(waypoint, gridSize)) as Vec2[]);
+
+  const startReference = waypoints.length > 0 ? waypoints[0] : toCenter;
+  const endReference = waypoints.length > 0 ? waypoints[waypoints.length - 1] : fromCenter;
+
+  const fromSide = sideFromDelta(
+    startReference[0] - fromCenter[0],
+    startReference[1] - fromCenter[1],
+  );
+  const toSide = sideFromDelta(
+    endReference[0] - toCenter[0],
+    endReference[1] - toCenter[1],
+  );
+
+  return {
+    fromRoom,
+    toRoom,
+    fromSide,
+    toSide,
+    waypoints,
+    startDoor: getDoorPoint(fromRoom, fromSide, gridSize),
+    endDoor: getDoorPoint(toRoom, toSide, gridSize),
+  };
+}
+
+function getRoutePoints(route: DungeonRoute, roomById: Map<string, DungeonRoom>, gridSize: number): Vec2[] {
+  const connection = getRouteConnection(route, roomById, gridSize);
+  if (!connection) return [];
+  return [connection.startDoor, ...connection.waypoints, connection.endDoor];
 }
 
 function collectRoomOpenings(layout: DungeonLayoutGraph, roomById: Map<string, DungeonRoom>) {
   const openings = new Map<string, Set<RoomSide>>();
   for (let i = 0; i < layout.routes.length; i += 1) {
     const route = layout.routes[i];
-    const routePoints = getRoutePoints(route, roomById, layout.gridSize);
-    if (routePoints.length < 2) continue;
-
-    const fromRoom = roomById.get(route.fromRoomId);
-    const toRoom = roomById.get(route.toRoomId);
-    if (!fromRoom || !toRoom) continue;
-
-    const fromNextPoint = routePoints[1];
-    const fromSide = sideFromDelta(fromNextPoint[0] - fromRoom.center[0], fromNextPoint[1] - fromRoom.center[2]);
-
-    const toPrevPoint = routePoints[routePoints.length - 2];
-    const toSide = oppositeSide(
-      sideFromDelta(toPrevPoint[0] - toRoom.center[0], toPrevPoint[1] - toRoom.center[2]),
-    );
-
-    pushRoomOpening(openings, fromRoom.id, fromSide);
-    pushRoomOpening(openings, toRoom.id, toSide);
+    const connection = getRouteConnection(route, roomById, layout.gridSize);
+    if (!connection) continue;
+    pushRoomOpening(openings, connection.fromRoom.id, connection.fromSide);
+    pushRoomOpening(openings, connection.toRoom.id, connection.toSide);
   }
   return openings;
 }
