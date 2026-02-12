@@ -49,7 +49,7 @@ export default function CameraRig({
   yawRef,
   pitchRef,
 }: {
-  targetBody?: MutableRefObject<RapierRigidBody | null>;
+  targetBody?: MutableRefObject<RapierRigidBody | null> | RapierRigidBody | null;
   yawRef?: MutableRefObject<number>;
   pitchRef?: MutableRefObject<number>;
 }) {
@@ -106,7 +106,7 @@ export default function CameraRig({
   }, [isPointerLocked, mouseDown, pitch, yaw]);
 
   useFrame((_, delta) => {
-    const body = targetBody?.current;
+    const body = targetBody && 'current' in targetBody ? targetBody.current : targetBody;
     if (!body) return;
 
     const bodyPosition = body.translation();
