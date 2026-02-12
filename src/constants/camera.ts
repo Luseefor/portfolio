@@ -83,8 +83,8 @@ export const CAMERA_COLLISION = {
   minDistanceFromWall: 0.6,
   /** Minimum allowed camera distance when colliding */
   minCameraDistance: 2.0,
-  /** Maximum camera Y (ceiling clearance) — 3.5m is just below wall height (4m) */
-  maxCameraY: 3.5,
+  /** Maximum camera Y (ceiling clearance) — just under wall height */
+  maxCameraY: 19,
 } as const;
 
 // ========================================
