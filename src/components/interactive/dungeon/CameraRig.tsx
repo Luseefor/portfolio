@@ -199,40 +199,56 @@ export default function CameraRig({
       // ── Wall collision: 3-ray probe (center + left + right) ──
       _rayDir.copy(_desired).sub(_smoothTarget);
       const rayLen = _rayDir.length();
-      if (rayLen > 0.001) {
+
+      // Minimum distance to prevent self-collision (radius of player capsule ~0.4)
+      const MIN_RAY_DIST = 0.5;
+
+      if (rayLen > MIN_RAY_DIST) {
         _rayDir.divideScalar(rayLen);
-        const maxTOI = rayLen + WALL_BUF;
+        const maxTOI = rayLen - MIN_RAY_DIST + WALL_BUF;
+
+        // Origin offset to clear player collider
+        const originOffset = _rayDir.clone().multiplyScalar(MIN_RAY_DIST);
+        const origin = _smoothTarget.clone().add(originOffset);
 
         // Center ray
         const rCenter = new RapierRay(
-          { x: _smoothTarget.x, y: _smoothTarget.y, z: _smoothTarget.z },
+          { x: origin.x, y: origin.y, z: origin.z },
           { x: _rayDir.x, y: _rayDir.y, z: _rayDir.z },
         );
         const hitCenter = world.castRay(rCenter, maxTOI, true);
 
         // Left/right side probes
         _probeSide.set(-_rayDir.z, 0, _rayDir.x).normalize().multiplyScalar(PROBE_OFFSET);
+
+        // Left ray
+        const originLeft = origin.clone().add(_probeSide);
         const rLeft = new RapierRay(
-          { x: _smoothTarget.x + _probeSide.x, y: _smoothTarget.y, z: _smoothTarget.z + _probeSide.z },
+          { x: originLeft.x, y: originLeft.y, z: originLeft.z },
           { x: _rayDir.x, y: _rayDir.y, z: _rayDir.z },
         );
         const hitLeft = world.castRay(rLeft, maxTOI, true);
 
+        // Right ray
         _probeSide.negate();
+        const originRight = origin.clone().add(_probeSide);
         const rRight = new RapierRay(
-          { x: _smoothTarget.x + _probeSide.x, y: _smoothTarget.y, z: _smoothTarget.z + _probeSide.z },
+          { x: originRight.x, y: originRight.y, z: originRight.z },
           { x: _rayDir.x, y: _rayDir.y, z: _rayDir.z },
         );
         const hitRight = world.castRay(rRight, maxTOI, true);
 
-        let nearest = rayLen;
+        let nearest = rayLen - MIN_RAY_DIST;
+        // Adjust hits by adding back the offset, then subtract buffer
         if (hitCenter) nearest = Math.min(nearest, hitCenter.timeOfImpact - WALL_BUF);
         if (hitLeft) nearest = Math.min(nearest, hitLeft.timeOfImpact - WALL_BUF);
         if (hitRight) nearest = Math.min(nearest, hitRight.timeOfImpact - WALL_BUF);
-        nearest = Math.max(CAMERA_COLLISION.minDistanceFromWall, nearest);
 
-        if (nearest < rayLen) {
-          _desired.copy(_smoothTarget).addScaledVector(_rayDir, nearest);
+        // Clamp to minimum cam distance
+        const finalDist = Math.max(CAMERA_COLLISION.minDistanceFromWall, nearest + MIN_RAY_DIST);
+
+        if (finalDist < rayLen) {
+          _desired.copy(_smoothTarget).addScaledVector(_rayDir, finalDist);
         }
       }
 
