@@ -165,3 +165,15 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
   - `npx tsc --noEmit` ✅
   - `npm run -s lint` ✅
   - `npm run -s test` ✅
+- Welcome + theme consistency + control docs pass:
+  - Added first-open onboarding overlay with professional copy and full control reference (desktop/mobile) in `src/components/interactive/dungeon/ui/WelcomeOverlay.tsx`.
+  - Onboarding opens on first interactive page load and blocks gameplay interactions until dismissed (Enter/Escape/button).
+  - Added shared dungeon UI theme hook (`src/components/interactive/dungeon/ui/useDungeonUiTheme.ts`) that derives accent color from the same landing-page theme store (`useStore` + `getThemeColor`).
+  - Re-themed major interactive UI components to use landing theme accent + glow instead of hardcoded amber:
+    - `InteractionPrompt`, `ChestPanel`, `DungeonSettingsMenu`, `DungeonHUD`, `MobileControls`, and interactive page back-pill/background.
+  - Added right-click unlock pointer hint in bottom-left controls and retained settings hint.
+  - Updated interaction state plumbing so intro overlay integrates with settings/chest/mobile block states.
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test` ✅

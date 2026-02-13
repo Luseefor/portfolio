@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ChestPOI } from '@/constants/dungeonLayout';
+import { useDungeonUiTheme } from './useDungeonUiTheme';
 
 interface ChestPanelProps {
   chest: ChestPOI | null;
@@ -9,6 +10,8 @@ interface ChestPanelProps {
 }
 
 export default function ChestPanel({ chest, onClose }: ChestPanelProps) {
+  const theme = useDungeonUiTheme();
+
   const handleLootAction = () => {
     if (chest?.loot?.url) {
       window.open(chest.loot.url, '_blank', 'noopener,noreferrer');
@@ -37,14 +40,32 @@ export default function ChestPanel({ chest, onClose }: ChestPanelProps) {
             transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
             className="fixed left-1/2 top-1/2 z-50 w-[min(92vw,400px)] -translate-x-1/2 -translate-y-1/2"
           >
-            <div className="overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-stone-900/98 to-stone-800/98 shadow-[0_0_60px_rgba(251,191,36,0.1),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl">
+            <div
+              className="overflow-hidden rounded-2xl border bg-gradient-to-br from-stone-900/98 to-stone-800/98 backdrop-blur-xl"
+              style={{
+                borderColor: theme.accentBorder,
+                boxShadow: `0 0 60px ${theme.accentGlow}, inset 0 1px 0 rgba(255,255,255,0.05)`,
+              }}
+            >
               {/* Header glow */}
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
+              <div
+                className="absolute inset-x-0 top-0 h-px"
+                style={{
+                  background: `linear-gradient(90deg, transparent, ${theme.accentBorderStrong}, transparent)`,
+                }}
+              />
 
               {/* Chest icon */}
               <div className="flex justify-center pt-6">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/20 to-amber-600/10 shadow-[0_0_24px_rgba(251,191,36,0.2)]">
-                  <svg className="h-8 w-8 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                <div
+                  className="flex h-16 w-16 items-center justify-center rounded-2xl border bg-gradient-to-br shadow-[0_0_24px]"
+                  style={{
+                    borderColor: theme.accentBorder,
+                    backgroundImage: `linear-gradient(135deg, ${theme.accentBgStrong}, ${theme.accentBgSoft})`,
+                    boxShadow: `0 0 24px ${theme.accentGlow}`,
+                  }}
+                >
+                  <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 24 24" style={{ color: theme.accent }}>
                     <path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 13c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zM10 4h4v2h-4V4z" />
                   </svg>
                 </div>
@@ -53,15 +74,18 @@ export default function ChestPanel({ chest, onClose }: ChestPanelProps) {
               {/* Content */}
               <div className="p-6 pt-4 text-center">
                 {/* Loot type tag */}
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1">
-                  <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
-                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-amber-300">
+                <div
+                  className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1"
+                  style={{ borderColor: theme.accentBorder, backgroundColor: theme.accentBgSoft }}
+                >
+                  <div className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ backgroundColor: theme.accent }} />
+                  <span className="text-[9px] font-black uppercase tracking-[0.4em]" style={{ color: theme.accentText }}>
                     {chest.loot?.type ?? 'Treasure'}
                   </span>
                 </div>
 
                 {/* Title */}
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-amber-50">
+                <h2 className="mt-2 text-2xl font-black tracking-tight" style={{ color: theme.accentText }}>
                   {chest.title}
                 </h2>
 
@@ -69,14 +93,24 @@ export default function ChestPanel({ chest, onClose }: ChestPanelProps) {
                 <p className="mt-4 text-sm leading-relaxed text-stone-400">{chest.description}</p>
 
                 {/* Divider */}
-                <div className="my-5 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+                <div
+                  className="my-5 h-px"
+                  style={{
+                    background: `linear-gradient(90deg, transparent, ${theme.accentBorder}, transparent)`,
+                  }}
+                />
 
                 {/* Actions */}
                 <div className="flex justify-center gap-3">
                   {chest.loot && (
                     <button
                       onClick={handleLootAction}
-                      className="group relative flex items-center gap-2 overflow-hidden rounded-xl border border-amber-500/40 bg-gradient-to-b from-amber-500/20 to-amber-600/10 px-5 py-3 text-sm font-bold uppercase tracking-wider text-amber-200 transition-all hover:border-amber-400/60 hover:bg-amber-500/25 hover:text-amber-100"
+                      className="group relative flex items-center gap-2 overflow-hidden rounded-xl border px-5 py-3 text-sm font-bold uppercase tracking-wider text-white transition-all"
+                      style={{
+                        borderColor: theme.accentBorderStrong,
+                        backgroundImage: `linear-gradient(180deg, ${theme.accentBgStrong}, ${theme.accentBgSoft})`,
+                        boxShadow: `0 0 20px ${theme.accentGlow}`,
+                      }}
                     >
                       <span className="relative">{chest.loot.label}</span>
                       <svg
@@ -108,7 +142,12 @@ export default function ChestPanel({ chest, onClose }: ChestPanelProps) {
               </div>
 
               {/* Bottom decoration */}
-              <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+              <div
+                className="absolute inset-x-0 bottom-0 h-px"
+                style={{
+                  background: `linear-gradient(90deg, transparent, ${theme.accentBorder}, transparent)`,
+                }}
+              />
             </div>
           </motion.div>
         </>

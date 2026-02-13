@@ -5,6 +5,7 @@ import { CHEST_POIS, DUNGEON_LAYOUT_GRAPH } from '@/constants/dungeonLayout';
 import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import { usePlayerState, playerStateSelectors } from '@/lib/playerState';
+import { useDungeonUiTheme } from './useDungeonUiTheme';
 
 interface DungeonHUDProps {
   chestsOpened: number;
@@ -37,6 +38,7 @@ export default function DungeonHUD({
   totalChests,
   openedChestIds,
 }: DungeonHUDProps) {
+  const theme = useDungeonUiTheme();
   const isTouchDevice = useDungeonInput((state) => state.isTouchDevice);
   const position = usePlayerState(playerStateSelectors.position);
   const look = usePlayerState(playerStateSelectors.look);
@@ -65,10 +67,11 @@ export default function DungeonHUD({
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="w-[236px] rounded-xl border border-amber-500/20 bg-gradient-to-br from-stone-900/95 to-stone-800/90 p-2.5 shadow-[0_0_24px_rgba(0,0,0,0.35)] backdrop-blur-md sm:w-[264px] sm:p-3"
+          className="w-[236px] rounded-xl border bg-gradient-to-br from-stone-900/95 to-stone-800/90 p-2.5 shadow-[0_0_24px_rgba(0,0,0,0.35)] backdrop-blur-md sm:w-[264px] sm:p-3"
+          style={{ borderColor: theme.accentBorder }}
         >
           <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.24em]">
-            <span className="text-amber-400/90">Minimap</span>
+            <span style={{ color: theme.accentText }}>Minimap</span>
             <span className="font-mono tracking-[0.12em] text-stone-400">{chestsOpened}/{totalChests}</span>
           </div>
           <svg
@@ -139,7 +142,7 @@ export default function DungeonHUD({
                   width={Math.max(2, bottomRight.x - topLeft.x)}
                   height={Math.max(2, bottomRight.y - topLeft.y)}
                   fill="none"
-                  stroke="rgba(245,158,11,0.28)"
+                  stroke={theme.accentBorder}
                   strokeWidth={1}
                   rx={2}
                 />
@@ -165,7 +168,7 @@ export default function DungeonHUD({
                   <polyline
                     points={points}
                     fill="none"
-                    stroke="rgba(245,158,11,0.2)"
+                    stroke={theme.accentBgStrong}
                     strokeWidth={routeStroke + 2}
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -173,7 +176,7 @@ export default function DungeonHUD({
                   <polyline
                     points={points}
                     fill="none"
-                    stroke="rgba(245,158,11,0.36)"
+                    stroke={theme.accentBorderStrong}
                     strokeWidth={routeStroke}
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -190,7 +193,7 @@ export default function DungeonHUD({
                     cx={point.x}
                     cy={point.y}
                     r={isOpened ? 2.1 : 2.9}
-                    fill={isOpened ? 'rgba(107,114,128,0.95)' : 'rgba(251,191,36,0.98)'}
+                    fill={isOpened ? 'rgba(107,114,128,0.95)' : theme.accent}
                   />
                   {!isOpened && (
                     <circle
@@ -198,7 +201,7 @@ export default function DungeonHUD({
                       cy={point.y}
                       r={4.3}
                       fill="none"
-                      stroke="rgba(251,191,36,0.35)"
+                      stroke={theme.accentBorderStrong}
                       strokeWidth={0.9}
                     />
                   )}
@@ -234,7 +237,7 @@ export default function DungeonHUD({
               <span>You</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-amber-400" />
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: theme.accent }} />
               <span>Unopened</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -252,21 +255,22 @@ export default function DungeonHUD({
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="rounded-xl border border-amber-500/20 bg-gradient-to-r from-stone-900/90 to-stone-800/90 px-4 py-3 shadow-[0_0_20px_rgba(0,0,0,0.3)] backdrop-blur-md"
+              className="rounded-xl border bg-gradient-to-r from-stone-900/90 to-stone-800/90 px-4 py-3 shadow-[0_0_20px_rgba(0,0,0,0.3)] backdrop-blur-md"
+              style={{ borderColor: theme.accentBorder }}
             >
               <div className="flex items-center gap-4">
                 {/* Treasures found */}
                 <div className="flex items-center gap-2">
-                  <svg className="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" style={{ color: theme.accent }}>
                     <path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM10 4h4v2h-4V4z" />
                   </svg>
-                  <span className="font-mono text-sm font-bold tabular-nums text-amber-100">
+                  <span className="font-mono text-sm font-bold tabular-nums" style={{ color: theme.accentText }}>
                     {chestsOpened}/{totalChests}
                   </span>
                 </div>
 
                 {/* Divider */}
-                <div className="h-6 w-px bg-amber-500/20" />
+                <div className="h-6 w-px" style={{ backgroundColor: theme.accentBorder }} />
 
                 {/* Speed */}
                 <div className="text-right">
@@ -350,13 +354,23 @@ export default function DungeonHUD({
                 className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
                   grounded
                     ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                    : 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                    : ''
                 }`}
+                style={
+                  grounded
+                    ? undefined
+                    : {
+                        borderColor: theme.accentBorderStrong,
+                        backgroundColor: theme.accentBgSoft,
+                        color: theme.accentText,
+                      }
+                }
               >
                 <div
                   className={`h-1.5 w-1.5 rounded-full ${
-                    grounded ? 'bg-emerald-400' : 'animate-pulse bg-amber-400'
+                    grounded ? 'bg-emerald-400' : 'animate-pulse'
                   }`}
+                  style={grounded ? undefined : { backgroundColor: theme.accent }}
                 />
                 {grounded ? 'Grounded' : 'Airborne'}
               </div>

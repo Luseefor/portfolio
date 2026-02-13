@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDungeonInput } from '@/lib/dungeonInput';
+import { useDungeonUiTheme } from './useDungeonUiTheme';
 
 type ActionKey = 'jump' | 'roll' | 'dash' | 'attack';
 
@@ -41,6 +42,7 @@ export default function MobileControls({
   onInteract,
   onOpenSettings,
 }: MobileControlsProps) {
+  const theme = useDungeonUiTheme();
   const setKeys = useDungeonInput((state) => state.setKeys);
   const setMoveAxis = useDungeonInput((state) => state.setMoveAxis);
   const addLookDelta = useDungeonInput((state) => state.addLookDelta);
@@ -141,7 +143,8 @@ export default function MobileControls({
             event.preventDefault();
             onOpenSettings();
           }}
-          className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/35 bg-stone-900/90 text-amber-300 shadow-[0_0_18px_rgba(0,0,0,0.35)] backdrop-blur-sm"
+          className="flex h-12 w-12 items-center justify-center rounded-xl border bg-stone-900/90 shadow-[0_0_18px_rgba(0,0,0,0.35)] backdrop-blur-sm"
+          style={{ borderColor: theme.accentBorderStrong, color: theme.accentText }}
         >
           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -197,8 +200,11 @@ export default function MobileControls({
         >
           <div className="pointer-events-none absolute inset-[11px] rounded-full border border-stone-700/70" />
           <div
-            className="pointer-events-none absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-amber-400/70 bg-amber-300/25 shadow-[0_0_20px_rgba(251,191,36,0.25)]"
+            className="pointer-events-none absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full border"
             style={{
+              borderColor: theme.accentBorderStrong,
+              backgroundColor: theme.accentBgStrong,
+              boxShadow: `0 0 20px ${theme.accentGlow}`,
               transform: `translate(calc(-50% + ${stickOffset.x}px), calc(-50% + ${stickOffset.y}px))`,
             }}
           />
@@ -246,7 +252,12 @@ export default function MobileControls({
             event.preventDefault();
             pulseAction('jump');
           }}
-          className="h-12 min-w-[72px] rounded-xl border border-sky-500/40 bg-sky-500/20 px-3 text-xs font-bold uppercase tracking-[0.14em] text-sky-100 disabled:opacity-45"
+          className="h-12 min-w-[72px] rounded-xl border px-3 text-xs font-bold uppercase tracking-[0.14em] text-white disabled:opacity-45"
+          style={{
+            borderColor: theme.accentBorderStrong,
+            backgroundColor: theme.accentBgSoft,
+            boxShadow: `0 0 12px ${theme.accentGlow}`,
+          }}
         >
           Jump
         </button>
@@ -258,7 +269,12 @@ export default function MobileControls({
             event.preventDefault();
             pulseAction('roll');
           }}
-          className="h-12 min-w-[72px] rounded-xl border border-amber-500/40 bg-amber-500/20 px-3 text-xs font-bold uppercase tracking-[0.14em] text-amber-100 disabled:opacity-45"
+          className="h-12 min-w-[72px] rounded-xl border px-3 text-xs font-bold uppercase tracking-[0.14em] text-white disabled:opacity-45"
+          style={{
+            borderColor: theme.accentBorderStrong,
+            backgroundColor: theme.accentBgSoft,
+            boxShadow: `0 0 12px ${theme.accentGlow}`,
+          }}
         >
           Roll
         </button>
@@ -270,7 +286,12 @@ export default function MobileControls({
             event.preventDefault();
             pulseAction('dash');
           }}
-          className="h-12 min-w-[72px] rounded-xl border border-violet-500/40 bg-violet-500/20 px-3 text-xs font-bold uppercase tracking-[0.14em] text-violet-100 disabled:opacity-45"
+          className="h-12 min-w-[72px] rounded-xl border px-3 text-xs font-bold uppercase tracking-[0.14em] text-white disabled:opacity-45"
+          style={{
+            borderColor: theme.accentBorderStrong,
+            backgroundColor: theme.accentBgSoft,
+            boxShadow: `0 0 12px ${theme.accentGlow}`,
+          }}
         >
           Dash
         </button>
@@ -282,7 +303,12 @@ export default function MobileControls({
             event.preventDefault();
             pulseAction('attack');
           }}
-          className="h-12 min-w-[72px] rounded-xl border border-rose-500/40 bg-rose-500/20 px-3 text-xs font-bold uppercase tracking-[0.14em] text-rose-100 disabled:opacity-45"
+          className="h-12 min-w-[72px] rounded-xl border px-3 text-xs font-bold uppercase tracking-[0.14em] text-white disabled:opacity-45"
+          style={{
+            borderColor: theme.accentBorderStrong,
+            backgroundColor: theme.accentBgSoft,
+            boxShadow: `0 0 12px ${theme.accentGlow}`,
+          }}
         >
           Attack
         </button>
@@ -294,7 +320,12 @@ export default function MobileControls({
             event.preventDefault();
             onInteract();
           }}
-          className="col-span-2 h-12 rounded-xl border border-emerald-500/45 bg-emerald-500/20 px-3 text-xs font-bold uppercase tracking-[0.14em] text-emerald-100 disabled:opacity-45"
+          className="col-span-2 h-12 rounded-xl border px-3 text-xs font-bold uppercase tracking-[0.14em] text-white disabled:opacity-45"
+          style={{
+            borderColor: theme.accentBorderStrong,
+            backgroundColor: theme.accentBgStrong,
+            boxShadow: `0 0 16px ${theme.accentGlowStrong}`,
+          }}
         >
           {canInteract ? 'Interact' : 'No Target'}
         </button>

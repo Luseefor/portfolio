@@ -18,11 +18,13 @@ export default function InteractiveCanvas() {
     nearbyChestId,
     activePanel,
     isSettingsOpen,
+    isWelcomeOpen,
     handleChestOpen,
     handleNearbyChange,
     handleClosePanel,
     handleOpenSettings,
     handleCloseSettings,
+    handleCloseWelcome,
   } = useDungeonInteraction();
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
   const setHasFocus = useDungeonInput((state) => state.setHasFocus);
@@ -244,11 +246,11 @@ export default function InteractiveCanvas() {
   }, [setHasFocus, setMoveAxis, setPointerLocked]);
 
   const handleMobileInteract = useCallback(() => {
-    if (!nearbyChestId || activePanel || isSettingsOpen) return;
+    if (!nearbyChestId || activePanel || isSettingsOpen || isWelcomeOpen) return;
     const chest = CHEST_POIS.find((entry) => entry.id === nearbyChestId);
     if (!chest) return;
     handleChestOpen(chest);
-  }, [activePanel, handleChestOpen, isSettingsOpen, nearbyChestId]);
+  }, [activePanel, handleChestOpen, isSettingsOpen, isWelcomeOpen, nearbyChestId]);
 
   useEffect(() => {
     if (!canvasEl) return;
@@ -268,7 +270,7 @@ export default function InteractiveCanvas() {
       else {
         if (document.activeElement !== canvasEl) setHasFocus(false);
         const unlockedByMouseRequest = Date.now() - unlockRequestRef.current < 260;
-        if (wasLocked && !unlockedByMouseRequest && !isSettingsOpen && !activePanel) {
+        if (wasLocked && !unlockedByMouseRequest && !isSettingsOpen && !activePanel && !isWelcomeOpen) {
           handleOpenSettings();
         }
       }
@@ -276,7 +278,7 @@ export default function InteractiveCanvas() {
 
     document.addEventListener('pointerlockchange', handlePointerLockChange);
     return () => document.removeEventListener('pointerlockchange', handlePointerLockChange);
-  }, [activePanel, canvasEl, handleOpenSettings, isSettingsOpen, isTouchDevice, setHasFocus, setPointerLocked]);
+  }, [activePanel, canvasEl, handleOpenSettings, isSettingsOpen, isTouchDevice, isWelcomeOpen, setHasFocus, setPointerLocked]);
 
   useEffect(() => {
     const renderer = rendererRef.current;
@@ -318,13 +320,15 @@ export default function InteractiveCanvas() {
         nearbyChestId={nearbyChestId}
         activePanel={activePanel}
         isSettingsOpen={isSettingsOpen}
+        isWelcomeOpen={isWelcomeOpen}
         onClosePanel={handleClosePanel}
         onCloseSettings={handleCloseSettings}
+        onCloseWelcome={handleCloseWelcome}
       />
       <MobileControls
         visible={isTouchDevice}
-        blocked={Boolean(activePanel) || isSettingsOpen}
-        canInteract={Boolean(nearbyChestId) && !activePanel && !isSettingsOpen}
+        blocked={Boolean(activePanel) || isSettingsOpen || isWelcomeOpen}
+        canInteract={Boolean(nearbyChestId) && !activePanel && !isSettingsOpen && !isWelcomeOpen}
         onInteract={handleMobileInteract}
         onOpenSettings={handleOpenSettings}
       />

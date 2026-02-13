@@ -7,6 +7,8 @@ import InteractionPrompt from './ui/InteractionPrompt';
 import ChestPanel from './ui/ChestPanel';
 import DungeonHUD from './ui/DungeonHUD';
 import DungeonSettingsMenu from './ui/DungeonSettingsMenu';
+import WelcomeOverlay from './ui/WelcomeOverlay';
+import { useDungeonInput } from '@/lib/dungeonInput';
 
 function safePauseAudio(audio: HTMLAudioElement | null) {
   if (!audio) return;
@@ -42,8 +44,10 @@ interface DungeonUIProps {
   nearbyChestId: string | null;
   activePanel: ChestPOI | null;
   isSettingsOpen: boolean;
+  isWelcomeOpen: boolean;
   onClosePanel: () => void;
   onCloseSettings: () => void;
+  onCloseWelcome: () => void;
 }
 
 export function DungeonUI({
@@ -51,10 +55,13 @@ export function DungeonUI({
   nearbyChestId,
   activePanel,
   isSettingsOpen,
+  isWelcomeOpen,
   onClosePanel,
   onCloseSettings,
+  onCloseWelcome,
 }: DungeonUIProps) {
-  const showInteractionPrompt = nearbyChestId !== null && !activePanel && !isSettingsOpen;
+  const showInteractionPrompt = nearbyChestId !== null && !activePanel && !isSettingsOpen && !isWelcomeOpen;
+  const isTouchDevice = useDungeonInput((state) => state.isTouchDevice);
 
   return (
     <>
@@ -73,6 +80,9 @@ export function DungeonUI({
 
       {/* Settings Menu */}
       <DungeonSettingsMenu isOpen={isSettingsOpen} onClose={onCloseSettings} />
+
+      {/* Intro Overlay */}
+      <WelcomeOverlay isOpen={isWelcomeOpen} onClose={onCloseWelcome} isTouchDevice={isTouchDevice} />
     </>
   );
 }
@@ -88,6 +98,7 @@ export function useDungeonInteraction() {
   const [nearbyChestId, setNearbyChestId] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<ChestPOI | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(true);
 
   const masterVolume = useSettings((s: Settings) => s.masterVolume);
   const uiOpenAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -166,6 +177,10 @@ export function useDungeonInteraction() {
     playUICloseSound();
   }, [playUICloseSound]);
 
+  const handleCloseWelcome = useCallback(() => {
+    setIsWelcomeOpen(false);
+  }, []);
+
   const handleToggleMute = useCallback(() => {
     const currentVolume = clampVolume(useSettings.getState().masterVolume);
     if (currentVolume <= 0.001) {
@@ -194,6 +209,14 @@ export function useDungeonInteraction() {
         return;
       }
 
+      if (isWelcomeOpen) {
+        if (e.key === 'Escape' || e.key === 'Enter') {
+          e.preventDefault();
+          handleCloseWelcome();
+        }
+        return;
+      }
+
       if (isSettingsOpen || activePanel) {
         if (e.key === 'Escape') {
           if (activePanel) handleClosePanel();
@@ -219,8 +242,10 @@ export function useDungeonInteraction() {
   }, [
     nearbyChestId,
     isSettingsOpen,
+    isWelcomeOpen,
     activePanel,
     handleChestOpen,
+    handleCloseWelcome,
     handleClosePanel,
     handleOpenSettings,
     handleCloseSettings,
@@ -233,11 +258,13 @@ export function useDungeonInteraction() {
     nearbyChestId,
     activePanel,
     isSettingsOpen,
+    isWelcomeOpen,
     // Handlers
     handleChestOpen,
     handleNearbyChange,
     handleClosePanel,
     handleOpenSettings,
     handleCloseSettings,
+    handleCloseWelcome,
   };
 }
