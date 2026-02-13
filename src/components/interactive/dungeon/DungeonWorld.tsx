@@ -22,6 +22,7 @@ import {
 } from '@/game/dungeon/buildDungeon';
 import { createSafeNodeResolver } from '@/game/dungeon/utils';
 import { clearDungeonVisualLiftTiles, setDungeonVisualLiftTiles } from '@/lib/dungeonVisualLift';
+import { clampVolume, useSettings } from '@/lib/settings';
 
 const RUINS_GLB_PATH = '/models/dungeon/structure/Modular Ruins Pack.glb';
 const FLOOR_NODE_FALLBACKS = ['Floor_Standard', 'Floor_Squares', 'Floor_SquareLarge'] as const;
@@ -85,12 +86,15 @@ const SPAWN_UNDERLAY_DROP = 0.04;
 const TORCH_LIGHT_DECAY = 1.9;
 const TORCH_PLACEMENT_LIMIT = 22;
 const TORCH_MOUNT_HEIGHT = 2.3;
+const TORCH_WALL_FILL_HEIGHT = TORCH_MOUNT_HEIGHT * 0.62;
+const TORCH_WALL_FILL_BACK_OFFSET = -0.12;
 const POT_PLACEMENT_LIMIT = 24;
 const AMBIENT_PROP_PLACEMENT_LIMIT = 24;
 const PROP_COLLIDER_INSET = 0.82;
 const TORCH_WALL_ADVANCE = 0.18;
 const TORCH_WALL_CLEARANCE = 0.025;
 const POT_RESPAWN_MS = 10_000;
+const POT_BREAK_BASE_VOLUME = 0.5;
 
 const floorMaterial = new MeshStandardMaterial({ color: '#252825', roughness: 0.96, metalness: 0.02 });
 const corridorMaterial = new MeshStandardMaterial({ color: '#2e322e', roughness: 0.95, metalness: 0.02 });
@@ -179,6 +183,7 @@ type TorchVisual = {
   object: Object3D | null;
   glowColor: string;
   baseIntensity: number;
+  wallFillIntensity: number;
   distance: number;
   flickerSeed: number;
   lightTarget: Object3D;
@@ -916,6 +921,7 @@ export default function DungeonWorld() {
   const potBreakAudioRef = useRef<HTMLAudioElement[]>([]);
   const potBreakAudioIndexRef = useRef(0);
   const potRespawnTimersRef = useRef<Map<string, number>>(new Map());
+  const masterVolume = useSettings((state) => state.masterVolume);
 
   const ruins = useGLTF(RUINS_GLB_PATH) as { nodes?: Record<string, Object3D> };
   const ruinsNodes = useMemo(() => ruins.nodes ?? {}, [ruins.nodes]);
@@ -1197,6 +1203,7 @@ export default function DungeonWorld() {
               ? '#ff9f54'
               : '#ffba73',
         baseIntensity: anchor.source === 'spawn' ? 0.9 : anchor.source === 'corridor' ? 0.7 : 0.8,
+        wallFillIntensity: anchor.source === 'spawn' ? 0.88 : anchor.source === 'corridor' ? 0.74 : 0.8,
         distance: anchor.source === 'corridor' ? 6.5 : 7.2,
         flickerSeed: (hashString(`torch-flicker-${anchor.id}`) % 6283) / 1000,
         lightTarget,
@@ -1384,7 +1391,7 @@ export default function DungeonWorld() {
       ];
       potBreakAudioRef.current.forEach((audio) => {
         audio.preload = 'auto';
-        audio.volume = 0.5;
+        audio.volume = POT_BREAK_BASE_VOLUME;
       });
     }
     return () => {
@@ -1395,6 +1402,13 @@ export default function DungeonWorld() {
       respawnTimers.clear();
     };
   }, []);
+
+  useEffect(() => {
+    const volumeScale = clampVolume(masterVolume);
+    potBreakAudioRef.current.forEach((audio) => {
+      audio.volume = POT_BREAK_BASE_VOLUME * volumeScale;
+    });
+  }, [masterVolume]);
 
   const handlePotPointerDown = (potId: string, event: ThreeEvent<PointerEvent>) => {
     if (event.button !== 0) return;
@@ -1580,6 +1594,14 @@ export default function DungeonWorld() {
             angle={0.45}
             penumbra={0.62}
             decay={TORCH_LIGHT_DECAY}
+            castShadow={false}
+          />
+          <pointLight
+            position={[0, TORCH_WALL_FILL_HEIGHT, TORCH_WALL_FILL_BACK_OFFSET]}
+            intensity={torch.wallFillIntensity}
+            color={torch.glowColor}
+            distance={3.4}
+            decay={2}
             castShadow={false}
           />
         </group>

@@ -8,6 +8,7 @@ import { Suspense } from 'react';
 import PlayerCharacter, { type PlayerAnimation } from './PlayerCharacter';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import { usePlayerState } from '@/lib/playerState';
+import { clampVolume, useSettings } from '@/lib/settings';
 import { getDungeonVisualLiftAt } from '@/lib/dungeonVisualLift';
 import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
 import { DUNGEON_LAYOUT_GRAPH } from '@/constants/dungeonLayout';
@@ -56,6 +57,10 @@ const PLAYER_STATE_PUBLISH_INTERVAL = 1 / 20;
 const PLAYER_STATE_POS_EPSILON = 0.025;
 const PLAYER_STATE_SPEED_EPSILON = 0.1;
 const PLAYER_STATE_DIR_DOT_EPSILON = 0.998;
+const STEP_BASE_VOLUME = 0.35;
+const RUN_LOOP_BASE_VOLUME = 0.42;
+const JUMP_BASE_VOLUME = 0.42;
+const LAND_BASE_VOLUME = 0.48;
 
 const forward = new Vector3();
 const right = new Vector3();
@@ -104,6 +109,7 @@ export default function PlayerController({
   const { camera } = useThree();
   const { rapier, world } = useRapier();
   const setPlayerState = usePlayerState((state) => state._setPlayerState);
+  const masterVolume = useSettings((state) => state.masterVolume);
   const inputRef = useRef({
     forward: false,
     backward: false,
@@ -169,27 +175,27 @@ export default function PlayerController({
       ];
       stepAudioRef.current.forEach((audio) => {
         audio.preload = 'auto';
-        audio.volume = 0.35;
+        audio.volume = STEP_BASE_VOLUME;
       });
     }
     if (!runningLoopAudioRef.current) {
       runningLoopAudioRef.current = new Audio('/sounds/footsteps/running_step.wav');
       runningLoopAudioRef.current.preload = 'auto';
       runningLoopAudioRef.current.loop = false;
-      runningLoopAudioRef.current.volume = 0.42;
+      runningLoopAudioRef.current.volume = RUN_LOOP_BASE_VOLUME;
     }
     if (!jumpAudioRef.current.length) {
       jumpAudioRef.current = [new Audio('/sounds/player/jump.wav'), new Audio('/sounds/player/jump.wav')];
       jumpAudioRef.current.forEach((audio) => {
         audio.preload = 'auto';
-        audio.volume = 0.42;
+        audio.volume = JUMP_BASE_VOLUME;
       });
     }
     if (!landAudioRef.current.length) {
       landAudioRef.current = [new Audio('/sounds/player/land.wav'), new Audio('/sounds/player/land.wav')];
       landAudioRef.current.forEach((audio) => {
         audio.preload = 'auto';
-        audio.volume = 0.48;
+        audio.volume = LAND_BASE_VOLUME;
       });
     }
     return () => {
@@ -202,6 +208,22 @@ export default function PlayerController({
       landAudioRef.current.forEach((audio) => audio.pause());
     };
   }, []);
+
+  useEffect(() => {
+    const volumeScale = clampVolume(masterVolume);
+    stepAudioRef.current.forEach((audio) => {
+      audio.volume = STEP_BASE_VOLUME * volumeScale;
+    });
+    if (runningLoopAudioRef.current) {
+      runningLoopAudioRef.current.volume = RUN_LOOP_BASE_VOLUME * volumeScale;
+    }
+    jumpAudioRef.current.forEach((audio) => {
+      audio.volume = JUMP_BASE_VOLUME * volumeScale;
+    });
+    landAudioRef.current.forEach((audio) => {
+      audio.volume = LAND_BASE_VOLUME * volumeScale;
+    });
+  }, [masterVolume]);
 
   useEffect(() => {
     if (!isPerspectiveCamera(camera)) return;
@@ -607,6 +629,7 @@ export default function PlayerController({
     const finalPosition = body.translation();
     const finalVel = body.linvel();
     const horizontalSpeed = Math.hypot(finalVel.x, finalVel.z);
+    const volumeScale = clampVolume(masterVolume);
     const stateRotation = body.rotation();
     bodyQuaternion.set(stateRotation.x, stateRotation.y, stateRotation.z, stateRotation.w);
     stateForward.set(0, 0, 1).applyQuaternion(bodyQuaternion);
@@ -677,6 +700,7 @@ export default function PlayerController({
           ? RUN_LOOP_START_OFFSET
           : 0;
       if (useRunningLoop) {
+        runningLoopAudio.volume = RUN_LOOP_BASE_VOLUME * volumeScale;
         runningLoopAudio.playbackRate = 0.98 + Math.min(0.16, Math.max(0, speed - WALK_SPEED) * 0.06);
         if (
           hasDuration &&
@@ -708,7 +732,7 @@ export default function PlayerController({
         const stepAudio = walkStepAudio;
         if (stepAudio) {
           stepAudio.currentTime = 0;
-          stepAudio.volume = 0.38;
+          stepAudio.volume = STEP_BASE_VOLUME * volumeScale;
           stepAudio.playbackRate = 0.92 + Math.random() * 0.08;
           stepAudio.play().catch(() => { });
         }

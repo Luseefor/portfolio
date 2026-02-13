@@ -323,9 +323,9 @@ export default function DungeonHUD({
               </div>
               <div className="flex items-center gap-2">
                 <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
-                  L
+                  M
                 </span>
-                <span>Fullbright (Dev)</span>
+                <span>Mute / Unmute</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">

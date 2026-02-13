@@ -248,6 +248,7 @@ export default function InteractiveCanvas() {
       return;
     }
     const handlePointerLockChange = () => {
+      const wasLocked = useDungeonInput.getState().isPointerLocked;
       const isLocked = document.pointerLockElement === canvasEl;
       if (isLocked && Date.now() - unlockRequestRef.current < 200) {
         document.exitPointerLock();
@@ -255,12 +256,18 @@ export default function InteractiveCanvas() {
       }
       setPointerLocked(isLocked);
       if (isLocked) setHasFocus(true);
-      else if (document.activeElement !== canvasEl) setHasFocus(false);
+      else {
+        if (document.activeElement !== canvasEl) setHasFocus(false);
+        const unlockedByMouseRequest = Date.now() - unlockRequestRef.current < 260;
+        if (wasLocked && !unlockedByMouseRequest && !isSettingsOpen && !activePanel) {
+          handleOpenSettings();
+        }
+      }
     };
 
     document.addEventListener('pointerlockchange', handlePointerLockChange);
     return () => document.removeEventListener('pointerlockchange', handlePointerLockChange);
-  }, [canvasEl, isTouchDevice, setHasFocus, setPointerLocked]);
+  }, [activePanel, canvasEl, handleOpenSettings, isSettingsOpen, isTouchDevice, setHasFocus, setPointerLocked]);
 
   return (
     <div className="absolute inset-0">

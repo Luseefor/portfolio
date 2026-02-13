@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChestPOI, CHEST_POIS } from '@/constants/dungeonLayout';
-import { clampVolume, useSettings, type Settings } from '@/lib/settings';
+import { clampVolume, settingsActions, useSettings, type Settings } from '@/lib/settings';
 import InteractionPrompt from './ui/InteractionPrompt';
 import ChestPanel from './ui/ChestPanel';
 import DungeonHUD from './ui/DungeonHUD';
@@ -15,6 +15,19 @@ function safePauseAudio(audio: HTMLAudioElement | null) {
     audio.pause();
   } catch {
     // Ignore pause errors in non-browser test environments.
+  }
+}
+
+function safePlayAudio(audio: HTMLAudioElement | null) {
+  if (!audio) return;
+  if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) return;
+  try {
+    const maybePromise = audio.play();
+    if (maybePromise && typeof maybePromise.catch === 'function') {
+      maybePromise.catch(() => { });
+    }
+  } catch {
+    // Ignore play errors in restricted/test environments.
   }
 }
 
@@ -79,6 +92,7 @@ export function useDungeonInteraction() {
   const masterVolume = useSettings((s: Settings) => s.masterVolume);
   const uiOpenAudioRef = useRef<HTMLAudioElement | null>(null);
   const uiCloseAudioRef = useRef<HTMLAudioElement | null>(null);
+  const previousMasterVolumeRef = useRef(clampVolume(masterVolume) > 0.001 ? clampVolume(masterVolume) : 0.7);
 
   // Initialize UI audio
   useEffect(() => {
@@ -101,6 +115,9 @@ export function useDungeonInteraction() {
 
   useEffect(() => {
     const safeVolume = clampVolume(masterVolume) * 0.5;
+    if (clampVolume(masterVolume) > 0.001) {
+      previousMasterVolumeRef.current = clampVolume(masterVolume);
+    }
     if (uiOpenAudioRef.current) {
       uiOpenAudioRef.current.volume = safeVolume;
     }
@@ -112,14 +129,14 @@ export function useDungeonInteraction() {
   const playUIOpenSound = useCallback(() => {
     if (uiOpenAudioRef.current) {
       uiOpenAudioRef.current.currentTime = 0;
-      uiOpenAudioRef.current.play().catch(() => { });
+      safePlayAudio(uiOpenAudioRef.current);
     }
   }, []);
 
   const playUICloseSound = useCallback(() => {
     if (uiCloseAudioRef.current) {
       uiCloseAudioRef.current.currentTime = 0;
-      uiCloseAudioRef.current.play().catch(() => { });
+      safePlayAudio(uiCloseAudioRef.current);
     }
   }, []);
 
@@ -149,9 +166,34 @@ export function useDungeonInteraction() {
     playUICloseSound();
   }, [playUICloseSound]);
 
+  const handleToggleMute = useCallback(() => {
+    const currentVolume = clampVolume(useSettings.getState().masterVolume);
+    if (currentVolume <= 0.001) {
+      const restoreVolume = clampVolume(previousMasterVolumeRef.current);
+      settingsActions.setMasterVolume(restoreVolume > 0.001 ? restoreVolume : 0.7);
+      return;
+    }
+    previousMasterVolumeRef.current = currentVolume;
+    settingsActions.setMasterVolume(0);
+  }, []);
+
   // Keyboard handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const isTypingTarget =
+          target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+        if (isTypingTarget) return;
+      }
+
+      if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        handleToggleMute();
+        return;
+      }
+
       if (isSettingsOpen || activePanel) {
         if (e.key === 'Escape') {
           if (activePanel) handleClosePanel();
@@ -182,6 +224,7 @@ export function useDungeonInteraction() {
     handleClosePanel,
     handleOpenSettings,
     handleCloseSettings,
+    handleToggleMute,
   ]);
 
   return {

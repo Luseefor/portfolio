@@ -131,3 +131,22 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
   - `npx tsc --noEmit` ✅
   - `npm run -s lint` ✅
   - Focused dungeon tests ✅
+- UX/input/lighting pass per user request:
+  - Added wall spill illumination for torches in `DungeonWorld` by adding a secondary warm point light behind each torch mount to brighten adjacent wall surfaces.
+  - Removed fullbright dev mode entirely:
+    - deleted `KeyL` toggle logic and fullbright lighting branch in `DungeonScene`.
+    - replaced HUD hint from `L Fullbright` to `M Mute / Unmute`.
+  - Fixed ESC behavior when pointer lock is active:
+    - `InteractiveCanvas` now opens settings when pointer lock is released unexpectedly (ESC flow),
+    - but suppresses auto-settings-open when unlock was explicitly requested by right click/context-menu.
+  - Added global mute toggle on `M` in `useDungeonInteraction`:
+    - toggles `masterVolume` between `0` and previously remembered non-zero value.
+  - Wired master volume to all remaining runtime audio sources that were using hardcoded volumes:
+    - `PlayerController` footsteps/run/jump/land.
+    - `DungeonWorld` pot-break SFX.
+    - `DungeonAmbience` loop + pulse volumes.
+  - Added safe jsdom audio-play guard in `DungeonInteractionManager` helper to avoid test-environment playback exceptions.
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - pointer lock + mobile tests ✅
