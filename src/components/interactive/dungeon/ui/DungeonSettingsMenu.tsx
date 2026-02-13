@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
 import { useSettings, settingsActions } from '@/lib/settings';
@@ -298,13 +299,26 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
 
               {/* Footer */}
               <div className="border-t px-6 py-4" style={{ borderColor: theme.accentBorder }}>
-                <p className="text-center text-[10px] uppercase tracking-wider text-stone-600">
-                  Press{' '}
-                  <kbd className="rounded border border-stone-700 bg-stone-800 px-1.5 py-0.5 text-stone-400">
-                    ESC
-                  </kbd>{' '}
-                  to close
-                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <Link
+                    href="/"
+                    className="inline-flex items-center rounded-lg border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white transition hover:opacity-95"
+                    style={{
+                      borderColor: theme.accentBorderStrong,
+                      backgroundColor: theme.accentBgSoft,
+                      boxShadow: `0 0 14px ${theme.accentGlow}`,
+                    }}
+                  >
+                    Back To Home
+                  </Link>
+                  <p className="text-right text-[10px] uppercase tracking-wider text-stone-600">
+                    Press{' '}
+                    <kbd className="rounded border border-stone-700 bg-stone-800 px-1.5 py-0.5 text-stone-400">
+                      ESC
+                    </kbd>{' '}
+                    to close
+                  </p>
+                </div>
               </div>
             </div>
           </motion.div>
