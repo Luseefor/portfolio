@@ -5,7 +5,9 @@ import { Canvas } from '@react-three/fiber';
 import { ACESFilmicToneMapping } from 'three';
 import LoadingScreen from './LoadingScreen';
 import DungeonScene from './dungeon/DungeonScene';
+import MobileControls from './dungeon/ui/MobileControls';
 import { DungeonUI, useDungeonInteraction } from './dungeon/DungeonInteractionManager';
+import { CHEST_POIS } from '@/constants/dungeonLayout';
 import { rendererToneMapping } from '@/constants/scene';
 import { useDungeonInput } from '@/lib/dungeonInput';
 
@@ -18,14 +20,42 @@ export default function InteractiveCanvas() {
     handleChestOpen,
     handleNearbyChange,
     handleClosePanel,
+    handleOpenSettings,
     handleCloseSettings,
   } = useDungeonInteraction();
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
   const setHasFocus = useDungeonInput((state) => state.setHasFocus);
   const setPointerLocked = useDungeonInput((state) => state.setPointerLocked);
   const setMouseDown = useDungeonInput((state) => state.setMouseDown);
+  const setTouchDevice = useDungeonInput((state) => state.setTouchDevice);
+  const setMoveAxis = useDungeonInput((state) => state.setMoveAxis);
   const setKeys = useDungeonInput((state) => state.setKeys);
+  const isTouchDevice = useDungeonInput((state) => state.isTouchDevice);
   const unlockRequestRef = useRef(0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const computeIsTouchDevice = () => {
+      if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {
+        return false;
+      }
+      const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+      const touchCapable = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      return coarsePointer || touchCapable;
+    };
+    const updateTouchMode = () => setTouchDevice(computeIsTouchDevice());
+    updateTouchMode();
+    window.addEventListener('resize', updateTouchMode);
+    return () => window.removeEventListener('resize', updateTouchMode);
+  }, [setTouchDevice]);
+
+  useEffect(() => {
+    if (!isTouchDevice) return;
+    if (document.pointerLockElement) {
+      document.exitPointerLock();
+    }
+    setPointerLocked(false);
+  }, [isTouchDevice, setPointerLocked]);
 
   useEffect(() => {
     if (!canvasEl) return;
@@ -50,6 +80,7 @@ export default function InteractiveCanvas() {
     };
 
     const handleNativeMouseDown = (event: MouseEvent) => {
+      if (isTouchDevice) return;
       setMouseDown(true);
       if (event.button === 2) {
         requestUnlock(event);
@@ -64,6 +95,7 @@ export default function InteractiveCanvas() {
       }
     };
     const handleDocumentMouseDown = (event: MouseEvent) => {
+      if (isTouchDevice) return;
       setMouseDown(true);
       if (event.button === 2) {
         requestUnlock(event);
@@ -78,6 +110,7 @@ export default function InteractiveCanvas() {
     const handleContextMenu = (event: MouseEvent) => requestUnlock(event);
 
     const handlePointerDown = (event: PointerEvent) => {
+      if (isTouchDevice || event.pointerType === 'touch') return;
       if (event.button === 2) {
         requestUnlock(event);
       }
@@ -114,7 +147,7 @@ export default function InteractiveCanvas() {
       document.removeEventListener('auxclick', handleContextMenu, true);
       window.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [canvasEl, setHasFocus, setMouseDown, setPointerLocked]);
+  }, [canvasEl, isTouchDevice, setHasFocus, setMouseDown, setPointerLocked]);
 
   useEffect(() => {
     if (!canvasEl) return;
@@ -166,7 +199,8 @@ export default function InteractiveCanvas() {
 
     const onKeyDown = (e: KeyboardEvent) => handleKey(e, true);
     const onKeyUp = (e: KeyboardEvent) => handleKey(e, false);
-    const onBlur = () =>
+    const onBlur = () => {
+      setMoveAxis({ x: 0, y: 0 });
       setKeys({
         forward: false,
         backward: false,
@@ -178,6 +212,7 @@ export default function InteractiveCanvas() {
         roll: false,
         attack: false,
       });
+    };
 
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
@@ -187,7 +222,7 @@ export default function InteractiveCanvas() {
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
     };
-  }, [setKeys]);
+  }, [setKeys, setMoveAxis]);
 
   const handleFocus = useCallback(() => {
     setHasFocus(true);
@@ -196,10 +231,22 @@ export default function InteractiveCanvas() {
   const handleBlur = useCallback(() => {
     setHasFocus(false);
     setPointerLocked(false);
-  }, [setHasFocus, setPointerLocked]);
+    setMoveAxis({ x: 0, y: 0 });
+  }, [setHasFocus, setMoveAxis, setPointerLocked]);
+
+  const handleMobileInteract = useCallback(() => {
+    if (!nearbyChestId || activePanel || isSettingsOpen) return;
+    const chest = CHEST_POIS.find((entry) => entry.id === nearbyChestId);
+    if (!chest) return;
+    handleChestOpen(chest);
+  }, [activePanel, handleChestOpen, isSettingsOpen, nearbyChestId]);
 
   useEffect(() => {
     if (!canvasEl) return;
+    if (isTouchDevice) {
+      setPointerLocked(false);
+      return;
+    }
     const handlePointerLockChange = () => {
       const isLocked = document.pointerLockElement === canvasEl;
       if (isLocked && Date.now() - unlockRequestRef.current < 200) {
@@ -213,7 +260,7 @@ export default function InteractiveCanvas() {
 
     document.addEventListener('pointerlockchange', handlePointerLockChange);
     return () => document.removeEventListener('pointerlockchange', handlePointerLockChange);
-  }, [canvasEl, setHasFocus, setPointerLocked]);
+  }, [canvasEl, isTouchDevice, setHasFocus, setPointerLocked]);
 
   return (
     <div className="absolute inset-0">
@@ -248,6 +295,13 @@ export default function InteractiveCanvas() {
         isSettingsOpen={isSettingsOpen}
         onClosePanel={handleClosePanel}
         onCloseSettings={handleCloseSettings}
+      />
+      <MobileControls
+        visible={isTouchDevice}
+        blocked={Boolean(activePanel) || isSettingsOpen}
+        canInteract={Boolean(nearbyChestId) && !activePanel && !isSettingsOpen}
+        onInteract={handleMobileInteract}
+        onOpenSettings={handleOpenSettings}
       />
       <LoadingScreen />
     </div>

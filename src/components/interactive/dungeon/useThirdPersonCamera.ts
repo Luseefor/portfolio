@@ -78,6 +78,8 @@ export function useThirdPersonCamera({ targetBody, yawRef, pitchRef }: ThirdPers
   const { camera, gl } = useThree();
   const { rapier, world } = useRapier();
   const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
+  const isTouchDevice = useDungeonInput((state) => state.isTouchDevice);
+  const consumeLookDelta = useDungeonInput((state) => state.consumeLookDelta);
   const mouseSensitivity = useSettings((state) => state.mouseSensitivity);
 
   const initializedRef = useRef(false);
@@ -133,6 +135,7 @@ export function useThirdPersonCamera({ targetBody, yawRef, pitchRef }: ThirdPers
     };
 
     const handlePointerDown = (event: PointerEvent) => {
+      if (event.pointerType === 'touch' || isTouchDevice) return;
       if (event.button !== 0) return;
       drag.active = true;
       drag.hasPoint = false;
@@ -195,11 +198,23 @@ export function useThirdPersonCamera({ targetBody, yawRef, pitchRef }: ThirdPers
       window.removeEventListener('pointerup', stopDragging);
       window.removeEventListener('blur', stopDragging);
     };
-  }, [isPointerLocked, mouseSensitivity, pointerLockElement]);
+  }, [isPointerLocked, isTouchDevice, mouseSensitivity, pointerLockElement]);
 
   useFrame((_, delta) => {
     const body = targetBody?.current;
     if (!body) return;
+
+    const mobileLookDelta = consumeLookDelta();
+    if (mobileLookDelta.x !== 0 || mobileLookDelta.y !== 0) {
+      const sensitivityScale = Math.max(0.1, Math.min(3, mouseSensitivity || 1));
+      const touchScale = 1.08;
+      desiredYawRef.current = wrapAngle(
+        desiredYawRef.current - mobileLookDelta.x * CAMERA_SENSITIVITY.yaw * sensitivityScale * touchScale,
+      );
+      desiredPitchRef.current = clampPitch(
+        desiredPitchRef.current - mobileLookDelta.y * CAMERA_SENSITIVITY.pitch * sensitivityScale * touchScale,
+      );
+    }
 
     const translation = body.translation();
     if (!isFiniteVec3Like(translation)) return;

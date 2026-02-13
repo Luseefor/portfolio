@@ -105,3 +105,20 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
   - `npx tsc --noEmit` ✅
   - `npm run -s lint` ✅
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Mobile support stabilization + movement polish pass:
+  - Added robust PointerEvent polyfill + pointer capture no-op methods in `src/test/setup.ts` so mobile pointer tests receive proper coordinates/pointer metadata in JSDOM.
+  - Hardened `MobileControls` pointer-id handling with finite fallbacks and removed touch-only pointerType gate on look-pad drag (prevents dropped look input in environments where pointerType is missing).
+  - Added combat/mobility interruption guards in `PlayerController` so dash/attack cannot cut an active roll.
+  - Adjusted jump impulse to scale with horizontal movement intent, improving run-jump consistency.
+  - Updated `PlayerCharacter` action playback so jump/roll/dash/attack are one-shot clips (`LoopOnce` + `clampWhenFinished`) rather than looping mid-action.
+- Validation status:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test` ✅ (23/23)
+  - Mobile controls tests now green:
+    - `src/components/interactive/dungeon/__tests__/mobileControls.test.tsx` ✅
+- Browser/mobile emulation validation:
+  - Built and served app with webpack mode (`npm run -s build -- --webpack`, `npm run start -- --hostname 127.0.0.1 --port 4173`).
+  - Playwright skill script remains incompatible in this environment due its virtual-time shim hanging on this scene, so used direct Playwright script checks instead.
+  - Confirmed mobile controls rendered and touch interactions dispatch cleanly with no page/console errors under iPhone emulation (`joystick`, `lookPad`, `jump`, `roll` all present).
+  - Saved visual artifact: `output/mobile-validation/mobile-page.png`.

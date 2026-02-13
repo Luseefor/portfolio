@@ -76,7 +76,7 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-            className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2"
+            className="fixed left-1/2 top-1/2 z-50 w-[min(92vw,420px)] -translate-x-1/2 -translate-y-1/2"
           >
             <div className="overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-b from-stone-900/98 to-stone-950/98 shadow-[0_0_80px_rgba(0,0,0,0.5),0_0_40px_rgba(251,191,36,0.1)] backdrop-blur-xl">
               {/* Header */}

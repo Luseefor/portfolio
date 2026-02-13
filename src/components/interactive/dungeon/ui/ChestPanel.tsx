@@ -35,7 +35,7 @@ export default function ChestPanel({ chest, onClose }: ChestPanelProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-            className="fixed left-1/2 top-1/2 z-50 w-[400px] -translate-x-1/2 -translate-y-1/2"
+            className="fixed left-1/2 top-1/2 z-50 w-[min(92vw,400px)] -translate-x-1/2 -translate-y-1/2"
           >
             <div className="overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-stone-900/98 to-stone-800/98 shadow-[0_0_60px_rgba(251,191,36,0.1),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl">
               {/* Header glow */}

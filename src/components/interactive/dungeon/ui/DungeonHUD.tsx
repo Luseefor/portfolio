@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { CHEST_POIS, DUNGEON_LAYOUT_GRAPH } from '@/constants/dungeonLayout';
 import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
+import { useDungeonInput } from '@/lib/dungeonInput';
 import { usePlayerState, playerStateSelectors } from '@/lib/playerState';
 
 interface DungeonHUDProps {
@@ -36,6 +37,7 @@ export default function DungeonHUD({
   totalChests,
   openedChestIds,
 }: DungeonHUDProps) {
+  const isTouchDevice = useDungeonInput((state) => state.isTouchDevice);
   const position = usePlayerState(playerStateSelectors.position);
   const look = usePlayerState(playerStateSelectors.look);
   const speed = usePlayerState(playerStateSelectors.speed);
@@ -59,11 +61,11 @@ export default function DungeonHUD({
   return (
     <>
       {/* Top-left: Minimap */}
-      <div className="pointer-events-none fixed left-6 top-6 z-30">
+      <div className="pointer-events-none fixed left-3 top-3 z-30 sm:left-6 sm:top-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="w-[264px] rounded-xl border border-amber-500/20 bg-gradient-to-br from-stone-900/95 to-stone-800/90 p-3 shadow-[0_0_24px_rgba(0,0,0,0.35)] backdrop-blur-md"
+          className="w-[236px] rounded-xl border border-amber-500/20 bg-gradient-to-br from-stone-900/95 to-stone-800/90 p-2.5 shadow-[0_0_24px_rgba(0,0,0,0.35)] backdrop-blur-md sm:w-[264px] sm:p-3"
         >
           <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.24em]">
             <span className="text-amber-400/90">Minimap</span>
@@ -71,7 +73,7 @@ export default function DungeonHUD({
           </div>
           <svg
             viewBox={`0 0 ${MINIMAP_WIDTH} ${MINIMAP_HEIGHT}`}
-            className="h-[156px] w-[220px] rounded-lg border border-stone-700/80 bg-stone-950/90"
+            className="h-[138px] w-[194px] rounded-lg border border-stone-700/80 bg-stone-950/90 sm:h-[156px] sm:w-[220px]"
             role="img"
             aria-label="Dungeon minimap"
           >
@@ -243,123 +245,127 @@ export default function DungeonHUD({
         </motion.div>
       </div>
 
-      {/* Top-right: Progress */}
-      <div className="pointer-events-none fixed right-6 top-6 z-30">
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="rounded-xl border border-amber-500/20 bg-gradient-to-r from-stone-900/90 to-stone-800/90 px-4 py-3 shadow-[0_0_20px_rgba(0,0,0,0.3)] backdrop-blur-md"
-        >
-          <div className="flex items-center gap-4">
-            {/* Treasures found */}
-            <div className="flex items-center gap-2">
-              <svg className="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM10 4h4v2h-4V4z" />
-              </svg>
-              <span className="font-mono text-sm font-bold tabular-nums text-amber-100">
-                {chestsOpened}/{totalChests}
-              </span>
-            </div>
+      {!isTouchDevice && (
+        <>
+          {/* Top-right: Progress */}
+          <div className="pointer-events-none fixed right-6 top-6 z-30">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="rounded-xl border border-amber-500/20 bg-gradient-to-r from-stone-900/90 to-stone-800/90 px-4 py-3 shadow-[0_0_20px_rgba(0,0,0,0.3)] backdrop-blur-md"
+            >
+              <div className="flex items-center gap-4">
+                {/* Treasures found */}
+                <div className="flex items-center gap-2">
+                  <svg className="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM10 4h4v2h-4V4z" />
+                  </svg>
+                  <span className="font-mono text-sm font-bold tabular-nums text-amber-100">
+                    {chestsOpened}/{totalChests}
+                  </span>
+                </div>
 
-            {/* Divider */}
-            <div className="h-6 w-px bg-amber-500/20" />
+                {/* Divider */}
+                <div className="h-6 w-px bg-amber-500/20" />
 
-            {/* Speed */}
-            <div className="text-right">
-              <div className="text-[8px] font-bold uppercase tracking-[0.2em] text-stone-500">
-                Speed
+                {/* Speed */}
+                <div className="text-right">
+                  <div className="text-[8px] font-bold uppercase tracking-[0.2em] text-stone-500">
+                    Speed
+                  </div>
+                  <div className="font-mono text-sm font-bold tabular-nums text-stone-300">
+                    {speed.toFixed(1)}
+                    <span className="ml-1 text-[9px] text-stone-500">m/s</span>
+                  </div>
+                </div>
               </div>
-              <div className="font-mono text-sm font-bold tabular-nums text-stone-300">
-                {speed.toFixed(1)}
-                <span className="ml-1 text-[9px] text-stone-500">m/s</span>
+            </motion.div>
+          </div>
+
+          {/* Bottom-left: Controls hint */}
+          <div className="pointer-events-none fixed bottom-6 left-6 z-30">
+            <div className="space-y-1.5 text-[10px] uppercase tracking-wider text-stone-500">
+              <div className="flex items-center gap-2">
+                <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
+                  WASD
+                </span>
+                <span>Move</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
+                  SHIFT
+                </span>
+                <span>Run</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
+                  SPACE
+                </span>
+                <span>Jump</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
+                  Q
+                </span>
+                <span>Dash</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
+                  C
+                </span>
+                <span>Roll</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
+                  R
+                </span>
+                <span>Attack</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
+                  L
+                </span>
+                <span>Fullbright (Dev)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
+                  ESC
+                </span>
+                <span>Settings</span>
               </div>
             </div>
           </div>
-        </motion.div>
-      </div>
 
-      {/* Bottom-left: Controls hint */}
-      <div className="pointer-events-none fixed bottom-6 left-6 z-30">
-        <div className="space-y-1.5 text-[10px] uppercase tracking-wider text-stone-500">
-          <div className="flex items-center gap-2">
-            <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
-              WASD
-            </span>
-            <span>Move</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
-              SHIFT
-            </span>
-            <span>Run</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
-              SPACE
-            </span>
-            <span>Jump</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
-              Q
-            </span>
-            <span>Dash</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
-              C
-            </span>
-            <span>Roll</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
-              R
-            </span>
-            <span>Attack</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
-              L
-            </span>
-            <span>Fullbright (Dev)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
-              ESC
-            </span>
-            <span>Settings</span>
-          </div>
-        </div>
-      </div>
+          {/* Bottom-right: Status indicators */}
+          <div className="pointer-events-none fixed bottom-6 right-6 z-30">
+            <div className="flex items-center gap-3">
+              {/* Grounded indicator */}
+              <div
+                className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                  grounded
+                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                    : 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                }`}
+              >
+                <div
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    grounded ? 'bg-emerald-400' : 'animate-pulse bg-amber-400'
+                  }`}
+                />
+                {grounded ? 'Grounded' : 'Airborne'}
+              </div>
 
-      {/* Bottom-right: Status indicators */}
-      <div className="pointer-events-none fixed bottom-6 right-6 z-30">
-        <div className="flex items-center gap-3">
-          {/* Grounded indicator */}
-          <div
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
-              grounded
-                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                : 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-            }`}
-          >
-            <div
-              className={`h-1.5 w-1.5 rounded-full ${
-                grounded ? 'bg-emerald-400' : 'animate-pulse bg-amber-400'
-              }`}
-            />
-            {grounded ? 'Grounded' : 'Airborne'}
-          </div>
-
-          {/* Moving indicator */}
-          {isMoving && (
-            <div className="flex items-center gap-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-sky-400">
-              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-400" />
-              Moving
+              {/* Moving indicator */}
+              {isMoving && (
+                <div className="flex items-center gap-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-sky-400">
+                  <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-400" />
+                  Moving
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

@@ -50,6 +50,8 @@ const JUMP_BUFFER_TIME = 0.24;
 const GROUND_RAY_ORIGIN_OFFSET = 0.14;
 const GROUND_RAY_LENGTH = 0.62;
 const MAX_GROUNDED_UP_VELOCITY = 2.2;
+const MOVE_AXIS_DEADZONE = 0.08;
+const MOVE_AXIS_RUN_THRESHOLD = 0.78;
 
 const forward = new Vector3();
 const right = new Vector3();
@@ -97,7 +99,6 @@ export default function PlayerController({
   const rigidBodyRef = bodyRef ?? internalBodyRef;
   const { camera } = useThree();
   const { rapier, world } = useRapier();
-  const keys = useDungeonInput((state) => state.keys);
   const setPlayerState = usePlayerState((state) => state._setPlayerState);
   const inputRef = useRef({
     forward: false,
@@ -348,11 +349,18 @@ export default function PlayerController({
     forward.normalize();
     right.set(forward.z, 0, -forward.x).normalize();
 
+    const inputState = useDungeonInput.getState();
+    const keys = inputState.keys;
+    const moveAxis = inputState.moveAxis;
     const forwardPressed = keys.forward || inputRef.current.forward;
     const backwardPressed = keys.backward || inputRef.current.backward;
     const leftPressed = keys.left || inputRef.current.left;
     const rightPressed = keys.right || inputRef.current.right;
-    const runPressed = keys.run || inputRef.current.run;
+    const touchAxisX = Math.abs(moveAxis.x) > MOVE_AXIS_DEADZONE ? moveAxis.x : 0;
+    const touchAxisY = Math.abs(moveAxis.y) > MOVE_AXIS_DEADZONE ? moveAxis.y : 0;
+    const touchAxisMagnitude = Math.min(1, Math.hypot(touchAxisX, touchAxisY));
+    const hasTouchInput = touchAxisMagnitude > 0.001;
+    const runPressed = keys.run || inputRef.current.run || touchAxisMagnitude >= MOVE_AXIS_RUN_THRESHOLD;
     const dashPressed = keys.dash || inputRef.current.dash;
     const jumpPressed = keys.jump || inputRef.current.jump;
     const rollPressed = keys.roll || inputRef.current.roll;
@@ -366,6 +374,8 @@ export default function PlayerController({
     if (backwardPressed) moveDir.sub(forward);
     if (leftPressed) moveDir.sub(right);
     if (rightPressed) moveDir.add(right);
+    if (touchAxisY !== 0) moveDir.addScaledVector(forward, touchAxisY);
+    if (touchAxisX !== 0) moveDir.addScaledVector(right, touchAxisX);
 
     const hasInput = moveDir.lengthSq() > 0.001;
     const dashJustPressed = dashPressed && !dashButtonPrevRef.current;
@@ -380,8 +390,10 @@ export default function PlayerController({
     let targetZ = 0;
 
     if (hasInput) {
+      const inputMagnitude = Math.min(1, moveDir.length());
       dashDirection.copy(moveDir).normalize();
-      moveDir.copy(dashDirection).multiplyScalar(targetSpeed);
+      const speedScale = hasTouchInput ? Math.max(0.2, inputMagnitude) : 1;
+      moveDir.copy(dashDirection).multiplyScalar(targetSpeed * speedScale);
       targetX = moveDir.x;
       targetZ = moveDir.z;
       const desiredYaw = Math.atan2(moveDir.x, moveDir.z);
@@ -399,7 +411,13 @@ export default function PlayerController({
     }
 
     const now = performance.now() / 1000;
-    if (dashJustPressed && !dashRef.current.active && now >= dashCooldownRef.current) {
+    if (
+      dashJustPressed &&
+      !dashRef.current.active &&
+      now >= dashCooldownRef.current &&
+      rollTimer.current <= 0 &&
+      attackTimerRef.current <= 0
+    ) {
       const ray = new rapier.Ray(
         {
           x: position.x,
@@ -461,6 +479,7 @@ export default function PlayerController({
       grounded &&
       attackJustPressed &&
       !dashRef.current.active &&
+      rollTimer.current <= 0 &&
       attackTimerRef.current <= 0 &&
       attackCooldownRef.current <= 0
     ) {
@@ -491,7 +510,9 @@ export default function PlayerController({
       attackTimerRef.current <= 0;
     let nextY = linvel.y - GRAVITY * delta;
     if (canJump) {
-      nextY = runPressed ? JUMP_SPEED * 1.08 : JUMP_SPEED;
+      const horizontalIntentSpeed = Math.hypot(desiredX, desiredZ);
+      const jumpBoost = MathUtils.clamp(1 + (horizontalIntentSpeed / RUN_SPEED) * 0.08, 1, 1.1);
+      nextY = JUMP_SPEED * jumpBoost;
       if (jumpAudioRef.current.length > 0 && jumpJustPressed && !jumpSoundLockedUntilLandRef.current) {
         const jumpAudio = jumpAudioRef.current[jumpAudioIndexRef.current % jumpAudioRef.current.length];
         jumpAudioIndexRef.current += 1;

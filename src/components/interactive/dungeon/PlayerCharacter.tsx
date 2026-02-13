@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useAnimations, useGLTF } from '@react-three/drei';
-import { Mesh, type Group } from 'three';
+import { LoopOnce, LoopRepeat, Mesh, type Group } from 'three';
 
 export type PlayerAnimation = 'idle' | 'walk' | 'run' | 'jump' | 'roll' | 'dash' | 'attack';
 
@@ -93,11 +93,14 @@ export default function PlayerCharacter({ animation = 'idle' }: { animation?: Pl
   useEffect(() => {
     const action = clipName ? actions[clipName] : undefined;
     if (!action) return;
+    const isOneShot = animation === 'jump' || animation === 'roll' || animation === 'dash' || animation === 'attack';
     Object.values(actions).forEach((other) => {
       if (other && other !== action) {
         other.fadeOut(0.15);
       }
     });
+    action.clampWhenFinished = isOneShot;
+    action.setLoop(isOneShot ? LoopOnce : LoopRepeat, isOneShot ? 1 : Infinity);
     action.reset().fadeIn(0.15).play();
     if (animation === 'dash') action.timeScale = 1.45;
     else if (animation === 'attack') action.timeScale = 1.2;
