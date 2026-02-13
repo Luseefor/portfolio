@@ -177,3 +177,28 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
   - `npx tsc --noEmit` ✅
   - `npm run -s lint` ✅
   - `npm run -s test` ✅
+- Identity activity easter-egg polish pass (user prompt: make snake behavior better + commit):
+  - Reworked snake pathing from fixed sweep to dynamic target chasing:
+    - picks a random remaining lit cell target,
+    - computes shortest grid path to that target (BFS Manhattan path),
+    - consumes lit cells along traversal.
+  - Added post-consumption finale state machine:
+    - `running` -> `to-center` -> `explode` -> `restore` -> `idle`.
+  - Replaced text `POOF` badge with visual center explosion burst:
+    - expanding rings + radial spark particles.
+  - Implemented return animation:
+    - consumed green bits animate from center explosion back to their original cells,
+    - original heatmap cells restore progressively as each bit lands.
+  - Added test hooks for deterministic DOM interaction:
+    - `data-testid="activity-heatmap-root"`
+    - `data-testid="activity-legend-trigger"`.
+- Skill/testing loop status (`develop-web-game`):
+  - Ran web-game Playwright client via workspace-local copy to satisfy module resolution constraints.
+  - Captured new artifacts in `output/web-game/shot-*.png` and checked console error artifacts.
+  - Limitation: skill client captures largest canvas, so it does not reflect DOM-only Identity section details; direct DOM Playwright verification script was attempted but local browser binary mismatch blocked that route in this environment.
+- Validation:
+  - `npm run lint` ✅
+  - `npm run build` ✅
+- TODO/Suggestions for next agent:
+  - If precise visual QA is required, install matching Playwright browser binary (`npx playwright install chromium`) and run DOM-level scenario validation against `data-testid="activity-legend-trigger"`.
+  - Consider capping return-particle count when activity density is extremely high to avoid heavy burst workloads on low-end devices.

@@ -19,6 +19,7 @@ export default function FuturisticNavbar() {
     { name: 'Services', href: '#services' },
     { name: 'Timeline', href: '#timeline' },
     { name: 'Projects', href: '#projects' },
+    { name: 'Activity', href: '#activity' },
   ];
 
   return (
