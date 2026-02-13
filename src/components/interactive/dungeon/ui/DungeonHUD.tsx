@@ -333,6 +333,12 @@ export default function DungeonHUD({
                 </span>
                 <span>Settings</span>
               </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded border border-stone-700 bg-stone-800/80 px-1.5 py-0.5">
+                  Right Click
+                </span>
+                <span>Unlock Pointer</span>
+              </div>
             </div>
           </div>
 

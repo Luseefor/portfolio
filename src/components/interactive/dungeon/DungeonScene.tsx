@@ -17,6 +17,7 @@ const BASE_BACKGROUND = '#0a0d10';
 const BASE_FOG_DENSITY = 0.0175;
 
 type DungeonSceneProps = {
+  graphicsQuality: 'low' | 'medium' | 'high';
   activeChestId: string | null;
   nearbyChestId: string | null;
   onChestOpen: (chest: ChestPOI) => void;
@@ -24,6 +25,7 @@ type DungeonSceneProps = {
 };
 
 export default function DungeonScene({
+  graphicsQuality,
   activeChestId,
   nearbyChestId,
   onChestOpen,
@@ -34,6 +36,8 @@ export default function DungeonScene({
   const cameraPitchRef = useRef(CAMERA_PITCH.initial);
   const { camera } = useThree();
   const listenerRef = useRef<AudioListener | null>(null);
+  const shadowMapSize = graphicsQuality === 'high' ? 1024 : graphicsQuality === 'medium' ? 768 : 512;
+  const directionalShadows = graphicsQuality !== 'low';
 
   useEffect(() => {
     if (!listenerRef.current) {
@@ -58,9 +62,9 @@ export default function DungeonScene({
         position={[12, 18, 8]}
         intensity={0.72}
         color="#f8e4c7"
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        castShadow={directionalShadows}
+        shadow-mapSize-width={shadowMapSize}
+        shadow-mapSize-height={shadowMapSize}
         shadow-camera-near={2}
         shadow-camera-far={40}
         shadow-camera-left={-20}

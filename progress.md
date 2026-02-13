@@ -150,3 +150,18 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
   - `npx tsc --noEmit` ✅
   - `npm run -s lint` ✅
   - pointer lock + mobile tests ✅
+- Settings + lag polish pass (user request: laggy + make all settings work + add right-click unlock hint):
+  - Wired settings into actual renderer/runtime behavior in `InteractiveCanvas`:
+    - `graphicsQuality` now controls canvas DPR, antialias, and shadow-map enablement.
+    - `exposure` now updates renderer tone-mapping exposure live (brightness slider now truly affects scene).
+  - `DungeonScene` now receives `graphicsQuality` and scales directional shadow-map resolution; low quality disables directional shadows.
+  - `DungeonWorld` now scales torch cost by quality:
+    - fewer torchs rendered on low/medium,
+    - lower torch light intensity/distance at lower quality,
+    - wall glow is rendered as cheap additive plane always,
+    - expensive wall-fill point light now high-quality only.
+  - Added desktop HUD control hint in bottom-left: `Right Click -> Unlock Pointer`.
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test` ✅

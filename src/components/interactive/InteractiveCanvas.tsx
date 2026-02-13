@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { ACESFilmicToneMapping } from 'three';
+import { ACESFilmicToneMapping, type WebGLRenderer } from 'three';
 import LoadingScreen from './LoadingScreen';
 import DungeonScene from './dungeon/DungeonScene';
 import MobileControls from './dungeon/ui/MobileControls';
@@ -10,6 +10,7 @@ import { DungeonUI, useDungeonInteraction } from './dungeon/DungeonInteractionMa
 import { CHEST_POIS } from '@/constants/dungeonLayout';
 import { rendererToneMapping } from '@/constants/scene';
 import { useDungeonInput } from '@/lib/dungeonInput';
+import { useSettings } from '@/lib/settings';
 
 export default function InteractiveCanvas() {
   const {
@@ -31,7 +32,15 @@ export default function InteractiveCanvas() {
   const setMoveAxis = useDungeonInput((state) => state.setMoveAxis);
   const setKeys = useDungeonInput((state) => state.setKeys);
   const isTouchDevice = useDungeonInput((state) => state.isTouchDevice);
+  const graphicsQuality = useSettings((state) => state.graphicsQuality);
+  const exposure = useSettings((state) => state.exposure);
   const unlockRequestRef = useRef(0);
+  const rendererRef = useRef<WebGLRenderer | null>(null);
+
+  const shadowsEnabled = graphicsQuality !== 'low';
+  const canvasDpr: [number, number] =
+    graphicsQuality === 'high' ? [1, 2] : graphicsQuality === 'medium' ? [0.9, 1.5] : [0.75, 1];
+  const antialiasEnabled = graphicsQuality !== 'low';
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -269,17 +278,25 @@ export default function InteractiveCanvas() {
     return () => document.removeEventListener('pointerlockchange', handlePointerLockChange);
   }, [activePanel, canvasEl, handleOpenSettings, isSettingsOpen, isTouchDevice, setHasFocus, setPointerLocked]);
 
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    renderer.toneMappingExposure = Number.isFinite(exposure) ? exposure : rendererToneMapping.exposure;
+    renderer.shadowMap.enabled = shadowsEnabled;
+  }, [exposure, shadowsEnabled]);
+
   return (
     <div className="absolute inset-0">
       <Canvas
-        dpr={[1, 1.75]}
-        shadows
-        gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
+        dpr={canvasDpr}
+        shadows={shadowsEnabled}
+        gl={{ antialias: antialiasEnabled, alpha: false, powerPreference: 'high-performance' }}
         camera={{ fov: 50, near: 0.1, far: 200, position: [0, 4, 10] }}
         onCreated={({ gl }) => {
           gl.toneMapping = ACESFilmicToneMapping;
-          gl.toneMappingExposure = rendererToneMapping.exposure;
-          gl.shadowMap.enabled = true;
+          gl.toneMappingExposure = Number.isFinite(exposure) ? exposure : rendererToneMapping.exposure;
+          gl.shadowMap.enabled = shadowsEnabled;
+          rendererRef.current = gl;
           setCanvasEl(gl.domElement);
           gl.domElement.tabIndex = 0;
           gl.domElement.focus();
@@ -289,6 +306,7 @@ export default function InteractiveCanvas() {
         onBlur={handleBlur}
       >
         <DungeonScene
+          graphicsQuality={graphicsQuality}
           activeChestId={activePanel?.id ?? null}
           nearbyChestId={nearbyChestId}
           onChestOpen={handleChestOpen}
