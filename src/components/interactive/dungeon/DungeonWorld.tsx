@@ -5,6 +5,7 @@ import { useGLTF } from '@react-three/drei';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import {
+  AdditiveBlending,
   Box3,
   DoubleSide,
   Material,
@@ -22,6 +23,7 @@ import {
 } from '@/game/dungeon/buildDungeon';
 import { createSafeNodeResolver } from '@/game/dungeon/utils';
 import { clearDungeonVisualLiftTiles, setDungeonVisualLiftTiles } from '@/lib/dungeonVisualLift';
+import { clampVolume, useSettings } from '@/lib/settings';
 
 const RUINS_GLB_PATH = '/models/dungeon/structure/Modular Ruins Pack.glb';
 const FLOOR_NODE_FALLBACKS = ['Floor_Standard', 'Floor_Squares', 'Floor_SquareLarge'] as const;
@@ -85,12 +87,16 @@ const SPAWN_UNDERLAY_DROP = 0.04;
 const TORCH_LIGHT_DECAY = 1.9;
 const TORCH_PLACEMENT_LIMIT = 22;
 const TORCH_MOUNT_HEIGHT = 2.3;
+const TORCH_WALL_FILL_HEIGHT = TORCH_MOUNT_HEIGHT * 0.62;
+const TORCH_WALL_FILL_BACK_OFFSET = -0.12;
+const TORCH_WALL_GLOW_SIZE = 1.8;
 const POT_PLACEMENT_LIMIT = 24;
 const AMBIENT_PROP_PLACEMENT_LIMIT = 24;
 const PROP_COLLIDER_INSET = 0.82;
 const TORCH_WALL_ADVANCE = 0.18;
 const TORCH_WALL_CLEARANCE = 0.025;
 const POT_RESPAWN_MS = 10_000;
+const POT_BREAK_BASE_VOLUME = 0.5;
 
 const floorMaterial = new MeshStandardMaterial({ color: '#252825', roughness: 0.96, metalness: 0.02 });
 const corridorMaterial = new MeshStandardMaterial({ color: '#2e322e', roughness: 0.95, metalness: 0.02 });
@@ -179,6 +185,8 @@ type TorchVisual = {
   object: Object3D | null;
   glowColor: string;
   baseIntensity: number;
+  wallFillIntensity: number;
+  wallGlowOpacity: number;
   distance: number;
   flickerSeed: number;
   lightTarget: Object3D;
@@ -916,6 +924,11 @@ export default function DungeonWorld() {
   const potBreakAudioRef = useRef<HTMLAudioElement[]>([]);
   const potBreakAudioIndexRef = useRef(0);
   const potRespawnTimersRef = useRef<Map<string, number>>(new Map());
+  const masterVolume = useSettings((state) => state.masterVolume);
+  const graphicsQuality = useSettings((state) => state.graphicsQuality);
+  const torchLimit = graphicsQuality === 'low' ? 12 : graphicsQuality === 'medium' ? 16 : TORCH_PLACEMENT_LIMIT;
+  const torchIntensityScale = graphicsQuality === 'low' ? 0.75 : graphicsQuality === 'medium' ? 0.9 : 1;
+  const wallFillPointLightEnabled = graphicsQuality === 'high';
 
   const ruins = useGLTF(RUINS_GLB_PATH) as { nodes?: Record<string, Object3D> };
   const ruinsNodes = useMemo(() => ruins.nodes ?? {}, [ruins.nodes]);
@@ -1152,7 +1165,7 @@ export default function DungeonWorld() {
   }, [floorPieces, resolveNode, wallPanels]);
 
   const torchVisuals = useMemo<TorchVisual[]>(() => {
-    return dungeon.torchAnchors.slice(0, TORCH_PLACEMENT_LIMIT).map((anchor) => {
+    return dungeon.torchAnchors.slice(0, torchLimit).map((anchor) => {
       const candidates = torchNodeCandidates(anchor.id);
       const sourceNode = resolveNode(candidates[0], candidates.slice(1), `torch:${anchor.id}`);
       const size: [number, number, number] =
@@ -1196,13 +1209,20 @@ export default function DungeonWorld() {
             : anchor.source === 'corridor'
               ? '#ff9f54'
               : '#ffba73',
-        baseIntensity: anchor.source === 'spawn' ? 0.9 : anchor.source === 'corridor' ? 0.7 : 0.8,
-        distance: anchor.source === 'corridor' ? 6.5 : 7.2,
+        baseIntensity:
+          (anchor.source === 'spawn' ? 0.9 : anchor.source === 'corridor' ? 0.7 : 0.8) *
+          torchIntensityScale,
+        wallFillIntensity:
+          (anchor.source === 'spawn' ? 0.88 : anchor.source === 'corridor' ? 0.74 : 0.8) *
+          torchIntensityScale,
+        wallGlowOpacity:
+          graphicsQuality === 'low' ? 0.16 : graphicsQuality === 'medium' ? 0.22 : 0.27,
+        distance: (anchor.source === 'corridor' ? 6.5 : 7.2) * (graphicsQuality === 'low' ? 0.8 : 1),
         flickerSeed: (hashString(`torch-flicker-${anchor.id}`) % 6283) / 1000,
         lightTarget,
       };
     });
-  }, [dungeon.torchAnchors, floorPieces, resolveNode, wallCollisionBoxes, wallPanels]);
+  }, [dungeon.torchAnchors, floorPieces, graphicsQuality, resolveNode, torchIntensityScale, torchLimit, wallCollisionBoxes, wallPanels]);
 
   const potVisuals = useMemo<PotVisual[]>(() => {
     const pots: PotVisual[] = [];
@@ -1384,7 +1404,7 @@ export default function DungeonWorld() {
       ];
       potBreakAudioRef.current.forEach((audio) => {
         audio.preload = 'auto';
-        audio.volume = 0.5;
+        audio.volume = POT_BREAK_BASE_VOLUME;
       });
     }
     return () => {
@@ -1395,6 +1415,13 @@ export default function DungeonWorld() {
       respawnTimers.clear();
     };
   }, []);
+
+  useEffect(() => {
+    const volumeScale = clampVolume(masterVolume);
+    potBreakAudioRef.current.forEach((audio) => {
+      audio.volume = POT_BREAK_BASE_VOLUME * volumeScale;
+    });
+  }, [masterVolume]);
 
   const handlePotPointerDown = (potId: string, event: ThreeEvent<PointerEvent>) => {
     if (event.button !== 0) return;
@@ -1582,6 +1609,31 @@ export default function DungeonWorld() {
             decay={TORCH_LIGHT_DECAY}
             castShadow={false}
           />
+          <mesh
+            position={[0, TORCH_WALL_FILL_HEIGHT, TORCH_WALL_FILL_BACK_OFFSET]}
+            rotation={[0, Math.PI, 0]}
+            renderOrder={2}
+          >
+            <planeGeometry args={[TORCH_WALL_GLOW_SIZE, TORCH_WALL_GLOW_SIZE]} />
+            <meshBasicMaterial
+              color={torch.glowColor}
+              transparent
+              opacity={torch.wallGlowOpacity}
+              depthWrite={false}
+              side={DoubleSide}
+              blending={AdditiveBlending}
+            />
+          </mesh>
+          {wallFillPointLightEnabled && (
+            <pointLight
+              position={[0, TORCH_WALL_FILL_HEIGHT, TORCH_WALL_FILL_BACK_OFFSET]}
+              intensity={torch.wallFillIntensity}
+              color={torch.glowColor}
+              distance={3.4}
+              decay={2}
+              castShadow={false}
+            />
+          )}
         </group>
       ))}
 

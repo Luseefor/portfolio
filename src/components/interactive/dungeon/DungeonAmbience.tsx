@@ -2,11 +2,9 @@
 
 import { useEffect, useRef } from 'react';
 import { useDungeonInput } from '@/lib/dungeonInput';
+import { clampVolume, useSettings } from '@/lib/settings';
 
-function clampVolume(value: number, fallback = 0.25) {
-  if (!Number.isFinite(value)) return fallback;
-  return Math.min(1, Math.max(0, value));
-}
+const AMBIENCE_BASE_VOLUME = 0.35;
 
 function getSafeDuration(audio: HTMLAudioElement) {
   return Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
@@ -16,13 +14,14 @@ export default function DungeonAmbience() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isPointerLocked = useDungeonInput((state) => state.isPointerLocked);
   const mouseDown = useDungeonInput((state) => state.mouseDown);
+  const masterVolume = useSettings((state) => state.masterVolume);
   const timeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio('/sounds/ambience/166187__drminky__creepy-dungeon-ambience.wav');
       audioRef.current.loop = true;
-      audioRef.current.volume = clampVolume(0.35);
+      audioRef.current.volume = clampVolume(AMBIENCE_BASE_VOLUME);
     }
     return () => {
       if (timeoutRef.current) {
@@ -39,6 +38,7 @@ export default function DungeonAmbience() {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    const volumeScale = clampVolume(masterVolume);
 
     const schedulePulse = () => {
       const delay = 4000 + Math.random() * 5000;
@@ -57,13 +57,13 @@ export default function DungeonAmbience() {
             const duration = getSafeDuration(audio);
             const seekMax = duration > 2 ? duration - 2 : 0;
             audio.currentTime = seekMax > 0 ? Math.random() * seekMax : 0;
-            audio.volume = clampVolume(0.18 + Math.random() * 0.25);
+            audio.volume = clampVolume((0.18 + Math.random() * 0.25) * volumeScale);
             audio.play().catch(() => {});
             schedulePulse();
           }, silence);
           return;
         }
-        audio.volume = clampVolume(0.18 + Math.random() * 0.42);
+        audio.volume = clampVolume((0.18 + Math.random() * 0.42) * volumeScale);
         schedulePulse();
       }, delay);
     };
@@ -75,15 +75,17 @@ export default function DungeonAmbience() {
         timeoutRef.current = null;
       }
     };
-  }, [isPointerLocked, mouseDown]);
+  }, [isPointerLocked, masterVolume, mouseDown]);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    const volumeScale = clampVolume(masterVolume);
+    audio.volume = clampVolume(AMBIENCE_BASE_VOLUME * volumeScale);
     if (isPointerLocked || mouseDown) {
       audio.play().catch(() => {});
     }
-  }, [isPointerLocked, mouseDown]);
+  }, [isPointerLocked, masterVolume, mouseDown]);
 
   return null;
 }

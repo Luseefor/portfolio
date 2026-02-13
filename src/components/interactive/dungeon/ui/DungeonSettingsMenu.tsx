@@ -1,8 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
 import { useSettings, settingsActions } from '@/lib/settings';
+import { useDungeonUiTheme } from './useDungeonUiTheme';
 
 interface DungeonSettingsMenuProps {
   isOpen: boolean;
@@ -11,6 +13,7 @@ interface DungeonSettingsMenuProps {
 
 export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettingsMenuProps) {
   const settings = useSettings();
+  const theme = useDungeonUiTheme();
   const [localSettings, setLocalSettings] = useState(settings);
 
   // Sync local settings with store
@@ -76,19 +79,29 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-            className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2"
+            className="fixed left-1/2 top-1/2 z-50 w-[min(92vw,420px)] -translate-x-1/2 -translate-y-1/2"
           >
-            <div className="overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-b from-stone-900/98 to-stone-950/98 shadow-[0_0_80px_rgba(0,0,0,0.5),0_0_40px_rgba(251,191,36,0.1)] backdrop-blur-xl">
+            <div
+              className="overflow-hidden rounded-2xl border bg-gradient-to-b from-stone-900/98 to-stone-950/98 backdrop-blur-xl"
+              style={{
+                borderColor: theme.accentBorder,
+                boxShadow: `0 0 80px rgba(0,0,0,0.5), 0 0 40px ${theme.accentGlow}`,
+              }}
+            >
               {/* Header */}
-              <div className="border-b border-amber-500/10 px-6 py-5">
+              <div className="border-b px-6 py-5" style={{ borderColor: theme.accentBorder }}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10">
+                    <div
+                      className="flex h-10 w-10 items-center justify-center rounded-xl border"
+                      style={{ borderColor: theme.accentBorderStrong, backgroundColor: theme.accentBgSoft }}
+                    >
                       <svg
-                        className="h-5 w-5 text-amber-400"
+                        className="h-5 w-5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
+                        style={{ color: theme.accent }}
                       >
                         <path
                           strokeLinecap="round"
@@ -105,7 +118,9 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
                       </svg>
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-amber-50">Settings</h2>
+                      <h2 className="text-lg font-bold" style={{ color: theme.accentText }}>
+                        Settings
+                      </h2>
                       <p className="text-xs text-stone-500">Configure your experience</p>
                     </div>
                   </div>
@@ -132,10 +147,11 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
                 <div>
                   <label className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-stone-400">
                     <svg
-                      className="h-4 w-4 text-amber-500/70"
+                      className="h-4 w-4"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
+                      style={{ color: theme.accentMuted }}
                     >
                       <path
                         strokeLinecap="round"
@@ -153,9 +169,18 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
                         onClick={() => handleQualityChange(option.value)}
                         className={`rounded-lg border py-2.5 text-sm font-semibold transition-all ${
                           localSettings.graphicsQuality === option.value
-                            ? 'border-amber-500/50 bg-amber-500/20 text-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.2)]'
+                            ? 'text-white'
                             : 'border-stone-700/50 bg-stone-800/50 text-stone-400 hover:border-stone-600 hover:bg-stone-700/50'
                         }`}
+                        style={
+                          localSettings.graphicsQuality === option.value
+                            ? {
+                                borderColor: theme.accentBorderStrong,
+                                backgroundColor: theme.accentBgStrong,
+                                boxShadow: `0 0 12px ${theme.accentGlow}`,
+                              }
+                            : undefined
+                        }
                       >
                         {option.label}
                       </button>
@@ -168,10 +193,11 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
                   <label className="mb-3 flex items-center justify-between text-xs font-bold uppercase tracking-[0.2em] text-stone-400">
                     <span className="flex items-center gap-2">
                       <svg
-                        className="h-4 w-4 text-amber-500/70"
+                        className="h-4 w-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
+                        style={{ color: theme.accentMuted }}
                       >
                         <path
                           strokeLinecap="round"
@@ -182,7 +208,7 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
                       </svg>
                       Master Volume
                     </span>
-                    <span className="font-mono text-amber-300">
+                    <span className="font-mono" style={{ color: theme.accentText }}>
                       {Math.round(localSettings.masterVolume * 100)}%
                     </span>
                   </label>
@@ -193,7 +219,8 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
                     step="0.01"
                     value={localSettings.masterVolume}
                     onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-stone-700/50 accent-amber-500"
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-stone-700/50"
+                    style={{ accentColor: theme.accent }}
                   />
                 </div>
 
@@ -202,10 +229,11 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
                   <label className="mb-3 flex items-center justify-between text-xs font-bold uppercase tracking-[0.2em] text-stone-400">
                     <span className="flex items-center gap-2">
                       <svg
-                        className="h-4 w-4 text-amber-500/70"
+                        className="h-4 w-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
+                        style={{ color: theme.accentMuted }}
                       >
                         <path
                           strokeLinecap="round"
@@ -216,7 +244,7 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
                       </svg>
                       Mouse Sensitivity
                     </span>
-                    <span className="font-mono text-amber-300">
+                    <span className="font-mono" style={{ color: theme.accentText }}>
                       {localSettings.mouseSensitivity.toFixed(1)}
                     </span>
                   </label>
@@ -227,7 +255,8 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
                     step="0.1"
                     value={localSettings.mouseSensitivity}
                     onChange={(e) => handleSensitivityChange(parseFloat(e.target.value))}
-                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-stone-700/50 accent-amber-500"
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-stone-700/50"
+                    style={{ accentColor: theme.accent }}
                   />
                 </div>
 
@@ -236,10 +265,11 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
                   <label className="mb-3 flex items-center justify-between text-xs font-bold uppercase tracking-[0.2em] text-stone-400">
                     <span className="flex items-center gap-2">
                       <svg
-                        className="h-4 w-4 text-amber-500/70"
+                        className="h-4 w-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
+                        style={{ color: theme.accentMuted }}
                       >
                         <path
                           strokeLinecap="round"
@@ -250,7 +280,7 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
                       </svg>
                       Brightness
                     </span>
-                    <span className="font-mono text-amber-300">
+                    <span className="font-mono" style={{ color: theme.accentText }}>
                       {Math.round((localSettings.exposure ?? 1.0) * 100)}%
                     </span>
                   </label>
@@ -261,20 +291,34 @@ export default function DungeonSettingsMenu({ isOpen, onClose }: DungeonSettings
                     step="0.05"
                     value={localSettings.exposure ?? 1.0}
                     onChange={(e) => handleExposureChange(parseFloat(e.target.value))}
-                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-stone-700/50 accent-amber-500"
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-stone-700/50"
+                    style={{ accentColor: theme.accent }}
                   />
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="border-t border-amber-500/10 px-6 py-4">
-                <p className="text-center text-[10px] uppercase tracking-wider text-stone-600">
-                  Press{' '}
-                  <kbd className="rounded border border-stone-700 bg-stone-800 px-1.5 py-0.5 text-stone-400">
-                    ESC
-                  </kbd>{' '}
-                  to close
-                </p>
+              <div className="border-t px-6 py-4" style={{ borderColor: theme.accentBorder }}>
+                <div className="flex items-center justify-between gap-3">
+                  <Link
+                    href="/"
+                    className="inline-flex items-center rounded-lg border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white transition hover:opacity-95"
+                    style={{
+                      borderColor: theme.accentBorderStrong,
+                      backgroundColor: theme.accentBgSoft,
+                      boxShadow: `0 0 14px ${theme.accentGlow}`,
+                    }}
+                  >
+                    Back To Home
+                  </Link>
+                  <p className="text-right text-[10px] uppercase tracking-wider text-stone-600">
+                    Press{' '}
+                    <kbd className="rounded border border-stone-700 bg-stone-800 px-1.5 py-0.5 text-stone-400">
+                      ESC
+                    </kbd>{' '}
+                    to close
+                  </p>
+                </div>
               </div>
             </div>
           </motion.div>

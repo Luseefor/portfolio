@@ -34,3 +34,146 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
   - `npm run -s lint` ✅
   - `npx next build --webpack` ✅
   - `npx tsc --noEmit` ✅ (run after build regenerated `.next/types`)
+- Chest interaction + content pass (user request: use closed/open GLBs, 10 scattered room chests, UI popup, open/close sounds):
+  - Expanded `CHEST_POIS` to 10 entries, distributed across all dungeon rooms (1-2 per room with broad map scatter).
+  - Reworked `ChestSystem` rendering from blockout geometry to actual assets:
+    - `/models/dungeon/props/closed_chest.glb`
+    - `/models/dungeon/props/open_chest.glb`
+  - Added click-to-open chest interaction directly on chest meshes.
+  - Chest now uses open model while its panel is active, and closes when panel closes.
+  - Added chest audio transitions:
+    - open: `/sounds/props/chest_open.mp3`
+    - close: `/sounds/ui/ui_close.wav`
+  - Wired chest gameplay/UI fully into active scene:
+    - `InteractiveCanvas` now mounts `DungeonUI` and `useDungeonInteraction`.
+    - `DungeonScene` now mounts `ChestSystem` inside physics and receives interaction props.
+  - Updated interaction logic so chests are reopenable and prompt visibility is based on nearby + panel closed.
+  - Added player-state publishing in `PlayerController` each frame so proximity/HUD systems receive live position/speed/grounded data.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npx tsc --noEmit` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Chest placement/visibility polish pass:
+  - Rebuilt `ChestSystem` placement to align chests like props using dungeon node/collider analysis:
+    - scans nearby node positions around each chest,
+    - checks floor support under chest footprint,
+    - avoids obstacle collider overlap,
+    - resolves chest Y from floor top so chests no longer sink.
+  - Increased chest model/collider size by 1.5x from previous baseline.
+  - Added animated large exclamation marker above closed chests (bob + pulse + glow) for visibility.
+  - Kept open/close chest model swap behavior tied to panel open/close state.
+  - Reduced `CHEST_POIS` to exactly 10 entries after earlier overcount.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npx tsc --noEmit` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Minimap polish pass (requested):
+  - Restored passageway rendering on minimap using dungeon routes as corridor-width strokes.
+  - Added camera-facing beam on minimap tied to mouse look direction (`look` vector), rendered as a divergent glowing white cone.
+  - Kept room outlines + chest markers; player marker remains white glowing circle.
+- State wiring:
+  - Extended shared player state with `look: Vec3`.
+  - PlayerController now publishes `look` from camera-relative forward each frame.
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Skill loop note:
+  - Attempted to run `develop-web-game` Playwright client, but blocked because `playwright` package is not installed in this workspace context (only `@playwright/test` present).
+- Jump/Roll reliability fix pass:
+  - Replaced hardcoded grounded check (`position.y <= 2.05`) with downward raycast grounding so elevated floor sections still count as grounded.
+  - Added coyote-time + jump-buffer timing constants and switched jump queueing to `jumpJustPressed` (prevents hold-to-auto-repeat behavior).
+  - Reset jump/ground timers on blur reset to avoid stale input state.
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Jump animation fallback tweak:
+  - Character asset has no dedicated jump clip; added jump clip fallback patterns to include receive-hit naming so jump no longer collapses to idle.
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/movement.math.test.ts` ✅
+- Jump/Roll feel tuning pass:
+  - Increased jump coyote+buffer windows (`0.24s`) for better run-jump reliability.
+  - Increased grounded ray length and grounded upward velocity threshold to reduce false airborne states on uneven traversal.
+  - Added slight run-jump impulse boost (`JUMP_SPEED * 1.08`) so running jumps clear edges more consistently.
+  - Increased roll duration (`0.62s`) and allowed roll start during coyote window to avoid missed rolls at floor seams.
+  - Preserved vertical velocity behavior during roll for smoother continuity (less abrupt mid-roll cut feel).
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Mobile support stabilization + movement polish pass:
+  - Added robust PointerEvent polyfill + pointer capture no-op methods in `src/test/setup.ts` so mobile pointer tests receive proper coordinates/pointer metadata in JSDOM.
+  - Hardened `MobileControls` pointer-id handling with finite fallbacks and removed touch-only pointerType gate on look-pad drag (prevents dropped look input in environments where pointerType is missing).
+  - Added combat/mobility interruption guards in `PlayerController` so dash/attack cannot cut an active roll.
+  - Adjusted jump impulse to scale with horizontal movement intent, improving run-jump consistency.
+  - Updated `PlayerCharacter` action playback so jump/roll/dash/attack are one-shot clips (`LoopOnce` + `clampWhenFinished`) rather than looping mid-action.
+- Validation status:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test` ✅ (23/23)
+  - Mobile controls tests now green:
+    - `src/components/interactive/dungeon/__tests__/mobileControls.test.tsx` ✅
+- Browser/mobile emulation validation:
+  - Built and served app with webpack mode (`npm run -s build -- --webpack`, `npm run start -- --hostname 127.0.0.1 --port 4173`).
+  - Playwright skill script remains incompatible in this environment due its virtual-time shim hanging on this scene, so used direct Playwright script checks instead.
+  - Confirmed mobile controls rendered and touch interactions dispatch cleanly with no page/console errors under iPhone emulation (`joystick`, `lookPad`, `jump`, `roll` all present).
+  - Saved visual artifact: `output/mobile-validation/mobile-page.png`.
+- Performance diagnosis pass (user report: lagging):
+  - Identified high-frequency UI/state churn and light count as likely hotspots.
+  - Optimized `PlayerController` player-state publishing with thresholded + interval-based updates (20Hz max unless meaningful state change).
+  - Optimized `ChestSystem` to avoid React re-renders from per-frame player position updates by subscribing into a ref instead of using `usePlayerState` selector hook.
+  - Reduced chest lighting load by removing always-on per-chest marker point lights; only nearby unopened chest emits a point light.
+- Verification:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - Focused dungeon tests ✅
+- UX/input/lighting pass per user request:
+  - Added wall spill illumination for torches in `DungeonWorld` by adding a secondary warm point light behind each torch mount to brighten adjacent wall surfaces.
+  - Removed fullbright dev mode entirely:
+    - deleted `KeyL` toggle logic and fullbright lighting branch in `DungeonScene`.
+    - replaced HUD hint from `L Fullbright` to `M Mute / Unmute`.
+  - Fixed ESC behavior when pointer lock is active:
+    - `InteractiveCanvas` now opens settings when pointer lock is released unexpectedly (ESC flow),
+    - but suppresses auto-settings-open when unlock was explicitly requested by right click/context-menu.
+  - Added global mute toggle on `M` in `useDungeonInteraction`:
+    - toggles `masterVolume` between `0` and previously remembered non-zero value.
+  - Wired master volume to all remaining runtime audio sources that were using hardcoded volumes:
+    - `PlayerController` footsteps/run/jump/land.
+    - `DungeonWorld` pot-break SFX.
+    - `DungeonAmbience` loop + pulse volumes.
+  - Added safe jsdom audio-play guard in `DungeonInteractionManager` helper to avoid test-environment playback exceptions.
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - pointer lock + mobile tests ✅
+- Settings + lag polish pass (user request: laggy + make all settings work + add right-click unlock hint):
+  - Wired settings into actual renderer/runtime behavior in `InteractiveCanvas`:
+    - `graphicsQuality` now controls canvas DPR, antialias, and shadow-map enablement.
+    - `exposure` now updates renderer tone-mapping exposure live (brightness slider now truly affects scene).
+  - `DungeonScene` now receives `graphicsQuality` and scales directional shadow-map resolution; low quality disables directional shadows.
+  - `DungeonWorld` now scales torch cost by quality:
+    - fewer torchs rendered on low/medium,
+    - lower torch light intensity/distance at lower quality,
+    - wall glow is rendered as cheap additive plane always,
+    - expensive wall-fill point light now high-quality only.
+  - Added desktop HUD control hint in bottom-left: `Right Click -> Unlock Pointer`.
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test` ✅
+- Welcome + theme consistency + control docs pass:
+  - Added first-open onboarding overlay with professional copy and full control reference (desktop/mobile) in `src/components/interactive/dungeon/ui/WelcomeOverlay.tsx`.
+  - Onboarding opens on first interactive page load and blocks gameplay interactions until dismissed (Enter/Escape/button).
+  - Added shared dungeon UI theme hook (`src/components/interactive/dungeon/ui/useDungeonUiTheme.ts`) that derives accent color from the same landing-page theme store (`useStore` + `getThemeColor`).
+  - Re-themed major interactive UI components to use landing theme accent + glow instead of hardcoded amber:
+    - `InteractionPrompt`, `ChestPanel`, `DungeonSettingsMenu`, `DungeonHUD`, `MobileControls`, and interactive page back-pill/background.
+  - Added right-click unlock pointer hint in bottom-left controls and retained settings hint.
+  - Updated interaction state plumbing so intro overlay integrates with settings/chest/mobile block states.
+- Validation:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - `npm run -s test` ✅

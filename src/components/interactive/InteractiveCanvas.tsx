@@ -2,19 +2,71 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { ACESFilmicToneMapping } from 'three';
+import { ACESFilmicToneMapping, type WebGLRenderer } from 'three';
 import LoadingScreen from './LoadingScreen';
 import DungeonScene from './dungeon/DungeonScene';
+import MobileControls from './dungeon/ui/MobileControls';
+import { DungeonUI, useDungeonInteraction } from './dungeon/DungeonInteractionManager';
+import { CHEST_POIS } from '@/constants/dungeonLayout';
 import { rendererToneMapping } from '@/constants/scene';
 import { useDungeonInput } from '@/lib/dungeonInput';
+import { useSettings } from '@/lib/settings';
 
 export default function InteractiveCanvas() {
+  const {
+    openedChests,
+    nearbyChestId,
+    activePanel,
+    isSettingsOpen,
+    isWelcomeOpen,
+    handleChestOpen,
+    handleNearbyChange,
+    handleClosePanel,
+    handleOpenSettings,
+    handleCloseSettings,
+    handleCloseWelcome,
+  } = useDungeonInteraction();
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
   const setHasFocus = useDungeonInput((state) => state.setHasFocus);
   const setPointerLocked = useDungeonInput((state) => state.setPointerLocked);
   const setMouseDown = useDungeonInput((state) => state.setMouseDown);
+  const setTouchDevice = useDungeonInput((state) => state.setTouchDevice);
+  const setMoveAxis = useDungeonInput((state) => state.setMoveAxis);
   const setKeys = useDungeonInput((state) => state.setKeys);
+  const isTouchDevice = useDungeonInput((state) => state.isTouchDevice);
+  const graphicsQuality = useSettings((state) => state.graphicsQuality);
+  const exposure = useSettings((state) => state.exposure);
   const unlockRequestRef = useRef(0);
+  const rendererRef = useRef<WebGLRenderer | null>(null);
+
+  const shadowsEnabled = graphicsQuality !== 'low';
+  const canvasDpr: [number, number] =
+    graphicsQuality === 'high' ? [1, 2] : graphicsQuality === 'medium' ? [0.9, 1.5] : [0.75, 1];
+  const antialiasEnabled = graphicsQuality !== 'low';
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const computeIsTouchDevice = () => {
+      if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {
+        return false;
+      }
+      const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+      const touchCapable = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      return coarsePointer || touchCapable;
+    };
+    const updateTouchMode = () => setTouchDevice(computeIsTouchDevice());
+    updateTouchMode();
+    window.addEventListener('resize', updateTouchMode);
+    return () => window.removeEventListener('resize', updateTouchMode);
+  }, [setTouchDevice]);
+
+  useEffect(() => {
+    if (!isTouchDevice) return;
+    if (document.pointerLockElement) {
+      document.exitPointerLock();
+    }
+    setPointerLocked(false);
+  }, [isTouchDevice, setPointerLocked]);
 
   useEffect(() => {
     if (!canvasEl) return;
@@ -39,6 +91,7 @@ export default function InteractiveCanvas() {
     };
 
     const handleNativeMouseDown = (event: MouseEvent) => {
+      if (isTouchDevice) return;
       setMouseDown(true);
       if (event.button === 2) {
         requestUnlock(event);
@@ -53,6 +106,7 @@ export default function InteractiveCanvas() {
       }
     };
     const handleDocumentMouseDown = (event: MouseEvent) => {
+      if (isTouchDevice) return;
       setMouseDown(true);
       if (event.button === 2) {
         requestUnlock(event);
@@ -67,6 +121,7 @@ export default function InteractiveCanvas() {
     const handleContextMenu = (event: MouseEvent) => requestUnlock(event);
 
     const handlePointerDown = (event: PointerEvent) => {
+      if (isTouchDevice || event.pointerType === 'touch') return;
       if (event.button === 2) {
         requestUnlock(event);
       }
@@ -103,7 +158,7 @@ export default function InteractiveCanvas() {
       document.removeEventListener('auxclick', handleContextMenu, true);
       window.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [canvasEl, setHasFocus, setMouseDown, setPointerLocked]);
+  }, [canvasEl, isTouchDevice, setHasFocus, setMouseDown, setPointerLocked]);
 
   useEffect(() => {
     if (!canvasEl) return;
@@ -145,15 +200,18 @@ export default function InteractiveCanvas() {
           setKeys({ jump: pressed });
           break;
         case 'KeyC':
-        case 'KeyR':
           setKeys({ roll: pressed });
+          break;
+        case 'KeyR':
+          setKeys({ attack: pressed });
           break;
       }
     };
 
     const onKeyDown = (e: KeyboardEvent) => handleKey(e, true);
     const onKeyUp = (e: KeyboardEvent) => handleKey(e, false);
-    const onBlur = () =>
+    const onBlur = () => {
+      setMoveAxis({ x: 0, y: 0 });
       setKeys({
         forward: false,
         backward: false,
@@ -163,7 +221,9 @@ export default function InteractiveCanvas() {
         dash: false,
         jump: false,
         roll: false,
+        attack: false,
       });
+    };
 
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
@@ -173,7 +233,7 @@ export default function InteractiveCanvas() {
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
     };
-  }, [setKeys]);
+  }, [setKeys, setMoveAxis]);
 
   const handleFocus = useCallback(() => {
     setHasFocus(true);
@@ -182,11 +242,24 @@ export default function InteractiveCanvas() {
   const handleBlur = useCallback(() => {
     setHasFocus(false);
     setPointerLocked(false);
-  }, [setHasFocus, setPointerLocked]);
+    setMoveAxis({ x: 0, y: 0 });
+  }, [setHasFocus, setMoveAxis, setPointerLocked]);
+
+  const handleMobileInteract = useCallback(() => {
+    if (!nearbyChestId || activePanel || isSettingsOpen || isWelcomeOpen) return;
+    const chest = CHEST_POIS.find((entry) => entry.id === nearbyChestId);
+    if (!chest) return;
+    handleChestOpen(chest);
+  }, [activePanel, handleChestOpen, isSettingsOpen, isWelcomeOpen, nearbyChestId]);
 
   useEffect(() => {
     if (!canvasEl) return;
+    if (isTouchDevice) {
+      setPointerLocked(false);
+      return;
+    }
     const handlePointerLockChange = () => {
+      const wasLocked = useDungeonInput.getState().isPointerLocked;
       const isLocked = document.pointerLockElement === canvasEl;
       if (isLocked && Date.now() - unlockRequestRef.current < 200) {
         document.exitPointerLock();
@@ -194,24 +267,38 @@ export default function InteractiveCanvas() {
       }
       setPointerLocked(isLocked);
       if (isLocked) setHasFocus(true);
-      else if (document.activeElement !== canvasEl) setHasFocus(false);
+      else {
+        if (document.activeElement !== canvasEl) setHasFocus(false);
+        const unlockedByMouseRequest = Date.now() - unlockRequestRef.current < 260;
+        if (wasLocked && !unlockedByMouseRequest && !isSettingsOpen && !activePanel && !isWelcomeOpen) {
+          handleOpenSettings();
+        }
+      }
     };
 
     document.addEventListener('pointerlockchange', handlePointerLockChange);
     return () => document.removeEventListener('pointerlockchange', handlePointerLockChange);
-  }, [canvasEl, setHasFocus, setPointerLocked]);
+  }, [activePanel, canvasEl, handleOpenSettings, isSettingsOpen, isTouchDevice, isWelcomeOpen, setHasFocus, setPointerLocked]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    renderer.toneMappingExposure = Number.isFinite(exposure) ? exposure : rendererToneMapping.exposure;
+    renderer.shadowMap.enabled = shadowsEnabled;
+  }, [exposure, shadowsEnabled]);
 
   return (
     <div className="absolute inset-0">
       <Canvas
-        dpr={[1, 1.75]}
-        shadows
-        gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
+        dpr={canvasDpr}
+        shadows={shadowsEnabled}
+        gl={{ antialias: antialiasEnabled, alpha: false, powerPreference: 'high-performance' }}
         camera={{ fov: 50, near: 0.1, far: 200, position: [0, 4, 10] }}
         onCreated={({ gl }) => {
           gl.toneMapping = ACESFilmicToneMapping;
-          gl.toneMappingExposure = rendererToneMapping.exposure;
-          gl.shadowMap.enabled = true;
+          gl.toneMappingExposure = Number.isFinite(exposure) ? exposure : rendererToneMapping.exposure;
+          gl.shadowMap.enabled = shadowsEnabled;
+          rendererRef.current = gl;
           setCanvasEl(gl.domElement);
           gl.domElement.tabIndex = 0;
           gl.domElement.focus();
@@ -220,8 +307,31 @@ export default function InteractiveCanvas() {
         onFocus={handleFocus}
         onBlur={handleBlur}
       >
-        <DungeonScene />
+        <DungeonScene
+          graphicsQuality={graphicsQuality}
+          activeChestId={activePanel?.id ?? null}
+          nearbyChestId={nearbyChestId}
+          onChestOpen={handleChestOpen}
+          onNearbyChange={handleNearbyChange}
+        />
       </Canvas>
+      <DungeonUI
+        openedChests={openedChests}
+        nearbyChestId={nearbyChestId}
+        activePanel={activePanel}
+        isSettingsOpen={isSettingsOpen}
+        isWelcomeOpen={isWelcomeOpen}
+        onClosePanel={handleClosePanel}
+        onCloseSettings={handleCloseSettings}
+        onCloseWelcome={handleCloseWelcome}
+      />
+      <MobileControls
+        visible={isTouchDevice}
+        blocked={Boolean(activePanel) || isSettingsOpen || isWelcomeOpen}
+        canInteract={Boolean(nearbyChestId) && !activePanel && !isSettingsOpen && !isWelcomeOpen}
+        onInteract={handleMobileInteract}
+        onOpenSettings={handleOpenSettings}
+      />
       <LoadingScreen />
     </div>
   );
