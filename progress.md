@@ -122,3 +122,12 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
   - Playwright skill script remains incompatible in this environment due its virtual-time shim hanging on this scene, so used direct Playwright script checks instead.
   - Confirmed mobile controls rendered and touch interactions dispatch cleanly with no page/console errors under iPhone emulation (`joystick`, `lookPad`, `jump`, `roll` all present).
   - Saved visual artifact: `output/mobile-validation/mobile-page.png`.
+- Performance diagnosis pass (user report: lagging):
+  - Identified high-frequency UI/state churn and light count as likely hotspots.
+  - Optimized `PlayerController` player-state publishing with thresholded + interval-based updates (20Hz max unless meaningful state change).
+  - Optimized `ChestSystem` to avoid React re-renders from per-frame player position updates by subscribing into a ref instead of using `usePlayerState` selector hook.
+  - Reduced chest lighting load by removing always-on per-chest marker point lights; only nearby unopened chest emits a point light.
+- Verification:
+  - `npx tsc --noEmit` ✅
+  - `npm run -s lint` ✅
+  - Focused dungeon tests ✅

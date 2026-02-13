@@ -52,6 +52,10 @@ const GROUND_RAY_LENGTH = 0.62;
 const MAX_GROUNDED_UP_VELOCITY = 2.2;
 const MOVE_AXIS_DEADZONE = 0.08;
 const MOVE_AXIS_RUN_THRESHOLD = 0.78;
+const PLAYER_STATE_PUBLISH_INTERVAL = 1 / 20;
+const PLAYER_STATE_POS_EPSILON = 0.025;
+const PLAYER_STATE_SPEED_EPSILON = 0.1;
+const PLAYER_STATE_DIR_DOT_EPSILON = 0.998;
 
 const forward = new Vector3();
 const right = new Vector3();
@@ -147,6 +151,15 @@ export default function PlayerController({
   const attackDirectionRef = useRef(new Vector3(0, 0, 1));
   const dashButtonPrevRef = useRef(false);
   const baseFovRef = useRef(isPerspectiveCamera(camera) ? camera.fov : 50);
+  const playerStatePublishTimerRef = useRef(0);
+  const lastPublishedPlayerStateRef = useRef({
+    position: { x: Number.NaN, y: Number.NaN, z: Number.NaN },
+    forward: { x: 0, y: 0, z: 1 },
+    look: { x: 0, y: 0, z: 1 },
+    speed: Number.NaN,
+    grounded: false,
+    isMoving: false,
+  });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -603,14 +616,50 @@ export default function PlayerController({
     } else {
       stateForward.normalize();
     }
-    setPlayerState({
+    const isMovingState = horizontalSpeed > 0.15;
+    const nextState = {
       position: { x: finalPosition.x, y: finalPosition.y, z: finalPosition.z },
       forward: { x: stateForward.x, y: stateForward.y, z: stateForward.z },
       look: { x: forward.x, y: 0, z: forward.z },
       speed: horizontalSpeed,
       grounded,
-      isMoving: horizontalSpeed > 0.15,
-    });
+      isMoving: isMovingState,
+    };
+    const lastState = lastPublishedPlayerStateRef.current;
+    const dx = nextState.position.x - lastState.position.x;
+    const dy = nextState.position.y - lastState.position.y;
+    const dz = nextState.position.z - lastState.position.z;
+    const positionChanged = dx * dx + dy * dy + dz * dz >= PLAYER_STATE_POS_EPSILON * PLAYER_STATE_POS_EPSILON;
+    const speedChanged = Math.abs(nextState.speed - lastState.speed) >= PLAYER_STATE_SPEED_EPSILON;
+    const forwardAligned =
+      nextState.forward.x * lastState.forward.x +
+      nextState.forward.y * lastState.forward.y +
+      nextState.forward.z * lastState.forward.z;
+    const lookAligned =
+      nextState.look.x * lastState.look.x +
+      nextState.look.y * lastState.look.y +
+      nextState.look.z * lastState.look.z;
+    const directionChanged =
+      !Number.isFinite(forwardAligned) ||
+      !Number.isFinite(lookAligned) ||
+      forwardAligned < PLAYER_STATE_DIR_DOT_EPSILON ||
+      lookAligned < PLAYER_STATE_DIR_DOT_EPSILON;
+    const flagsChanged =
+      nextState.grounded !== lastState.grounded || nextState.isMoving !== lastState.isMoving;
+
+    playerStatePublishTimerRef.current += delta;
+    const shouldPublish =
+      playerStatePublishTimerRef.current >= PLAYER_STATE_PUBLISH_INTERVAL ||
+      positionChanged ||
+      speedChanged ||
+      directionChanged ||
+      flagsChanged;
+
+    if (shouldPublish) {
+      playerStatePublishTimerRef.current = 0;
+      lastPublishedPlayerStateRef.current = nextState;
+      setPlayerState(nextState);
+    }
 
     const speed = Math.hypot(smoothX, smoothZ);
     const useRunningLoop =

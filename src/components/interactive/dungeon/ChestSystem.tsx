@@ -5,7 +5,7 @@ import { useGLTF } from '@react-three/drei';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { useRef, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
-import { usePlayerState, playerStateSelectors } from '@/lib/playerState';
+import { subscribeToPlayerState, usePlayerState } from '@/lib/playerState';
 import { clampVolume, useSettings } from '@/lib/settings';
 import {
   DUNGEON_LAYOUT_GRAPH,
@@ -375,18 +375,17 @@ function Chest({ chest, isOpen, isNearby, onOpen, masterVolume }: ChestProps) {
               roughness={0.35}
             />
           </mesh>
-          <pointLight
-            position={[0, 0.05, 0]}
-            color="#ffcf66"
-            intensity={isNearby ? 3.2 : 2.4}
-            distance={6.5}
-            decay={2}
-          />
         </group>
       )}
 
       {isNearby && !isOpen && (
-        <pointLight position={[0, 1.1, 0]} color="#fbbf24" intensity={2.4} distance={4} decay={2} />
+        <pointLight
+          position={[0, MARKER_BASE_HEIGHT + 0.05, 0]}
+          color="#fbbf24"
+          intensity={2.1}
+          distance={4.6}
+          decay={2}
+        />
       )}
     </group>
   );
@@ -405,9 +404,18 @@ export function ChestSystem({
   activeChestId,
   nearbyChestId,
 }: ChestSystemProps) {
-  const playerPosition = usePlayerState(playerStateSelectors.position);
+  const playerPositionRef = useRef(usePlayerState.getState().position);
   const masterVolume = useSettings((s: { masterVolume: number }) => s.masterVolume);
   const prevNearbyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToPlayerState((state, prevState) => {
+      if (state.position !== prevState.position) {
+        playerPositionRef.current = state.position;
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   const dungeon = useMemo(() => buildDungeon(DUNGEON_LAYOUT_GRAPH), []);
 
@@ -448,6 +456,7 @@ export function ChestSystem({
   );
 
   useFrame(() => {
+    const playerPosition = playerPositionRef.current;
     let nearest: { id: string; distance: number } | null = null;
 
     for (let i = 0; i < renderedChests.length; i += 1) {
