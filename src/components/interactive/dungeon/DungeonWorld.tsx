@@ -10,212 +10,100 @@ import {
   DoubleSide,
   Material,
   Mesh,
-  MeshStandardMaterial,
   Object3D,
   SpotLight as SpotLightImpl,
   Vector3,
 } from 'three';
+import {
+  AMBIENT_PROP_NODE_FALLBACKS,
+  AMBIENT_PROP_PLACEMENT_LIMIT,
+  BORDER_COLLIDER_HEIGHT_PAD,
+  BORDER_COLLIDER_PAD,
+  BORDER_HEIGHT,
+  BORDER_STEP,
+  BORDER_THICKNESS,
+  BORDER_WALL_HEIGHT,
+  BORDER_WALL_SOURCE_KINDS,
+  BORDER_WALL_THICKNESS,
+  BUSH_NODE_FALLBACKS,
+  CEILING_CAP_EXPAND,
+  CEILING_CAP_RISE,
+  CEILING_CAP_THICKNESS,
+  CEILING_CLEARANCE,
+  CEILING_EXPAND,
+  CEILING_NODE_FALLBACKS,
+  CEILING_THICKNESS,
+  FLOOR_KINDS,
+  FLOOR_NODE_FALLBACKS,
+  FLOOR_UNDERLAY_DROP,
+  FLOOR_UNDERLAY_EXPAND,
+  FLOOR_UNDERLAY_THICKNESS,
+  FLOOR_VISUAL_OVERHANG,
+  POT_BREAK_BASE_VOLUME,
+  POT_BROKEN_NODE_FALLBACKS,
+  POT_INTACT_NODE_FALLBACKS,
+  POT_PLACEMENT_LIMIT,
+  POT_RESPAWN_MS,
+  PROP_COLLIDER_INSET,
+  RUINS_GLB_PATH,
+  SPAWN_BORDER_HIDE_PADDING,
+  SPAWN_UNDERLAY_DROP,
+  SPAWN_UNDERLAY_EXPAND,
+  SPAWN_UNDERLAY_THICKNESS,
+  TORCH_LIGHT_DECAY,
+  TORCH_MOUNT_HEIGHT,
+  TORCH_NODE_FALLBACKS,
+  TORCH_PLACEMENT_LIMIT,
+  TORCH_WALL_ADVANCE,
+  TORCH_WALL_CLEARANCE,
+  TORCH_WALL_FILL_BACK_OFFSET,
+  TORCH_WALL_FILL_HEIGHT,
+  TORCH_WALL_GLOW_SIZE,
+  WALL_BACKER_EXPAND_X,
+  WALL_BACKER_EXPAND_Y,
+  WALL_BACKER_NODE_FALLBACKS,
+  WALL_BACKER_OFFSET,
+  WALL_BACKER_THICKNESS,
+  WALL_BORDER_Y,
+  WALL_FACE_SAMPLE_OFFSET,
+  WALL_FLOOR_LEVEL_Y,
+  WALL_FLOOR_SINK,
+  WALL_FRONT_OFFSET_Y,
+  WALL_NODE_FALLBACKS,
+  WALL_PANEL_MAX_LENGTH,
+  WALL_PANEL_MIN_LENGTH,
+} from './dungeon-world/constants';
+import {
+  ceilingCapMaterial,
+  ceilingFallbackMaterial,
+  corridorMaterial,
+  floorMaterial,
+  floorUnderlayMaterial,
+  spawnMaterial,
+  wallFallbackMaterial,
+} from './dungeon-world/materials';
+import type {
+  AmbientPropVisual,
+  BorderSegment,
+  BushVisual,
+  CeilingVisual,
+  FloorVisual,
+  PotVisual,
+  TorchVisual,
+  UnitSegment,
+  WallBackerVisual,
+  WallCollisionBox,
+  WallPanel,
+  WallVisual,
+} from './dungeon-world/types';
 import { DUNGEON_LAYOUT_GRAPH } from '@/constants/dungeonLayout';
 import {
   buildDungeon,
   type DungeonBuildPiece,
-  type DungeonPieceKind,
 } from '@/game/dungeon/buildDungeon';
 import { createSafeNodeResolver } from '@/game/dungeon/utils';
 import { clearDungeonVisualLiftTiles, setDungeonVisualLiftTiles } from '@/lib/dungeonVisualLift';
 import { clampVolume, useSettings } from '@/lib/settings';
-
-const RUINS_GLB_PATH = '/models/dungeon/structure/Modular Ruins Pack.glb';
-const FLOOR_NODE_FALLBACKS = ['Floor_Standard', 'Floor_Squares', 'Floor_SquareLarge'] as const;
-const CEILING_NODE_FALLBACKS = ['Floor_Standard_Half', 'Floor_Standard', 'Floor_Squares'] as const;
-const BUSH_NODE_FALLBACKS = ['Bush_1x1', 'Bush_2x1', 'Bush_Round', 'Bush_2x2', 'Bush_Large'] as const;
-const TORCH_NODE_FALLBACKS = ['Torch'] as const;
-const POT_INTACT_NODE_FALLBACKS = ['Pot1', 'Pot2', 'Pot3'] as const;
-const POT_BROKEN_NODE_FALLBACKS = ['Pot1_Broken', 'Pot2_Broken', 'Pot3_Broken'] as const;
-const AMBIENT_PROP_NODE_FALLBACKS = ['Barrel', 'Crate', 'Candles_1', 'Candles_2', 'Skull'] as const;
-const WALL_NODE_FALLBACKS = [
-  'Wall',
-  'Wall_Overgrown',
-  'Wall_Broken',
-  'Window_Bars',
-  'Window_Bars_Overgrown',
-] as const;
-const WALL_BACKER_NODE_FALLBACKS = ['Wall', 'Wall_Overgrown', 'Wall_Broken'] as const;
-
-const FLOOR_KINDS = new Set<DungeonPieceKind>(['floor', 'corridor-floor', 'spawn-platform']);
-const BORDER_WALL_SOURCE_KINDS = new Set<DungeonPieceKind>([
-  'floor',
-  'corridor-floor',
-  'room-wall',
-  'corridor-wall',
-  'boundary-wall',
-]);
-
-const BORDER_STEP = 0.5;
-const BORDER_THICKNESS = 0.18;
-const BORDER_HEIGHT = 0.08;
-const WALL_BORDER_Y = 0.05;
-const BASE_BORDER_WALL_HEIGHT = 7.4;
-const BORDER_WALL_HEIGHT = BASE_BORDER_WALL_HEIGHT * 1.5;
-const BORDER_WALL_THICKNESS = 0.24;
-const WALL_FLOOR_LEVEL_Y = 0;
-const WALL_FLOOR_SINK = 0.16;
-const WALL_PANEL_MAX_LENGTH = 4.2;
-const WALL_PANEL_MIN_LENGTH = 1.2;
-const WALL_FACE_SAMPLE_OFFSET = 0.7;
-const WALL_FRONT_OFFSET_Y = 0;
-const WALL_BACKER_OFFSET = 0.14;
-const WALL_BACKER_THICKNESS = 0.2;
-const WALL_BACKER_EXPAND_X = 0.28;
-const WALL_BACKER_EXPAND_Y = 0.34;
-const BORDER_COLLIDER_PAD = 0.06;
-const BORDER_COLLIDER_HEIGHT_PAD = 0.12;
-const SPAWN_BORDER_HIDE_PADDING = 1.4;
-const FLOOR_UNDERLAY_THICKNESS = 0.08;
-const FLOOR_UNDERLAY_EXPAND = 0.24;
-const FLOOR_UNDERLAY_DROP = 0.02;
-const FLOOR_VISUAL_OVERHANG = 0.42;
-const CEILING_CLEARANCE = 8.2;
-const CEILING_THICKNESS = 0.28;
-const CEILING_EXPAND = 0.18;
-const CEILING_CAP_THICKNESS = 0.08;
-const CEILING_CAP_EXPAND = 0.32;
-const CEILING_CAP_RISE = 0.03;
-const SPAWN_UNDERLAY_THICKNESS = 0.14;
-const SPAWN_UNDERLAY_EXPAND = 0.9;
-const SPAWN_UNDERLAY_DROP = 0.04;
-const TORCH_LIGHT_DECAY = 1.9;
-const TORCH_PLACEMENT_LIMIT = 22;
-const TORCH_MOUNT_HEIGHT = 2.3;
-const TORCH_WALL_FILL_HEIGHT = TORCH_MOUNT_HEIGHT * 0.62;
-const TORCH_WALL_FILL_BACK_OFFSET = -0.12;
-const TORCH_WALL_GLOW_SIZE = 1.8;
-const POT_PLACEMENT_LIMIT = 24;
-const AMBIENT_PROP_PLACEMENT_LIMIT = 24;
-const PROP_COLLIDER_INSET = 0.82;
-const TORCH_WALL_ADVANCE = 0.18;
-const TORCH_WALL_CLEARANCE = 0.025;
-const POT_RESPAWN_MS = 10_000;
-const POT_BREAK_BASE_VOLUME = 0.5;
-
-const floorMaterial = new MeshStandardMaterial({ color: '#252825', roughness: 0.96, metalness: 0.02 });
-const corridorMaterial = new MeshStandardMaterial({ color: '#2e322e', roughness: 0.95, metalness: 0.02 });
-const spawnMaterial = new MeshStandardMaterial({ color: '#3f4c3d', roughness: 0.88, metalness: 0.03 });
-const floorUnderlayMaterial = new MeshStandardMaterial({
-  color: '#5b3a1f',
-  roughness: 0.98,
-  metalness: 0.01,
-});
-const ceilingFallbackMaterial = new MeshStandardMaterial({
-  color: '#6d6659',
-  roughness: 0.92,
-  metalness: 0.04,
-});
-const ceilingCapMaterial = new MeshStandardMaterial({
-  color: '#7c807f',
-  roughness: 0.95,
-  metalness: 0.02,
-});
-const wallFallbackMaterial = new MeshStandardMaterial({
-  color: '#5f655f',
-  roughness: 0.9,
-  metalness: 0.03,
-});
-
-type BorderSegment = {
-  id: string;
-  position: [number, number, number];
-  size: [number, number, number];
-};
-
-type UnitSegment = {
-  orientation: 'h' | 'v';
-  fixed: number;
-  start: number;
-  end: number;
-  y: number;
-};
-
-type FloorVisual = {
-  piece: DungeonBuildPiece;
-  object: Object3D | null;
-};
-
-type CeilingVisual = {
-  id: string;
-  position: [number, number, number];
-  size: [number, number, number];
-  rotationY: number;
-  object: Object3D | null;
-};
-
-type WallPanel = {
-  id: string;
-  position: [number, number, number];
-  size: [number, number, number];
-  rotationY: number;
-  axis: 'x' | 'z';
-};
-
-type WallVisual = WallPanel & {
-  object: Object3D | null;
-};
-
-type WallBackerVisual = {
-  id: string;
-  position: [number, number, number];
-  size: [number, number, number];
-  rotationY: number;
-  object: Object3D | null;
-};
-
-type BushVisual = {
-  id: string;
-  position: [number, number, number];
-  rotationY: number;
-  size: [number, number, number];
-  object: Object3D | null;
-};
-
-type TorchVisual = {
-  id: string;
-  position: [number, number, number];
-  rotationY: number;
-  size: [number, number, number];
-  object: Object3D | null;
-  glowColor: string;
-  baseIntensity: number;
-  wallFillIntensity: number;
-  wallGlowOpacity: number;
-  distance: number;
-  flickerSeed: number;
-  lightTarget: Object3D;
-};
-
-type PotVisual = {
-  id: string;
-  position: [number, number, number];
-  rotationY: number;
-  size: [number, number, number];
-  brokenHeight: number;
-  intactObject: Object3D | null;
-  brokenObject: Object3D | null;
-};
-
-type AmbientPropVisual = {
-  id: string;
-  position: [number, number, number];
-  rotationY: number;
-  size: [number, number, number];
-  object: Object3D | null;
-};
-
-type WallCollisionBox = {
-  centerX: number;
-  centerZ: number;
-  halfX: number;
-  halfZ: number;
-};
 
 function topOverlayY() {
   // Use a single plane for all debug borders to avoid stacked stripe artifacts.
