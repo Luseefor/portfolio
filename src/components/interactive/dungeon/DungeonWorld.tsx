@@ -47,8 +47,6 @@ import {
   WALL_BACKER_EXPAND_Y,
   WALL_BACKER_OFFSET,
   WALL_BACKER_THICKNESS,
-  WALL_FACE_SAMPLE_OFFSET,
-  WALL_FRONT_OFFSET_Y,
 } from './dungeon-world/constants';
 import {
   ceilingCapMaterial,
@@ -76,6 +74,14 @@ import {
 } from './dungeon-world/floorUtils';
 import { buildBorderSegments } from './dungeon-world/borderSegments';
 import { buildVerticalBorderWalls, splitWallIntoPanels } from './dungeon-world/wallPanelSplit';
+import { floorSurfaceYAt } from './dungeon-world/floorQueries';
+import { orientWallPanelTowardInterior, resolvePropXZForPanel } from './dungeon-world/propPlacement';
+import {
+  buildWallCollisionBoxes,
+  findNearestWallPanel,
+  moveTowardWallPanel,
+  wallFacingRotationY,
+} from './dungeon-world/wallSpatial';
 import type {
   AmbientPropVisual,
   BorderSegment,
@@ -85,285 +91,16 @@ import type {
   PotVisual,
   TorchVisual,
   WallBackerVisual,
-  WallCollisionBox,
-  WallPanel,
   WallVisual,
 } from './dungeon-world/types';
 import { DUNGEON_LAYOUT_GRAPH } from '@/constants/dungeonLayout';
 import {
   buildDungeon,
-  type DungeonBuildPiece,
 } from '@/game/dungeon/buildDungeon';
 import { createSafeNodeResolver } from '@/game/dungeon/utils';
 import { clearDungeonVisualLiftTiles, setDungeonVisualLiftTiles } from '@/lib/dungeonVisualLift';
 import { clampVolume, useSettings } from '@/lib/settings';
 
-function pointInsideFloorPiece(x: number, z: number, piece: DungeonBuildPiece) {
-  const halfX = piece.size[0] * 0.5;
-  const halfZ = piece.size[2] * 0.5;
-  return (
-    x >= piece.position[0] - halfX &&
-    x <= piece.position[0] + halfX &&
-    z >= piece.position[2] - halfZ &&
-    z <= piece.position[2] + halfZ
-  );
-}
-
-function pointInsideAnyFloor(x: number, z: number, floorPieces: DungeonBuildPiece[]) {
-  for (let i = 0; i < floorPieces.length; i += 1) {
-    if (pointInsideFloorPiece(x, z, floorPieces[i])) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function floorSurfaceYAt(x: number, z: number, floorPieces: DungeonBuildPiece[]) {
-  let topY = 0;
-
-  for (let i = 0; i < floorPieces.length; i += 1) {
-    const piece = floorPieces[i];
-    if (!pointInsideFloorPiece(x, z, piece)) continue;
-    topY = Math.max(topY, piece.position[1] + piece.size[1] * 0.5);
-  }
-
-  return topY;
-}
-
-function orientWallPanelTowardInterior(panel: WallPanel, floorPieces: DungeonBuildPiece[]): WallPanel {
-  const alongX = panel.axis === 'x';
-  const probe = Math.max(WALL_FACE_SAMPLE_OFFSET, Math.min(panel.size[0], panel.size[2]) + 0.2);
-  let rotationY = panel.rotationY;
-
-  if (alongX) {
-    const hasPositiveZFloor = pointInsideAnyFloor(panel.position[0], panel.position[2] + probe, floorPieces);
-    const hasNegativeZFloor = pointInsideAnyFloor(panel.position[0], panel.position[2] - probe, floorPieces);
-    if (hasPositiveZFloor && !hasNegativeZFloor) {
-      rotationY = 0;
-    } else if (hasNegativeZFloor && !hasPositiveZFloor) {
-      rotationY = Math.PI;
-    }
-  } else {
-    const hasPositiveXFloor = pointInsideAnyFloor(panel.position[0] + probe, panel.position[2], floorPieces);
-    const hasNegativeXFloor = pointInsideAnyFloor(panel.position[0] - probe, panel.position[2], floorPieces);
-    if (hasPositiveXFloor && !hasNegativeXFloor) {
-      rotationY = Math.PI * 0.5;
-    } else if (hasNegativeXFloor && !hasPositiveXFloor) {
-      rotationY = -Math.PI * 0.5;
-    }
-  }
-
-  return {
-    ...panel,
-    rotationY: rotationY + WALL_FRONT_OFFSET_Y,
-  };
-}
-
-function panelNormal(panel: WallPanel) {
-  return {
-    x: Math.sin(panel.rotationY),
-    z: Math.cos(panel.rotationY),
-  };
-}
-
-function getInteriorSideForPanel(panel: WallPanel, floorPieces: DungeonBuildPiece[]) {
-  const normal = panelNormal(panel);
-  const sampleDistance = 0.9;
-
-  const positiveHasFloor = pointInsideAnyFloor(
-    panel.position[0] + normal.x * sampleDistance,
-    panel.position[2] + normal.z * sampleDistance,
-    floorPieces,
-  );
-  const negativeHasFloor = pointInsideAnyFloor(
-    panel.position[0] - normal.x * sampleDistance,
-    panel.position[2] - normal.z * sampleDistance,
-    floorPieces,
-  );
-
-  if (negativeHasFloor && !positiveHasFloor) {
-    return -1;
-  }
-
-  return 1;
-}
-
-function findNearestWallPanel(x: number, z: number, wallPanels: WallPanel[]) {
-  if (wallPanels.length === 0) return null;
-
-  let nearest = wallPanels[0];
-  let nearestDistanceSq = Number.POSITIVE_INFINITY;
-
-  for (let i = 0; i < wallPanels.length; i += 1) {
-    const panel = wallPanels[i];
-    const dx = panel.position[0] - x;
-    const dz = panel.position[2] - z;
-    const distanceSq = dx * dx + dz * dz;
-    if (distanceSq < nearestDistanceSq) {
-      nearestDistanceSq = distanceSq;
-      nearest = panel;
-    }
-  }
-
-  return nearest;
-}
-
-function buildWallCollisionBoxes(wallPanels: WallPanel[]): WallCollisionBox[] {
-  return wallPanels.map((panel) => {
-    if (panel.axis === 'x') {
-      return {
-        centerX: panel.position[0],
-        centerZ: panel.position[2],
-        halfX: panel.size[0] * 0.5,
-        halfZ: panel.size[2] * 0.5,
-      };
-    }
-
-    return {
-      centerX: panel.position[0],
-      centerZ: panel.position[2],
-      halfX: panel.size[2] * 0.5,
-      halfZ: panel.size[0] * 0.5,
-    };
-  });
-}
-
-function circleIntersectsWallBox(x: number, z: number, radius: number, box: WallCollisionBox) {
-  const minX = box.centerX - box.halfX;
-  const maxX = box.centerX + box.halfX;
-  const minZ = box.centerZ - box.halfZ;
-  const maxZ = box.centerZ + box.halfZ;
-
-  const closestX = Math.max(minX, Math.min(maxX, x));
-  const closestZ = Math.max(minZ, Math.min(maxZ, z));
-
-  const dx = x - closestX;
-  const dz = z - closestZ;
-  return dx * dx + dz * dz < radius * radius;
-}
-
-function wallOverlapCount(x: number, z: number, radius: number, wallBoxes: WallCollisionBox[]) {
-  let count = 0;
-  for (let i = 0; i < wallBoxes.length; i += 1) {
-    if (circleIntersectsWallBox(x, z, radius, wallBoxes[i])) count += 1;
-  }
-  return count;
-}
-
-function computePanelPropXZ(
-  panel: WallPanel,
-  side: number,
-  propRadius: number,
-  seed: number,
-  floorPieces: DungeonBuildPiece[],
-  wallBoxes: WallCollisionBox[],
-) {
-  const normal = panelNormal(panel);
-  const tangent = panel.axis === 'x' ? { x: 1, z: 0 } : { x: 0, z: 1 };
-  const panelHalfThickness = panel.size[2] * 0.5;
-  const baseDistance = panelHalfThickness + propRadius + 0.16;
-
-  const jitterSpan = Math.max(0, panel.size[0] * 0.5 - propRadius - 0.22);
-  const jitter = jitterSpan > 0 ? ((((seed % 1000) / 999) - 0.5) * 2 * Math.min(0.9, jitterSpan)) : 0;
-
-  let x = panel.position[0] + tangent.x * jitter + normal.x * side * baseDistance;
-  let z = panel.position[2] + tangent.z * jitter + normal.z * side * baseDistance;
-
-  let bestX = x;
-  let bestZ = z;
-  let bestScore =
-    wallOverlapCount(x, z, propRadius, wallBoxes) + (pointInsideAnyFloor(x, z, floorPieces) ? 0 : 1000);
-
-  for (let i = 0; i < 10; i += 1) {
-    const nextX = x + normal.x * side * 0.12;
-    const nextZ = z + normal.z * side * 0.12;
-    if (!pointInsideAnyFloor(nextX, nextZ, floorPieces)) break;
-    x = nextX;
-    z = nextZ;
-    const score =
-      wallOverlapCount(x, z, propRadius, wallBoxes) + (pointInsideAnyFloor(x, z, floorPieces) ? 0 : 1000);
-    if (score < bestScore) {
-      bestScore = score;
-      bestX = x;
-      bestZ = z;
-      if (bestScore <= 0) break;
-    }
-  }
-
-  return {
-    x: bestX,
-    z: bestZ,
-    score: bestScore,
-  };
-}
-
-function resolvePropXZForPanel(
-  panel: WallPanel,
-  propSize: [number, number, number],
-  seed: number,
-  floorPieces: DungeonBuildPiece[],
-  wallBoxes: WallCollisionBox[],
-) {
-  const preferredSide = getInteriorSideForPanel(panel, floorPieces);
-  const radius = Math.max(propSize[0], propSize[2]) * 0.52;
-  const preferred = computePanelPropXZ(panel, preferredSide, radius, seed, floorPieces, wallBoxes);
-  if (preferred.score <= 0) {
-    return [preferred.x, preferred.z] as [number, number];
-  }
-
-  const opposite = computePanelPropXZ(panel, -preferredSide, radius, seed + 173, floorPieces, wallBoxes);
-  if (opposite.score < preferred.score) {
-    return [opposite.x, opposite.z] as [number, number];
-  }
-
-  return [preferred.x, preferred.z] as [number, number];
-}
-
-function closestPointOnWallPanel(panel: WallPanel, x: number, z: number) {
-  const halfLength = panel.size[0] * 0.5;
-  const halfThickness = panel.size[2] * 0.5;
-  let wallX = x;
-  let wallZ = z;
-
-  if (panel.axis === 'x') {
-    wallX = Math.max(panel.position[0] - halfLength, Math.min(panel.position[0] + halfLength, x));
-    wallZ = Math.max(
-      panel.position[2] - halfThickness,
-      Math.min(panel.position[2] + halfThickness, z),
-    );
-  } else {
-    wallX = Math.max(
-      panel.position[0] - halfThickness,
-      Math.min(panel.position[0] + halfThickness, x),
-    );
-    wallZ = Math.max(panel.position[2] - halfLength, Math.min(panel.position[2] + halfLength, z));
-  }
-
-  return { x: wallX, z: wallZ };
-}
-
-function moveTowardWallPanel(panel: WallPanel, x: number, z: number, advance: number, minClearance: number) {
-  const closest = closestPointOnWallPanel(panel, x, z);
-  const dx = closest.x - x;
-  const dz = closest.z - z;
-  const distance = Math.hypot(dx, dz);
-  if (distance < 1e-5) return [x, z] as [number, number];
-
-  const maxStep = Math.max(0, distance - minClearance);
-  const step = Math.max(0, Math.min(advance, maxStep));
-  return [x + (dx / distance) * step, z + (dz / distance) * step] as [number, number];
-}
-
-function wallFacingRotationY(panel: WallPanel, x: number, z: number) {
-  const wallPoint = closestPointOnWallPanel(panel, x, z);
-  const dx = wallPoint.x - x;
-  const dz = wallPoint.z - z;
-  if (dx * dx + dz * dz < 1e-6) {
-    return panel.rotationY + Math.PI;
-  }
-
-  return Math.atan2(dx, dz);
-}
 
 function groundAlignObjectToZeroY(object: Object3D) {
   object.updateMatrixWorld(true);
