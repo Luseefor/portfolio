@@ -5,7 +5,7 @@ import { AudioListener, Color } from 'three';
 import { Physics, type RapierRigidBody } from '@react-three/rapier';
 import { useThree } from '@react-three/fiber';
 import PlayerController from './PlayerController';
-import CameraController from './CameraController';
+import CameraRig from './CameraRig';
 import { ChestSystem } from './ChestSystem';
 import DungeonAmbience from './DungeonAmbience';
 import DungeonWorld from './DungeonWorld';
@@ -97,8 +97,8 @@ export default function DungeonScene({
           activeChestId={activeChestId}
           nearbyChestId={nearbyChestId}
         />
-        <CameraController targetBody={playerBodyRef} yawRef={cameraYawRef} pitchRef={cameraPitchRef} />
         <PlayerController bodyRef={playerBodyRef} cameraYawRef={cameraYawRef} />
+        <CameraRig targetBody={playerBodyRef} yawRef={cameraYawRef} pitchRef={cameraPitchRef} />
       </Physics>
     </group>
   );

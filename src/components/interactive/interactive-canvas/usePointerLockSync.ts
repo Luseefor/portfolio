@@ -50,8 +50,17 @@ export function usePointerLockSync({
       }
     };
 
+    const handlePointerLockError = () => {
+      setPointerLocked(false);
+      if (document.activeElement !== canvasEl) setHasFocus(false);
+    };
+
     document.addEventListener('pointerlockchange', handlePointerLockChange);
-    return () => document.removeEventListener('pointerlockchange', handlePointerLockChange);
+    document.addEventListener('pointerlockerror', handlePointerLockError);
+    return () => {
+      document.removeEventListener('pointerlockchange', handlePointerLockChange);
+      document.removeEventListener('pointerlockerror', handlePointerLockError);
+    };
   }, [
     canvasEl,
     handleOpenSettings,

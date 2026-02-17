@@ -80,16 +80,30 @@ export function usePointerLookControls({
       applyScrollZoom(targetDistanceRef, event.deltaY);
     };
 
+    const handlePointerLockChange = () => {
+      if (document.pointerLockElement !== canvas) {
+        stopDragging();
+      }
+    };
+
+    const handlePointerCancel = () => {
+      stopDragging();
+    };
+
     canvas.addEventListener('pointerdown', handlePointerDown);
     canvas.addEventListener('wheel', handleWheel, { passive: false });
+    canvas.addEventListener('pointercancel', handlePointerCancel);
     document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('pointerlockchange', handlePointerLockChange);
     window.addEventListener('pointerup', stopDragging);
     window.addEventListener('blur', stopDragging);
 
     return () => {
       canvas.removeEventListener('pointerdown', handlePointerDown);
       canvas.removeEventListener('wheel', handleWheel);
+      canvas.removeEventListener('pointercancel', handlePointerCancel);
       document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('pointerlockchange', handlePointerLockChange);
       window.removeEventListener('pointerup', stopDragging);
       window.removeEventListener('blur', stopDragging);
     };
