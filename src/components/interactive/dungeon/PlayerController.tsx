@@ -28,10 +28,9 @@ import {
   frameScratch,
 } from './player-controller/constants';
 import {
-  clampPlayerX,
-  clampPlayerZ,
   isPerspectiveCamera,
 } from './player-controller/helpers';
+import { clampBodyToDungeonBounds } from './player-controller/runtimeBounds';
 import { updateGroundRuntime } from './player-controller/runtimeGround';
 import { resolveFrameInput, updateFacingBasis } from './player-controller/runtimeInput';
 import { applyActionVelocity } from './player-controller/runtimeVelocity';
@@ -333,22 +332,7 @@ export default function PlayerController({
       attackDirectionRef,
     });
 
-    // Hard physics border: player body cannot leave dungeon map bounds.
-    const postStep = body.translation();
-    const clampedX = clampPlayerX(postStep.x);
-    const clampedZ = clampPlayerZ(postStep.z);
-    if (Math.abs(clampedX - postStep.x) > 0.001 || Math.abs(clampedZ - postStep.z) > 0.001) {
-      body.setTranslation({ x: clampedX, y: postStep.y, z: clampedZ }, true);
-      const currentVel = body.linvel();
-      body.setLinvel(
-        {
-          x: clampedX !== postStep.x ? 0 : currentVel.x,
-          y: currentVel.y,
-          z: clampedZ !== postStep.z ? 0 : currentVel.z,
-        },
-        true,
-      );
-    }
+    clampBodyToDungeonBounds(body);
 
     publishPlayerStateIfNeeded({
       body,
