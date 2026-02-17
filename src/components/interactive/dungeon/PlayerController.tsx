@@ -23,10 +23,8 @@ import {
   GRAVITY,
   GROUND_RAY_LENGTH,
   GROUND_RAY_ORIGIN_OFFSET,
-  JUMP_BASE_VOLUME,
   JUMP_BUFFER_TIME,
   JUMP_SPEED,
-  LAND_BASE_VOLUME,
   MAX_GROUNDED_UP_VELOCITY,
   MIN_LAND_AIRBORNE_TIME,
   MIN_LAND_IMPACT_SPEED,
@@ -63,6 +61,7 @@ import {
   shouldPublishPlayerSnapshot,
 } from './player-controller/state';
 import { usePlayerControllerInput } from './player-controller/usePlayerControllerInput';
+import { usePlayerControllerAudio } from './player-controller/usePlayerControllerAudio';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import { usePlayerState } from '@/lib/playerState';
 import { clampVolume, useSettings } from '@/lib/settings';
@@ -93,12 +92,14 @@ export default function PlayerController({
   const stepIndex = useRef(0);
   const characterRootRef = useRef<Group | null>(null);
   const visualLiftRef = useRef(0);
-  const stepAudioRef = useRef<HTMLAudioElement[]>([]);
-  const runningLoopAudioRef = useRef<HTMLAudioElement | null>(null);
-  const jumpAudioRef = useRef<HTMLAudioElement[]>([]);
-  const landAudioRef = useRef<HTMLAudioElement[]>([]);
-  const jumpAudioIndexRef = useRef(0);
-  const landAudioIndexRef = useRef(0);
+  const {
+    stepAudioRef,
+    runningLoopAudioRef,
+    jumpAudioRef,
+    landAudioRef,
+    jumpAudioIndexRef,
+    landAudioIndexRef,
+  } = usePlayerControllerAudio(masterVolume);
   const wasGroundedRef = useRef(true);
   const airborneTimeRef = useRef(0);
   const maxFallSpeedRef = useRef(0);
@@ -122,64 +123,6 @@ export default function PlayerController({
   const baseFovRef = useRef(isPerspectiveCamera(camera) ? camera.fov : 50);
   const playerStatePublishTimerRef = useRef(0);
   const lastPublishedPlayerStateRef = useRef(createInitialPlayerSnapshot());
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (!stepAudioRef.current.length) {
-      stepAudioRef.current = [
-        new Audio('/sounds/footsteps/gravel_step.wav'),
-      ];
-      stepAudioRef.current.forEach((audio) => {
-        audio.preload = 'auto';
-        audio.volume = STEP_BASE_VOLUME;
-      });
-    }
-    if (!runningLoopAudioRef.current) {
-      runningLoopAudioRef.current = new Audio('/sounds/footsteps/running_step.wav');
-      runningLoopAudioRef.current.preload = 'auto';
-      runningLoopAudioRef.current.loop = false;
-      runningLoopAudioRef.current.volume = RUN_LOOP_BASE_VOLUME;
-    }
-    if (!jumpAudioRef.current.length) {
-      jumpAudioRef.current = [new Audio('/sounds/player/jump.wav'), new Audio('/sounds/player/jump.wav')];
-      jumpAudioRef.current.forEach((audio) => {
-        audio.preload = 'auto';
-        audio.volume = JUMP_BASE_VOLUME;
-      });
-    }
-    if (!landAudioRef.current.length) {
-      landAudioRef.current = [new Audio('/sounds/player/land.wav'), new Audio('/sounds/player/land.wav')];
-      landAudioRef.current.forEach((audio) => {
-        audio.preload = 'auto';
-        audio.volume = LAND_BASE_VOLUME;
-      });
-    }
-    return () => {
-      stepAudioRef.current.forEach((audio) => audio.pause());
-      if (runningLoopAudioRef.current) {
-        runningLoopAudioRef.current.pause();
-        safeSetAudioTime(runningLoopAudioRef.current, 0);
-      }
-      jumpAudioRef.current.forEach((audio) => audio.pause());
-      landAudioRef.current.forEach((audio) => audio.pause());
-    };
-  }, []);
-
-  useEffect(() => {
-    const volumeScale = clampVolume(masterVolume);
-    stepAudioRef.current.forEach((audio) => {
-      audio.volume = STEP_BASE_VOLUME * volumeScale;
-    });
-    if (runningLoopAudioRef.current) {
-      runningLoopAudioRef.current.volume = RUN_LOOP_BASE_VOLUME * volumeScale;
-    }
-    jumpAudioRef.current.forEach((audio) => {
-      audio.volume = JUMP_BASE_VOLUME * volumeScale;
-    });
-    landAudioRef.current.forEach((audio) => {
-      audio.volume = LAND_BASE_VOLUME * volumeScale;
-    });
-  }, [masterVolume]);
 
   useEffect(() => {
     if (!isPerspectiveCamera(camera)) return;
