@@ -18,17 +18,25 @@ import { Grid3X3 } from 'lucide-react';
 
 export default function Home() {
   const [time, setTime] = useState('');
-  const { currentTheme, setCurrentTheme, isDark, setIsDark } = useStore();
-  const [konamiActive, setKonamiActive] = useState(false);
+  const {
+    currentTheme,
+    setCurrentTheme,
+    isDark,
+    setIsDark,
+    konamiUnlocked,
+    konamiEnabled,
+    unlockKonami,
+    setKonamiEnabled,
+    resetKonami,
+  } = useStore();
 
   const activeThemeColor = useMemo(
     () => getThemeColor(currentTheme, isDark),
     [currentTheme, isDark],
   );
-  const konamiThemeColor = '#ff2d2d';
-  const displayIsDark = konamiActive ? true : isDark;
-  const displayThemeColor = konamiActive ? konamiThemeColor : activeThemeColor;
-  const cardGridCols = konamiActive ? 'md:grid-cols-3' : 'md:grid-cols-2';
+  const displayIsDark = isDark;
+  const displayThemeColor = activeThemeColor;
+  const cardGridCols = konamiUnlocked ? 'md:grid-cols-3' : 'md:grid-cols-2';
 
   const [systemNode, setSystemNode] = useState('DETECTING...');
   const [systemData, setSystemData] = useState('INITIALIZING...');
@@ -83,12 +91,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem('konamiUnlocked');
-    if (stored === 'true') setKonamiActive(true);
-  }, []);
-
-  useEffect(() => {
     const sequence = [
       'ArrowUp',
       'ArrowUp',
@@ -107,10 +109,7 @@ export default function Home() {
       if (event.code === sequence[index]) {
         index += 1;
         if (index === sequence.length) {
-          setKonamiActive(true);
-          if (typeof window !== 'undefined') {
-            window.localStorage.setItem('konamiUnlocked', 'true');
-          }
+          unlockKonami();
           index = 0;
         }
       } else {
@@ -122,20 +121,17 @@ export default function Home() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
-
-  const resetKonami = () => {
-    setKonamiActive(false);
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem('konamiUnlocked');
-    }
-  };
+  }, [unlockKonami]);
 
   return (
     <main
       className={`relative flex h-screen w-full flex-col overflow-hidden font-mono selection:bg-none cursor-default select-none transition-colors duration-1000 ${displayIsDark ? 'text-white' : 'text-slate-900'}`}
     >
-      <Background themeColor={displayThemeColor} isDark={displayIsDark} glitchMode={konamiActive} />
+      <Background
+        themeColor={displayThemeColor}
+        isDark={displayIsDark}
+        glitchMode={konamiEnabled}
+      />
 
       {/* --- HEADER --- */}
       <header className="relative z-50 flex shrink-0 items-center justify-between pl-6 pr-10 py-3 backdrop-blur-sm md:pl-10 md:pr-12 md:py-6">
@@ -180,6 +176,9 @@ export default function Home() {
             isDark={displayIsDark}
             toggleDark={() => setIsDark(!isDark)}
             themeColor={displayThemeColor}
+            konamiUnlocked={konamiUnlocked}
+            konamiEnabled={konamiEnabled}
+            onKonamiToggle={setKonamiEnabled}
           />
         </motion.div>
       </header>
@@ -262,13 +261,13 @@ export default function Home() {
               0xC0DE
             </div>
           </div>
-          {konamiActive && (
+          {konamiUnlocked && (
             <div
               className={`mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[9px] font-terminal uppercase tracking-[0.35em] ${
                 displayIsDark ? 'border-white/10 bg-white/5 text-white/70' : 'border-black/10 bg-black/5 text-slate-900/70'
               }`}
             >
-              KONAMI_MODE // UNLOCKED
+              {konamiEnabled ? 'KONAMI_MODE // ACTIVE' : 'KONAMI_MODE // UNLOCKED'}
             </div>
           )}
           <div
@@ -290,7 +289,7 @@ export default function Home() {
               themeColor={displayThemeColor}
               isDark={displayIsDark}
               active
-              easter={konamiActive ? 'PROTOCOL: ID-ROOT' : undefined}
+              easter={konamiEnabled ? 'PROTOCOL: ID-ROOT' : undefined}
             />
           </div>
           <div className="h-[200px] sm:h-[220px] md:h-auto lg:h-[320px]">
@@ -304,20 +303,20 @@ export default function Home() {
               themeColor={displayThemeColor}
               isDark={displayIsDark}
               active
-              easter={konamiActive ? 'PROTOCOL: SIM-CORE' : undefined}
+              easter={konamiEnabled ? 'PROTOCOL: SIM-CORE' : undefined}
             />
           </div>
-          {konamiActive && (
+          {konamiUnlocked && (
             <div className="h-[200px] sm:h-[220px] md:h-auto lg:h-[320px]">
               <GlassCard
-                href="/rd"
-                badge="03 // R&D BLACKSITE"
-                title="R&D"
-                description="Restricted research archive. Prototype systems and experimental builds."
+                href="/research"
+                badge="03 // RESEARCH BLACKSITE"
+                title="Research"
+                description="Research papers and technical blogs aggregated from your configured data sources."
                 icon={ShieldCheck}
                 delay={0.9}
-                themeColor={konamiThemeColor}
-                isDark
+                themeColor={displayThemeColor}
+                isDark={displayIsDark}
                 active
                 easter="ACCESS: REDLINE"
               />
@@ -374,7 +373,7 @@ export default function Home() {
               <HyperText text="SYNC_ACTIVE" />
               <span className="tabular-nums">[{syncStatus}MS]</span>
             </span>
-            {konamiActive && (
+            {konamiUnlocked && (
               <button
                 onClick={resetKonami}
                 className="rounded-full border border-red-500/40 px-3 py-1 text-[9px] uppercase tracking-[0.35em] font-terminal text-red-200 hover:border-red-400 transition"
