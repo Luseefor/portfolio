@@ -8,6 +8,7 @@ const CONTROL_HINTS: Array<{ key: string; label: string }> = [
   { key: 'C', label: 'Roll' },
   { key: 'R', label: 'Attack' },
   { key: 'M', label: 'Mute / Unmute' },
+  { key: 'F1', label: 'Debug Overlay' },
   { key: 'ESC', label: 'Settings' },
   { key: 'Right Click', label: 'Unlock Pointer' },
 ];

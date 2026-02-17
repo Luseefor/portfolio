@@ -9,6 +9,8 @@ import CameraController from './CameraController';
 import { ChestSystem } from './ChestSystem';
 import DungeonAmbience from './DungeonAmbience';
 import DungeonWorld from './DungeonWorld';
+import DungeonDebugPrimitives from './debug/DungeonDebugPrimitives';
+import { useDungeonDebugOverlayToggle } from './debug/useDungeonDebugOverlayToggle';
 import type { ChestPOI } from '@/constants/dungeonLayout';
 import { CAMERA_PITCH } from '@/constants/camera';
 
@@ -37,6 +39,7 @@ export default function DungeonScene({
   onChestOpen,
   onNearbyChange,
 }: DungeonSceneProps) {
+  const debugOverlayEnabled = useDungeonDebugOverlayToggle();
   const playerBodyRef = useRef<RapierRigidBody | null>(null);
   const cameraYawRef = useRef(0);
   const cameraPitchRef = useRef(CAMERA_PITCH.initial);
@@ -78,6 +81,7 @@ export default function DungeonScene({
         shadow-camera-top={20}
         shadow-camera-bottom={-20}
       />
+      {debugOverlayEnabled ? <DungeonDebugPrimitives /> : null}
 
       <Suspense fallback={null}>
         <DungeonAmbience />
