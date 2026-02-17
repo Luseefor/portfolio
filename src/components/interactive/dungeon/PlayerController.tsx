@@ -9,8 +9,6 @@ import PlayerCharacter, { type PlayerAnimation } from './PlayerCharacter';
 import {
   ATTACK_COOLDOWN,
   ATTACK_DURATION,
-  ATTACK_LUNGE_SPEED,
-  ATTACK_LUNGE_WINDOW,
   COYOTE_TIME,
   DASH_COLLISION_OFFSET,
   DASH_COOLDOWN,
@@ -23,7 +21,6 @@ import {
   JUMP_SPEED,
   ROLL_COOLDOWN,
   ROLL_DURATION,
-  ROLL_SPEED,
   RUN_SPEED,
   SMOOTHING,
   START_POSITION,
@@ -37,6 +34,7 @@ import {
 } from './player-controller/helpers';
 import { updateGroundRuntime } from './player-controller/runtimeGround';
 import { resolveFrameInput, updateFacingBasis } from './player-controller/runtimeInput';
+import { applyActionVelocity } from './player-controller/runtimeVelocity';
 import { createEmptyInputState } from './player-controller/types';
 import {
   createInitialPlayerSnapshot,
@@ -320,52 +318,20 @@ export default function PlayerController({
       nextY = 0;
     }
 
-    if (dashRef.current.active) {
-      dashRef.current.timeLeft = Math.max(0, dashRef.current.timeLeft - delta);
-      body.setLinvel(
-        {
-          x: dashRef.current.direction.x * dashRef.current.speed,
-          y: nextY,
-          z: dashRef.current.direction.z * dashRef.current.speed,
-        },
-        true,
-      );
-      if (dashRef.current.timeLeft <= 0) {
-        dashRef.current.active = false;
-      }
-    } else if (rollTimer.current > 0) {
-      const rollVertical = grounded ? Math.max(0, linvel.y) : nextY;
-      body.setLinvel(
-        {
-          x: rollDirectionRef.current.x * ROLL_SPEED,
-          y: rollVertical,
-          z: rollDirectionRef.current.z * ROLL_SPEED,
-        },
-        true,
-      );
-    } else if (attackTimerRef.current > 0) {
-      const isLungePhase = attackTimerRef.current > ATTACK_DURATION - ATTACK_LUNGE_WINDOW;
-      const attackSpeed = isLungePhase ? ATTACK_LUNGE_SPEED : ATTACK_LUNGE_SPEED * 0.18;
-      body.setLinvel(
-        {
-          x: attackDirectionRef.current.x * attackSpeed,
-          y: nextY,
-          z: attackDirectionRef.current.z * attackSpeed,
-        },
-        true,
-      );
-    } else if (!hasInput && Math.abs(smoothX) < 0.02 && Math.abs(smoothZ) < 0.02) {
-      body.setLinvel({ x: 0, y: nextY, z: 0 }, true);
-    } else {
-      body.setLinvel({ x: smoothX, y: nextY, z: smoothZ }, true);
-    }
-
-    if (rollTimer.current > 0) {
-      rollTimer.current = Math.max(0, rollTimer.current - delta);
-    }
-    if (attackTimerRef.current > 0) {
-      attackTimerRef.current = Math.max(0, attackTimerRef.current - delta);
-    }
+    applyActionVelocity({
+      body,
+      delta,
+      grounded,
+      hasInput,
+      smoothX,
+      smoothZ,
+      nextY,
+      dashRef,
+      rollTimerRef: rollTimer,
+      rollDirectionRef,
+      attackTimerRef,
+      attackDirectionRef,
+    });
 
     // Hard physics border: player body cannot leave dungeon map bounds.
     const postStep = body.translation();
