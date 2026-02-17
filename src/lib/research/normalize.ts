@@ -6,34 +6,50 @@ import type {
   SourceFailureCode,
 } from '@/lib/research/types';
 
-function asString(value: unknown): string | undefined {
+function toNonEmptyString(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function asStringArray(value: unknown): string[] | undefined {
+function toNonEmptyStringArray(value: unknown): string[] | undefined {
   if (Array.isArray(value)) {
-    const arr = value
+    const values = value
       .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
       .filter((entry) => entry.length > 0);
-    return arr.length > 0 ? arr : undefined;
+    return values.length > 0 ? values : undefined;
   }
 
   if (typeof value === 'string') {
-    const split = value
+    const values = value
       .split(',')
       .map((entry) => entry.trim())
       .filter((entry) => entry.length > 0);
-    return split.length > 0 ? split : undefined;
+    return values.length > 0 ? values : undefined;
   }
 
   return undefined;
 }
 
+function readOptionalMappedString(
+  entry: unknown,
+  path: string | undefined,
+): string | undefined {
+  if (!path) return undefined;
+  return toNonEmptyString(getValueAtPath(entry, path));
+}
+
+function readOptionalMappedStringArray(
+  entry: unknown,
+  path: string | undefined,
+): string[] | undefined {
+  if (!path) return undefined;
+  return toNonEmptyStringArray(getValueAtPath(entry, path));
+}
+
 function resolveItemType(source: ResearchSourceConfig, entry: unknown): ResearchItemType {
   if (source.mapping.typePath) {
-    const mapped = asString(getValueAtPath(entry, source.mapping.typePath))?.toLowerCase();
+    const mapped = toNonEmptyString(getValueAtPath(entry, source.mapping.typePath))?.toLowerCase();
     if (mapped === 'paper' || mapped === 'blog') {
       return mapped;
     }
@@ -59,8 +75,8 @@ export function normalizeSourceItems(
   source: ResearchSourceConfig,
   payload: unknown,
 ): ResearchItem[] {
-  const rawItems = getValueAtPath(payload, source.mapping.itemsPath);
-  if (!Array.isArray(rawItems)) {
+  const mappedItems = getValueAtPath(payload, source.mapping.itemsPath);
+  if (!Array.isArray(mappedItems)) {
     throw new SourceNormalizeError(
       'SOURCE_SCHEMA',
       `itemsPath \"${source.mapping.itemsPath}\" did not resolve to an array.`,
@@ -69,26 +85,18 @@ export function normalizeSourceItems(
 
   const normalized: ResearchItem[] = [];
 
-  rawItems.forEach((entry, index) => {
-    const title = asString(getValueAtPath(entry, source.mapping.titlePath));
-    const url = asString(getValueAtPath(entry, source.mapping.urlPath));
+  mappedItems.forEach((entry, index) => {
+    const title = toNonEmptyString(getValueAtPath(entry, source.mapping.titlePath));
+    const url = toNonEmptyString(getValueAtPath(entry, source.mapping.urlPath));
 
     if (!title || !url) {
       return;
     }
 
-    const publishedAt = source.mapping.datePath
-      ? asString(getValueAtPath(entry, source.mapping.datePath))
-      : undefined;
-    const summary = source.mapping.summaryPath
-      ? asString(getValueAtPath(entry, source.mapping.summaryPath))
-      : undefined;
-    const authors = source.mapping.authorsPath
-      ? asStringArray(getValueAtPath(entry, source.mapping.authorsPath))
-      : undefined;
-    const tags = source.mapping.tagsPath
-      ? asStringArray(getValueAtPath(entry, source.mapping.tagsPath))
-      : undefined;
+    const publishedAt = readOptionalMappedString(entry, source.mapping.datePath);
+    const summary = readOptionalMappedString(entry, source.mapping.summaryPath);
+    const authors = readOptionalMappedStringArray(entry, source.mapping.authorsPath);
+    const tags = readOptionalMappedStringArray(entry, source.mapping.tagsPath);
 
     normalized.push({
       id: `${source.id}-${index}`,

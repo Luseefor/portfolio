@@ -4,7 +4,7 @@ import type { ResearchSourceConfig } from '@/lib/research/types';
 
 const SOURCE_FILE_PATH = path.join(process.cwd(), 'src/data/research-sources.json');
 
-async function ensureSourceFile() {
+async function ensureSourceConfigFileExists() {
   try {
     await fs.access(SOURCE_FILE_PATH);
   } catch {
@@ -13,10 +13,7 @@ async function ensureSourceFile() {
   }
 }
 
-export async function readSourceConfigs(): Promise<ResearchSourceConfig[]> {
-  await ensureSourceFile();
-  const contents = await fs.readFile(SOURCE_FILE_PATH, 'utf8');
-
+function parseSourceConfigArray(contents: string): ResearchSourceConfig[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(contents);
@@ -24,15 +21,17 @@ export async function readSourceConfigs(): Promise<ResearchSourceConfig[]> {
     return [];
   }
 
-  if (!Array.isArray(parsed)) {
-    return [];
-  }
+  return Array.isArray(parsed) ? (parsed as ResearchSourceConfig[]) : [];
+}
 
-  return parsed as ResearchSourceConfig[];
+export async function readSourceConfigs(): Promise<ResearchSourceConfig[]> {
+  await ensureSourceConfigFileExists();
+  const contents = await fs.readFile(SOURCE_FILE_PATH, 'utf8');
+  return parseSourceConfigArray(contents);
 }
 
 export async function writeSourceConfigs(configs: ResearchSourceConfig[]) {
-  await ensureSourceFile();
+  await ensureSourceConfigFileExists();
   await fs.writeFile(SOURCE_FILE_PATH, `${JSON.stringify(configs, null, 2)}\n`, 'utf8');
 }
 
