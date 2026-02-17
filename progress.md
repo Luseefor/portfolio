@@ -302,3 +302,19 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
   - `npm run -s lint` ✅
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts` ✅
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/dungeonLayout.render.test.tsx` ✅
+- Dungeon particles modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/DungeonParticles.tsx` into `dungeon-particles/` components:
+    - `DustMotes.tsx`, `EmberSparkEmitter.tsx`, `EmberSystem.tsx`
+  - Kept existing exports (`DustMotes`, `EmberSystem`) and preserved particle behavior.
+- Chest panel modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/ui/ChestPanel.tsx` into `ui/chest-panel/` sections:
+    - `ChestPanelHeader.tsx`, `HintFragmentCard.tsx`, `ChestPanelFooter.tsx`
+  - Preserved hint unlock/out-of-order messaging, fragment progress, and footer actions.
+- Dungeon layout modularization pass (file-size cleanup):
+  - Moved primitive geometry/material/key classification logic from `DungeonLayout.tsx` to `dungeon-layout/primitives.ts`.
+  - Reduced `DungeonLayout.tsx` to 74 lines while preserving floor/wall/column/prop rendering behavior.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/dungeonLayout.render.test.tsx src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts` ✅
+- Status:
+  - All files under `src/components/interactive` are now <= 150 lines.

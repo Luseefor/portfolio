@@ -1,16 +1,14 @@
 'use client';
 
-import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-import { KeyRound, RotateCcw, ScrollText } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { ChestPOI } from '@/constants/dungeonLayout';
 import ChestContentRenderer from '@/components/interactive/dungeon/ui/chest-content/ChestContentRenderer';
-import {
-  KONAMI_HINT_FRAGMENTS,
-  getChestContentDefinition,
-} from '@/components/interactive/dungeon/ui/chest-content/registry';
+import { KONAMI_HINT_FRAGMENTS, getChestContentDefinition } from '@/components/interactive/dungeon/ui/chest-content/registry';
 import type { HintProgressState } from '@/components/interactive/dungeon/ui/chest-content/hints';
 import { useDungeonUiTheme } from './useDungeonUiTheme';
+import { ChestPanelFooter } from './chest-panel/ChestPanelFooter';
+import { ChestPanelHeader } from './chest-panel/ChestPanelHeader';
+import { HintFragmentCard } from './chest-panel/HintFragmentCard';
 
 interface ChestPanelProps {
   chest: ChestPOI | null;
@@ -21,15 +19,12 @@ interface ChestPanelProps {
 
 export default function ChestPanel({ chest, onClose, hintProgress, onResetHints }: ChestPanelProps) {
   const theme = useDungeonUiTheme();
-
   const definition = chest ? getChestContentDefinition(chest.id) : null;
   const totalSteps = KONAMI_HINT_FRAGMENTS.length;
   const discoveredCount = hintProgress.discoveredSteps.length;
   const expectedStep = hintProgress.nextStep;
-
   const isHintUnlocked = chest ? hintProgress.discoveredChestIds.includes(chest.id) : false;
-  const isOutOfOrderChest =
-    definition && !isHintUnlocked ? definition.hint.step !== expectedStep : false;
+  const isOutOfOrderChest = definition && !isHintUnlocked ? definition.hint.step !== expectedStep : false;
 
   return (
     <AnimatePresence>
@@ -43,7 +38,6 @@ export default function ChestPanel({ chest, onClose, hintProgress, onResetHints 
             className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[3px]"
             onClick={onClose}
           />
-
           <motion.div
             initial={{ opacity: 0, scale: 0.94, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -60,111 +54,33 @@ export default function ChestPanel({ chest, onClose, hintProgress, onResetHints 
             >
               <div
                 className="absolute inset-x-0 top-0 h-px"
-                style={{
-                  background: `linear-gradient(90deg, transparent, ${theme.accentBorderStrong}, transparent)`,
-                }}
+                style={{ background: `linear-gradient(90deg, transparent, ${theme.accentBorderStrong}, transparent)` }}
               />
-
               <div className="max-h-[88vh] overflow-y-auto p-6">
-                <div className="mb-5 flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex items-start gap-4">
-                    <div
-                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border"
-                      style={{
-                        borderColor: theme.accentBorder,
-                        backgroundImage: `linear-gradient(135deg, ${theme.accentBgStrong}, ${theme.accentBgSoft})`,
-                        boxShadow: `0 0 24px ${theme.accentGlow}`,
-                      }}
-                    >
-                      <ScrollText size={20} style={{ color: theme.accent }} />
-                    </div>
-                    <div>
-                      <p
-                        className="text-[10px] uppercase tracking-[0.28em] font-terminal"
-                        style={{ color: theme.accentMuted }}
-                      >
-                        {definition.subtitle}
-                      </p>
-                      <h2 className="mt-1 text-2xl font-black tracking-tight" style={{ color: theme.accentText }}>
-                        {definition.title}
-                      </h2>
-                      <p className="mt-1 text-sm text-stone-400">{chest.description}</p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-right">
-                    <p className="text-[10px] uppercase tracking-[0.2em] font-terminal text-stone-400">
-                      Fragments Recovered
-                    </p>
-                    <p className="text-lg font-black" style={{ color: theme.accentText }}>
-                      {discoveredCount}/{totalSteps}
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  className="mb-5 rounded-2xl border border-white/10 bg-black/35 p-4"
-                  style={{ boxShadow: `0 0 24px ${theme.accentGlow}` }}
-                >
-                  <div className="mb-2 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.24em] font-terminal" style={{ color: theme.accentMuted }}>
-                    <KeyRound size={12} />
-                    Cipher Fragment
-                  </div>
-
-                  {isHintUnlocked ? (
-                    <p className="text-base font-black" style={{ color: theme.accentText }}>
-                      Sequence {definition.hint.step}: {definition.hint.key}
-                    </p>
-                  ) : (
-                    <>
-                      <p className="text-sm text-stone-300">Encrypted. Recover prior fragment first.</p>
-                      {isOutOfOrderChest ? (
-                        <p className="mt-2 text-[11px] uppercase tracking-[0.18em] font-terminal text-amber-300/80">
-                          Required next fragment: Sequence {expectedStep}
-                        </p>
-                      ) : null}
-                    </>
-                  )}
-
-                  {discoveredCount === totalSteps ? (
-                    <div className="mt-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
-                      Full code recovered. Return to landing page to execute the Konami sequence.
-                    </div>
-                  ) : null}
-                </div>
-
+                <ChestPanelHeader
+                  chest={chest}
+                  definition={definition}
+                  discoveredCount={discoveredCount}
+                  totalSteps={totalSteps}
+                  theme={theme}
+                />
+                <HintFragmentCard
+                  definition={definition}
+                  expectedStep={expectedStep}
+                  discoveredCount={discoveredCount}
+                  totalSteps={totalSteps}
+                  isHintUnlocked={isHintUnlocked}
+                  isOutOfOrderChest={isOutOfOrderChest}
+                  theme={theme}
+                />
                 <ChestContentRenderer chest={chest} definition={definition} theme={theme} />
-
-                <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:justify-between">
-                  <button
-                    onClick={onResetHints}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.02] px-4 py-2 text-[11px] uppercase tracking-[0.24em] font-terminal text-stone-300 transition hover:border-white/30"
-                  >
-                    <RotateCcw size={12} />
-                    Reset Clues
-                  </button>
-
-                  <div className="flex items-center gap-3">
-                    {discoveredCount === totalSteps ? (
-                      <Link
-                        href="/"
-                        className="inline-flex items-center justify-center rounded-xl border px-4 py-2 text-[11px] uppercase tracking-[0.24em] font-terminal"
-                        style={{ borderColor: theme.accentBorderStrong, color: theme.accentText }}
-                      >
-                        Go to Landing
-                      </Link>
-                    ) : null}
-                    <button
-                      onClick={onClose}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-stone-600/40 bg-stone-700/30 px-4 py-2 text-[11px] uppercase tracking-[0.24em] font-terminal text-stone-300 transition hover:border-stone-500/50 hover:bg-stone-600/40"
-                    >
-                      Close
-                      <kbd className="rounded border border-stone-600/50 bg-stone-700/50 px-1.5 py-0.5 text-[10px]">
-                        ESC
-                      </kbd>
-                    </button>
-                  </div>
-                </div>
+                <ChestPanelFooter
+                  discoveredCount={discoveredCount}
+                  totalSteps={totalSteps}
+                  onResetHints={onResetHints}
+                  onClose={onClose}
+                  theme={theme}
+                />
               </div>
             </div>
           </motion.div>
