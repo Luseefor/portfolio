@@ -289,3 +289,16 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
 - Validation:
   - `npm run -s lint` ✅
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/dungeonLayout.render.test.tsx` ✅
+- Interactive canvas modularization pass (file-size cleanup):
+  - Split `src/components/interactive/InteractiveCanvas.tsx` into focused hooks under `src/components/interactive/interactive-canvas/`:
+    - `config.ts`
+    - `useDetectTouchMode.ts`, `useDisablePointerLockOnTouch.ts`
+    - `useCanvasPointerEvents.ts`, `useCanvasFocusOnKey.ts`
+    - `useKeyboardMovement.ts`, `usePointerLockSync.ts`
+    - `useRendererSettings.ts`
+  - Preserved pointer-lock flow, right-click unlock handling, keyboard movement mapping/reset, touch-device detection, renderer quality/exposure syncing, and existing UI/chest/mobile wiring.
+  - Reduced `InteractiveCanvas.tsx` from 344 lines to 135 lines; all new module files are <= 150 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/dungeonLayout.render.test.tsx` ✅
