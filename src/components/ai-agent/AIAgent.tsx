@@ -3,17 +3,13 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Activity } from 'lucide-react';
 import ChatView from './chat-view/ChatView';
 import AuthView from './auth-view/AuthView';
+import { AgentSidebarHeader } from './layout/AgentSidebarHeader';
+import { useAiAgentChat } from './runtime/useAiAgentChat';
 
 import { useStore } from '@/utils/store';
 import { getThemeColor, hexToRgba } from '@/utils/themes';
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-}
 
 export default function AIAgent() {
   const router = useRouter();
@@ -31,106 +27,7 @@ export default function AIAgent() {
   const accent60 = hexToRgba(themeColor, 0.6);
 
   const [view, setView] = useState<'auth' | 'chat'>('auth');
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Luseefor.SYS Online. How may I assist you?' },
-  ]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage = { role: 'user' as const, content: input };
-    const lowerInput = input.trim().toLowerCase();
-
-    // Terminal Commands
-    if (lowerInput === 'clear') {
-      setMessages([{ role: 'assistant', content: 'Console cleared. System ready.' }]);
-      setInput('');
-      return;
-    }
-
-    if (lowerInput === 'help') {
-      setMessages((prev) => [
-        ...prev,
-        userMessage,
-        {
-          role: 'assistant',
-          content:
-            'Available Commands:\n\n- clear: Reset console\n- home: Navigate to Dashboard\n- identity: View Documentation\n- whoami: System User Info',
-        },
-      ]);
-      setInput('');
-      return;
-    }
-
-    if (['home', 'identity'].includes(lowerInput)) {
-      setMessages((prev) => [
-        ...prev,
-        userMessage,
-        {
-          role: 'assistant',
-          content: `Executing navigation protocol: ${lowerInput.toUpperCase()}...`,
-        },
-      ]);
-      setTimeout(() => {
-        if (lowerInput === 'home') router.push('/');
-        else router.push(`/${lowerInput}`);
-      }, 800);
-      setInput('');
-      return;
-    }
-
-    if (lowerInput === 'whoami') {
-      setMessages((prev) => [
-        ...prev,
-        userMessage,
-        {
-          role: 'assistant',
-          content:
-            'User: Guest\nAccess Level: Visiting Entity\nSystem: Connected via Secure Socket',
-        },
-      ]);
-      setInput('');
-      return;
-    }
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, userMessage] }),
-      });
-
-      if (!res.ok) throw new Error('Network response was not ok');
-
-      const data = await res.json();
-
-      // Handle Navigation Commands
-      let cleanContent = data.content;
-      const navMatch = cleanContent.match(/\[\[NAVIGATE:(.*?)\]\]/);
-
-      if (navMatch) {
-        const path = navMatch[1];
-        cleanContent = cleanContent.replace(navMatch[0], '').trim();
-        router.push(path);
-      }
-
-      setMessages((prev) => [...prev, { role: 'assistant', content: cleanContent }]);
-    } catch (error) {
-      console.error(error);
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: 'Connection Interrupted. Please retry.' },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { messages, input, setInput, isLoading, handleSend } = useAiAgentChat(router);
 
   return (
     <div
@@ -181,43 +78,12 @@ export default function AIAgent() {
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--ai-accent-20)] to-transparent" />
                 <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-[var(--ai-accent-10)] to-transparent" />
               </div>
-              {/* Header */}
-              <div className="absolute top-0 z-10 flex w-full items-center justify-between p-6">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--ai-accent-30)] bg-[var(--ai-accent-10)]">
-                    <Bot size={16} style={{ color: themeColor }} />
-                  </div>
-                  <div className="flex flex-col">
-                    <span
-                      className={`text-[10px] font-black uppercase tracking-[0.2em] font-terminal ${
-                        isDark ? 'text-white' : 'text-slate-900'
-                      }`}
-                    >
-                      Luseefor.SYS
-                    </span>
-                    <span
-                      className="text-[8px] font-bold uppercase tracking-widest"
-                      style={{ color: accent60 }}
-                    >
-                      Dashboard
-                    </span>
-                  </div>
-                </div>
-                <div className="hidden items-center gap-3 text-[8px] font-terminal uppercase tracking-[0.35em] md:flex">
-                  <Activity size={12} className="animate-pulse" />
-                  <span style={{ color: accent60 }}>Active</span>
-                </div>
-                <button
-                  onClick={() => setChatOpen(false)}
-                  className="group rounded-full border border-[var(--ai-accent-20)] bg-[var(--ai-accent-10)] p-2 transition-colors hover:border-[var(--ai-accent-40)] hover:bg-[var(--ai-accent-20)]"
-                >
-                  <X
-                    size={16}
-                    className="transition-transform group-hover:rotate-90"
-                    style={{ color: accent60 }}
-                  />
-                </button>
-              </div>
+              <AgentSidebarHeader
+                isDark={isDark}
+                themeColor={themeColor}
+                accent60={accent60}
+                onClose={() => setChatOpen(false)}
+              />
 
               {/* Content Area */}
               <div className="h-full pt-20 pb-4">
