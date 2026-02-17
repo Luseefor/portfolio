@@ -34,10 +34,7 @@ import {
   MOVE_AXIS_RUN_THRESHOLD,
   PLAYER_LIFT_DOWN_SMOOTHING,
   PLAYER_LIFT_UP_SMOOTHING,
-  PLAYER_STATE_DIR_DOT_EPSILON,
-  PLAYER_STATE_POS_EPSILON,
   PLAYER_STATE_PUBLISH_INTERVAL,
-  PLAYER_STATE_SPEED_EPSILON,
   ROLL_COOLDOWN,
   ROLL_DURATION,
   ROLL_SPEED,
@@ -60,6 +57,11 @@ import {
   safeSetAudioTime,
 } from './player-controller/helpers';
 import { createEmptyInputState } from './player-controller/types';
+import {
+  createInitialPlayerSnapshot,
+  resolvePlayerAnimation,
+  shouldPublishPlayerSnapshot,
+} from './player-controller/state';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import { usePlayerState } from '@/lib/playerState';
 import { clampVolume, useSettings } from '@/lib/settings';
@@ -118,14 +120,7 @@ export default function PlayerController({
   const dashButtonPrevRef = useRef(false);
   const baseFovRef = useRef(isPerspectiveCamera(camera) ? camera.fov : 50);
   const playerStatePublishTimerRef = useRef(0);
-  const lastPublishedPlayerStateRef = useRef({
-    position: { x: Number.NaN, y: Number.NaN, z: Number.NaN },
-    forward: { x: 0, y: 0, z: 1 },
-    look: { x: 0, y: 0, z: 1 },
-    speed: Number.NaN,
-    grounded: false,
-    isMoving: false,
-  });
+  const lastPublishedPlayerStateRef = useRef(createInitialPlayerSnapshot());
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -599,34 +594,11 @@ export default function PlayerController({
       isMoving: isMovingState,
     };
     const lastState = lastPublishedPlayerStateRef.current;
-    const dx = nextState.position.x - lastState.position.x;
-    const dy = nextState.position.y - lastState.position.y;
-    const dz = nextState.position.z - lastState.position.z;
-    const positionChanged = dx * dx + dy * dy + dz * dz >= PLAYER_STATE_POS_EPSILON * PLAYER_STATE_POS_EPSILON;
-    const speedChanged = Math.abs(nextState.speed - lastState.speed) >= PLAYER_STATE_SPEED_EPSILON;
-    const forwardAligned =
-      nextState.forward.x * lastState.forward.x +
-      nextState.forward.y * lastState.forward.y +
-      nextState.forward.z * lastState.forward.z;
-    const lookAligned =
-      nextState.look.x * lastState.look.x +
-      nextState.look.y * lastState.look.y +
-      nextState.look.z * lastState.look.z;
-    const directionChanged =
-      !Number.isFinite(forwardAligned) ||
-      !Number.isFinite(lookAligned) ||
-      forwardAligned < PLAYER_STATE_DIR_DOT_EPSILON ||
-      lookAligned < PLAYER_STATE_DIR_DOT_EPSILON;
-    const flagsChanged =
-      nextState.grounded !== lastState.grounded || nextState.isMoving !== lastState.isMoving;
 
     playerStatePublishTimerRef.current += delta;
     const shouldPublish =
       playerStatePublishTimerRef.current >= PLAYER_STATE_PUBLISH_INTERVAL ||
-      positionChanged ||
-      speedChanged ||
-      directionChanged ||
-      flagsChanged;
+      shouldPublishPlayerSnapshot(nextState, lastState);
 
     if (shouldPublish) {
       playerStatePublishTimerRef.current = 0;
@@ -707,18 +679,14 @@ export default function PlayerController({
       }
     }
 
-    let nextAnim: PlayerAnimation = 'idle';
-    if (dashRef.current.active) {
-      nextAnim = 'dash';
-    } else if (attackTimerRef.current > 0) {
-      nextAnim = 'attack';
-    } else if (rollTimer.current > 0) {
-      nextAnim = 'roll';
-    } else if (!grounded) {
-      nextAnim = 'jump';
-    } else if (speed > 0.15) {
-      nextAnim = runPressed ? 'run' : 'walk';
-    }
+    const nextAnim: PlayerAnimation = resolvePlayerAnimation(
+      grounded,
+      speed,
+      dashRef.current.active,
+      attackTimerRef.current,
+      rollTimer.current,
+      runPressed,
+    );
     if (nextAnim !== animation) setAnimation(nextAnim);
   });
 
