@@ -20,6 +20,10 @@ const TimelineSection = dynamic(() => import('@/components/identity/TimelineSect
 const ProjectsSection = dynamic(() => import('@/components/identity/ProjectsSection'), {
   ssr: false,
 });
+const EngineeringActivitySection = dynamic(
+  () => import('@/components/identity/EngineeringActivitySection'),
+  { ssr: false },
+);
 const ContactSection = dynamic(() => import('@/components/identity/ContactSection'), {
   ssr: false,
 });
@@ -78,6 +82,9 @@ export default function IdentityPage() {
 
           {/* PROJECTS SECTION */}
           <ProjectsSection />
+
+          {/* ENGINEERING ACTIVITY */}
+          <EngineeringActivitySection />
 
           {/* CONTACT SECTION */}
           <ContactSection />
