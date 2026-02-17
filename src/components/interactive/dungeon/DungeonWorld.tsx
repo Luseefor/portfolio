@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { Object3D } from 'three';
 import {
@@ -24,12 +24,17 @@ import DungeonWallLayer from './dungeon-world/render/DungeonWallLayer';
 import DungeonTorchLayer from './dungeon-world/render/DungeonTorchLayer';
 import DungeonPotLayer from './dungeon-world/render/DungeonPotLayer';
 import DungeonColliderLayer from './dungeon-world/render/DungeonColliderLayer';
-import { DUNGEON_LAYOUT_GRAPH } from '@/constants/dungeonLayout';
+import { DUNGEON_LAYOUT, DUNGEON_LAYOUT_GRAPH } from '@/constants/dungeonLayout';
 import {
   buildDungeon,
 } from '@/game/dungeon/buildDungeon';
 import { createSafeNodeResolver } from '@/game/dungeon/utils';
 import { useSettings } from '@/lib/settings';
+import {
+  buildOriginProbeObject,
+  hasRenderableVisualObjects,
+  warnAboutDungeonLayoutNodes,
+} from './dungeon-world/renderDiagnostics';
 
 export default function DungeonWorld() {
   const masterVolume = useSettings((state) => state.masterVolume);
@@ -42,6 +47,7 @@ export default function DungeonWorld() {
   const ruins = useGLTF(RUINS_GLB_PATH) as { nodes?: Record<string, Object3D> };
   const ruinsNodes = useMemo(() => ruins.nodes ?? {}, [ruins.nodes]);
   const resolveNode = useMemo(() => createSafeNodeResolver(ruinsNodes), [ruinsNodes]);
+  const originProbeObject = useMemo(() => buildOriginProbeObject(ruinsNodes), [ruinsNodes]);
 
   const dungeon = useMemo(() => buildDungeon(DUNGEON_LAYOUT_GRAPH), []);
 
@@ -83,9 +89,42 @@ export default function DungeonWorld() {
 
   const { torchLightRefs } = useTorchFlicker(torchVisuals);
   useDungeonVisualLiftSync(dungeon.walkableTiles);
+  const hasRenderableDungeonVisuals = useMemo(
+    () =>
+      hasRenderableVisualObjects(
+        floorVisuals,
+        ceilingVisuals,
+        wallVisuals,
+        wallBackers,
+        torchVisuals,
+        potVisuals,
+        ambientPropVisuals,
+        bushVisuals,
+      ),
+    [ambientPropVisuals, bushVisuals, ceilingVisuals, floorVisuals, potVisuals, torchVisuals, wallBackers, wallVisuals],
+  );
+
+  useEffect(() => {
+    warnAboutDungeonLayoutNodes(DUNGEON_LAYOUT, ruinsNodes);
+  }, [ruinsNodes]);
+
+  useEffect(() => {
+    if (dungeon.pieces.length > 0) return;
+    console.warn('[DungeonWorld] Dungeon build returned zero pieces.');
+  }, [dungeon.pieces.length]);
+
+  useEffect(() => {
+    if (hasRenderableDungeonVisuals || !originProbeObject) return;
+    console.warn('[DungeonWorld] No renderable dungeon visuals resolved; showing origin probe.');
+  }, [hasRenderableDungeonVisuals, originProbeObject]);
 
   return (
     <group name="dungeon-world-debug-layout">
+      {!hasRenderableDungeonVisuals && originProbeObject ? (
+        <group name="dungeon-origin-probe" position={[0, 0, 0]}>
+          <primitive object={originProbeObject} />
+        </group>
+      ) : null}
       <DungeonFloorCeilingLayer ceilingVisuals={ceilingVisuals} floorVisuals={floorVisuals} />
       <DungeonWallLayer
         wallBackers={wallBackers}
