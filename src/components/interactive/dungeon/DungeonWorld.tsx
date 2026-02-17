@@ -15,29 +15,17 @@ import {
   Vector3,
 } from 'three';
 import {
-  AMBIENT_PROP_NODE_FALLBACKS,
   AMBIENT_PROP_PLACEMENT_LIMIT,
   BORDER_COLLIDER_HEIGHT_PAD,
   BORDER_COLLIDER_PAD,
-  BORDER_HEIGHT,
-  BORDER_STEP,
-  BORDER_THICKNESS,
-  BORDER_WALL_HEIGHT,
   BORDER_WALL_SOURCE_KINDS,
-  BORDER_WALL_THICKNESS,
-  BUSH_NODE_FALLBACKS,
   CEILING_CAP_EXPAND,
   CEILING_CAP_RISE,
   CEILING_CAP_THICKNESS,
   CEILING_CLEARANCE,
   CEILING_EXPAND,
-  CEILING_NODE_FALLBACKS,
   CEILING_THICKNESS,
   FLOOR_KINDS,
-  FLOOR_NODE_FALLBACKS,
-  FLOOR_UNDERLAY_DROP,
-  FLOOR_UNDERLAY_EXPAND,
-  FLOOR_UNDERLAY_THICKNESS,
   FLOOR_VISUAL_OVERHANG,
   POT_BREAK_BASE_VOLUME,
   POT_BROKEN_NODE_FALLBACKS,
@@ -47,12 +35,8 @@ import {
   PROP_COLLIDER_INSET,
   RUINS_GLB_PATH,
   SPAWN_BORDER_HIDE_PADDING,
-  SPAWN_UNDERLAY_DROP,
-  SPAWN_UNDERLAY_EXPAND,
-  SPAWN_UNDERLAY_THICKNESS,
   TORCH_LIGHT_DECAY,
   TORCH_MOUNT_HEIGHT,
-  TORCH_NODE_FALLBACKS,
   TORCH_PLACEMENT_LIMIT,
   TORCH_WALL_ADVANCE,
   TORCH_WALL_CLEARANCE,
@@ -61,27 +45,37 @@ import {
   TORCH_WALL_GLOW_SIZE,
   WALL_BACKER_EXPAND_X,
   WALL_BACKER_EXPAND_Y,
-  WALL_BACKER_NODE_FALLBACKS,
   WALL_BACKER_OFFSET,
   WALL_BACKER_THICKNESS,
-  WALL_BORDER_Y,
   WALL_FACE_SAMPLE_OFFSET,
-  WALL_FLOOR_LEVEL_Y,
-  WALL_FLOOR_SINK,
   WALL_FRONT_OFFSET_Y,
-  WALL_NODE_FALLBACKS,
-  WALL_PANEL_MAX_LENGTH,
-  WALL_PANEL_MIN_LENGTH,
 } from './dungeon-world/constants';
 import {
   ceilingCapMaterial,
   ceilingFallbackMaterial,
-  corridorMaterial,
-  floorMaterial,
   floorUnderlayMaterial,
-  spawnMaterial,
   wallFallbackMaterial,
 } from './dungeon-world/materials';
+import {
+  ambientPropNodeCandidates,
+  bushNodeCandidates,
+  ceilingNodeCandidates,
+  floorNodeCandidates,
+  hashString,
+  potVariantFor,
+  torchNodeCandidates,
+  wallBackerNodeCandidates,
+  wallNodeCandidates,
+} from './dungeon-world/nodeCandidates';
+import {
+  buildScaledFloorObject,
+  markFloorMeshForShadows,
+  materialForFloor,
+  setObjectMaterialsDoubleSided,
+  underlaySpecForFloor,
+} from './dungeon-world/floorUtils';
+import { buildBorderSegments } from './dungeon-world/borderSegments';
+import { buildVerticalBorderWalls, splitWallIntoPanels } from './dungeon-world/wallPanelSplit';
 import type {
   AmbientPropVisual,
   BorderSegment,
@@ -90,7 +84,6 @@ import type {
   FloorVisual,
   PotVisual,
   TorchVisual,
-  UnitSegment,
   WallBackerVisual,
   WallCollisionBox,
   WallPanel,
@@ -104,370 +97,6 @@ import {
 import { createSafeNodeResolver } from '@/game/dungeon/utils';
 import { clearDungeonVisualLiftTiles, setDungeonVisualLiftTiles } from '@/lib/dungeonVisualLift';
 import { clampVolume, useSettings } from '@/lib/settings';
-
-function topOverlayY() {
-  // Use a single plane for all debug borders to avoid stacked stripe artifacts.
-  return WALL_BORDER_Y;
-}
-
-function materialForFloor(piece: DungeonBuildPiece) {
-  if (piece.kind === 'spawn-platform') {
-    return spawnMaterial;
-  }
-  if (piece.kind === 'corridor-floor') {
-    return corridorMaterial;
-  }
-  return floorMaterial;
-}
-
-function underlaySpecForFloor(piece: DungeonBuildPiece) {
-  if (piece.kind === 'spawn-platform') {
-    return {
-      thickness: SPAWN_UNDERLAY_THICKNESS,
-      expand: SPAWN_UNDERLAY_EXPAND,
-      drop: SPAWN_UNDERLAY_DROP,
-    };
-  }
-
-  return {
-    thickness: FLOOR_UNDERLAY_THICKNESS,
-    expand: FLOOR_UNDERLAY_EXPAND,
-    drop: FLOOR_UNDERLAY_DROP,
-  };
-}
-
-function sanitizeSize(value: number) {
-  return Number.isFinite(value) && value > 0.0001 ? value : 1;
-}
-
-function markFloorMeshForShadows(object: Object3D) {
-  object.traverse((child) => {
-    if (!(child instanceof Mesh)) return;
-    child.castShadow = false;
-    child.receiveShadow = true;
-  });
-}
-
-function cloneMaterialDoubleSided(material: Material) {
-  const cloned = material.clone();
-  cloned.side = DoubleSide;
-  return cloned;
-}
-
-function setObjectMaterialsDoubleSided(object: Object3D) {
-  object.traverse((child) => {
-    if (!(child instanceof Mesh)) return;
-    if (Array.isArray(child.material)) {
-      child.material = child.material.map((material) => cloneMaterialDoubleSided(material));
-    } else if (child.material) {
-      child.material = cloneMaterialDoubleSided(child.material);
-    }
-  });
-}
-
-function hashString(input: string) {
-  let hash = 0;
-  for (let i = 0; i < input.length; i += 1) {
-    hash = (hash << 5) - hash + input.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
-function floorNodeCandidates(piece: DungeonBuildPiece): readonly string[] {
-  if (piece.kind === 'spawn-platform') {
-    return ['Floor_SquareLarge', 'Floor_Squares', 'Floor_Standard'];
-  }
-
-  const baseVariants =
-    piece.kind === 'corridor-floor'
-      ? (['Floor_Standard', 'Floor_Squares'] as const)
-      : FLOOR_NODE_FALLBACKS;
-  const start = hashString(piece.id) % baseVariants.length;
-  const rotated: string[] = [...baseVariants.slice(start), ...baseVariants.slice(0, start)];
-
-  const preferred = piece.nodeKey;
-  if (rotated.includes(preferred)) {
-    return [preferred, ...rotated.filter((key) => key !== preferred)];
-  }
-
-  return [preferred, ...rotated];
-}
-
-function ceilingNodeCandidates(piece: DungeonBuildPiece): readonly string[] {
-  const start = hashString(`ceiling-${piece.id}`) % CEILING_NODE_FALLBACKS.length;
-  const rotated: string[] = [
-    ...CEILING_NODE_FALLBACKS.slice(start),
-    ...CEILING_NODE_FALLBACKS.slice(0, start),
-  ];
-  return rotated;
-}
-
-function wallNodeCandidates(panelId: string): readonly string[] {
-  const start = hashString(`wall-${panelId}`) % WALL_NODE_FALLBACKS.length;
-  const rotated: string[] = [...WALL_NODE_FALLBACKS.slice(start), ...WALL_NODE_FALLBACKS.slice(0, start)];
-  return rotated;
-}
-
-function wallBackerNodeCandidates(panelId: string): readonly string[] {
-  const start = hashString(`wall-backer-${panelId}`) % WALL_BACKER_NODE_FALLBACKS.length;
-  const rotated: string[] = [
-    ...WALL_BACKER_NODE_FALLBACKS.slice(start),
-    ...WALL_BACKER_NODE_FALLBACKS.slice(0, start),
-  ];
-  return rotated;
-}
-
-function bushNodeCandidates(id: string): readonly string[] {
-  const start = hashString(`bush-${id}`) % BUSH_NODE_FALLBACKS.length;
-  const rotated: string[] = [...BUSH_NODE_FALLBACKS.slice(start), ...BUSH_NODE_FALLBACKS.slice(0, start)];
-  return rotated;
-}
-
-function torchNodeCandidates(id: string): readonly string[] {
-  const start = hashString(`torch-${id}`) % TORCH_NODE_FALLBACKS.length;
-  const rotated: string[] = [...TORCH_NODE_FALLBACKS.slice(start), ...TORCH_NODE_FALLBACKS.slice(0, start)];
-  return rotated;
-}
-
-function potVariantFor(id: string) {
-  const index = hashString(`pot-variant-${id}`) % POT_INTACT_NODE_FALLBACKS.length;
-  return {
-    intact: POT_INTACT_NODE_FALLBACKS[index],
-    broken: POT_BROKEN_NODE_FALLBACKS[index],
-  };
-}
-
-function ambientPropNodeCandidates(id: string): readonly string[] {
-  const start = hashString(`ambient-${id}`) % AMBIENT_PROP_NODE_FALLBACKS.length;
-  const rotated: string[] = [
-    ...AMBIENT_PROP_NODE_FALLBACKS.slice(start),
-    ...AMBIENT_PROP_NODE_FALLBACKS.slice(0, start),
-  ];
-  return rotated;
-}
-
-function buildScaledFloorObject(
-  sourceNode: Object3D,
-  targetSize: [number, number, number],
-): Object3D | null {
-  const clone = sourceNode.clone(true);
-  markFloorMeshForShadows(clone);
-  clone.updateMatrixWorld(true);
-
-  const box = new Box3().setFromObject(clone);
-  const size = new Vector3();
-  const center = new Vector3();
-  box.getSize(size);
-  box.getCenter(center);
-
-  if (size.lengthSq() < 1e-8) {
-    return null;
-  }
-
-  const sx = targetSize[0] / sanitizeSize(size.x);
-  const sy = targetSize[1] / sanitizeSize(size.y);
-  const sz = targetSize[2] / sanitizeSize(size.z);
-
-  clone.position.sub(center);
-
-  const wrapper = new Object3D();
-  wrapper.scale.set(sx, sy, sz);
-  wrapper.add(clone);
-  wrapper.updateMatrixWorld(true);
-  return wrapper;
-}
-
-function borderKey(
-  orientation: 'h' | 'v',
-  fixed: number,
-  start: number,
-  end: number,
-  y: number,
-) {
-  return `${orientation}|${fixed.toFixed(3)}|${start.toFixed(3)}|${end.toFixed(3)}|${y.toFixed(3)}`;
-}
-
-function parseBorderKey(key: string): UnitSegment {
-  const [orientationRaw, fixedRaw, startRaw, endRaw, yRaw] = key.split('|');
-  return {
-    orientation: orientationRaw === 'v' ? 'v' : 'h',
-    fixed: Number(fixedRaw),
-    start: Number(startRaw),
-    end: Number(endRaw),
-    y: Number(yRaw),
-  };
-}
-
-function addEdgeSegments(
-  segments: Set<string>,
-  orientation: 'h' | 'v',
-  fixed: number,
-  start: number,
-  end: number,
-  y: number,
-) {
-  const min = Math.min(start, end);
-  const max = Math.max(start, end);
-
-  for (let cursor = min; cursor < max - 1e-6; cursor += BORDER_STEP) {
-    const segStart = cursor;
-    const segEnd = Math.min(max, cursor + BORDER_STEP);
-    const key = borderKey(orientation, fixed, segStart, segEnd, y);
-
-    if (segments.has(key)) {
-      segments.delete(key);
-    } else {
-      segments.add(key);
-    }
-  }
-}
-
-function buildBorderSegments(pieces: DungeonBuildPiece[]): BorderSegment[] {
-  const unitSegments = new Set<string>();
-
-  for (let i = 0; i < pieces.length; i += 1) {
-    const piece = pieces[i];
-    const halfX = piece.size[0] / 2;
-    const halfZ = piece.size[2] / 2;
-    const minX = piece.position[0] - halfX;
-    const maxX = piece.position[0] + halfX;
-    const minZ = piece.position[2] - halfZ;
-    const maxZ = piece.position[2] + halfZ;
-    const y = topOverlayY();
-
-    addEdgeSegments(unitSegments, 'h', minZ, minX, maxX, y);
-    addEdgeSegments(unitSegments, 'h', maxZ, minX, maxX, y);
-    addEdgeSegments(unitSegments, 'v', minX, minZ, maxZ, y);
-    addEdgeSegments(unitSegments, 'v', maxX, minZ, maxZ, y);
-  }
-
-  const groups = new Map<string, UnitSegment[]>();
-  for (const key of unitSegments) {
-    const seg = parseBorderKey(key);
-    const groupKey = `${seg.orientation}|${seg.fixed.toFixed(3)}|${seg.y.toFixed(3)}`;
-    const group = groups.get(groupKey);
-    if (group) {
-      group.push(seg);
-    } else {
-      groups.set(groupKey, [seg]);
-    }
-  }
-
-  const borders: BorderSegment[] = [];
-  let index = 0;
-  for (const group of groups.values()) {
-    group.sort((a, b) => a.start - b.start);
-
-    let runStart = group[0].start;
-    let runEnd = group[0].end;
-    const orientation = group[0].orientation;
-    const fixed = group[0].fixed;
-    const y = group[0].y;
-
-    const flushRun = () => {
-      const length = Math.max(0.01, runEnd - runStart);
-      if (orientation === 'h') {
-        borders.push({
-          id: `border-${index}`,
-          position: [(runStart + runEnd) / 2, y, fixed],
-          size: [length, BORDER_HEIGHT, BORDER_THICKNESS],
-        });
-      } else {
-        borders.push({
-          id: `border-${index}`,
-          position: [fixed, y, (runStart + runEnd) / 2],
-          size: [BORDER_THICKNESS, BORDER_HEIGHT, length],
-        });
-      }
-      index += 1;
-    };
-
-    for (let i = 1; i < group.length; i += 1) {
-      const next = group[i];
-      if (next.start <= runEnd + BORDER_STEP * 0.6) {
-        runEnd = Math.max(runEnd, next.end);
-      } else {
-        flushRun();
-        runStart = next.start;
-        runEnd = next.end;
-      }
-    }
-
-    flushRun();
-  }
-
-  return borders;
-}
-
-function buildVerticalBorderWalls(segments: BorderSegment[]): BorderSegment[] {
-  const walls: BorderSegment[] = [];
-
-  for (let i = 0; i < segments.length; i += 1) {
-    const segment = segments[i];
-    const wallBaseY = WALL_FLOOR_LEVEL_Y - WALL_FLOOR_SINK;
-    walls.push({
-      id: `wall-${segment.id}`,
-      position: [
-        segment.position[0],
-        wallBaseY + BORDER_WALL_HEIGHT * 0.5,
-        segment.position[2],
-      ],
-      size: [
-        Math.max(BORDER_WALL_THICKNESS, segment.size[0]),
-        BORDER_WALL_HEIGHT,
-        Math.max(BORDER_WALL_THICKNESS, segment.size[2]),
-      ],
-    });
-  }
-
-  return walls;
-}
-
-function splitWallIntoPanels(wall: BorderSegment): WallPanel[] {
-  const alongX = wall.size[0] >= wall.size[2];
-  const majorLength = alongX ? wall.size[0] : wall.size[2];
-  const thickness = alongX ? wall.size[2] : wall.size[0];
-
-  if (majorLength <= WALL_PANEL_MIN_LENGTH) {
-    return [
-      {
-        id: `${wall.id}-panel-0`,
-        position: wall.position,
-        size: [majorLength, wall.size[1], thickness],
-        rotationY: alongX ? 0 : Math.PI * 0.5,
-        axis: alongX ? 'x' : 'z',
-      },
-    ];
-  }
-
-  const panelCount = Math.max(1, Math.ceil(majorLength / WALL_PANEL_MAX_LENGTH));
-  const panelLength = majorLength / panelCount;
-  const panels: WallPanel[] = [];
-
-  for (let i = 0; i < panelCount; i += 1) {
-    const offset = -majorLength * 0.5 + panelLength * (i + 0.5);
-    if (alongX) {
-      panels.push({
-        id: `${wall.id}-panel-${i}`,
-        position: [wall.position[0] + offset, wall.position[1], wall.position[2]],
-        size: [panelLength, wall.size[1], thickness],
-        rotationY: 0,
-        axis: 'x',
-      });
-    } else {
-      panels.push({
-        id: `${wall.id}-panel-${i}`,
-        position: [wall.position[0], wall.position[1], wall.position[2] + offset],
-        size: [panelLength, wall.size[1], thickness],
-        rotationY: Math.PI * 0.5,
-        axis: 'z',
-      });
-    }
-  }
-
-  return panels;
-}
 
 function pointInsideFloorPiece(x: number, z: number, piece: DungeonBuildPiece) {
   const halfX = piece.size[0] * 0.5;
