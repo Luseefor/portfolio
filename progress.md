@@ -318,3 +318,12 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/dungeonLayout.render.test.tsx src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts` ✅
 - Status:
   - All files under `src/components/interactive` are now <= 150 lines.
+- Home UI modularization pass (file-size cleanup):
+  - Split `src/components/home/ThemeDropdown.tsx` into `home/theme-dropdown/` modules:
+    - `ThemeDropdownTrigger.tsx`, `ThemeDropdownMenu.tsx`, `types.ts`
+  - Split `src/components/home/GlassCard.tsx` into `home/glass-card/` modules:
+    - `Magnetic.tsx`, `useCardTilt.ts`, `GlassCardHeader.tsx`, `GlassCardFooter.tsx`
+  - Preserved hover/tilt/magnetic interactions, appearance toggles, accent selection, and Konami-mode controls.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
