@@ -10,6 +10,18 @@ export type PlayerInputState = {
   attack: boolean;
 };
 
+export type DashRuntimeState = {
+  active: boolean;
+  timeLeft: number;
+  speed: number;
+  direction: {
+    x: number;
+    y: number;
+    z: number;
+    copy: (vector: { x: number; y: number; z: number }) => unknown;
+  };
+};
+
 export function createEmptyInputState(): PlayerInputState {
   return {
     forward: false,

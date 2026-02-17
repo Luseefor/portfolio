@@ -3,36 +3,27 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
-import { Group, MathUtils, Vector3 } from 'three';
+import { Group, Vector3 } from 'three';
 import { Suspense } from 'react';
 import PlayerCharacter, { type PlayerAnimation } from './PlayerCharacter';
 import {
-  ATTACK_COOLDOWN,
-  ATTACK_DURATION,
-  COYOTE_TIME,
-  DASH_COLLISION_OFFSET,
-  DASH_COOLDOWN,
-  DASH_DURATION,
-  DASH_MAX_DISTANCE,
-  DASH_MIN_DISTANCE,
-  DASH_RAY_BUFFER,
-  GRAVITY,
-  JUMP_BUFFER_TIME,
-  JUMP_SPEED,
-  ROLL_COOLDOWN,
-  ROLL_DURATION,
-  RUN_SPEED,
-  SMOOTHING,
   START_POSITION,
-  WALK_SPEED,
   frameScratch,
 } from './player-controller/constants';
 import {
   isPerspectiveCamera,
 } from './player-controller/helpers';
+import {
+  tryStartAttack,
+  tryStartDash,
+  tryStartRoll,
+  updateAbilityCooldowns,
+} from './player-controller/runtimeAbilities';
 import { clampBodyToDungeonBounds } from './player-controller/runtimeBounds';
 import { updateGroundRuntime } from './player-controller/runtimeGround';
 import { resolveFrameInput, updateFacingBasis } from './player-controller/runtimeInput';
+import { resolveJumpVerticalVelocity } from './player-controller/runtimeJump';
+import { resolveMotion, wakeBodyForInput } from './player-controller/runtimeMotion';
 import { applyActionVelocity } from './player-controller/runtimeVelocity';
 import { createEmptyInputState } from './player-controller/types';
 import {
@@ -171,151 +162,81 @@ export default function PlayerController({
       moveDir,
     });
 
-    if (hasInput || jumpPressed || dashJustPressed || rollJustPressed || attackJustPressed) {
-      body.wakeUp();
-    }
+    wakeBodyForInput(body, hasInput, jumpPressed, dashJustPressed, rollJustPressed, attackJustPressed);
 
-    const targetSpeed = runPressed ? RUN_SPEED : WALK_SPEED;
-    let targetX = 0;
-    let targetZ = 0;
+    const { targetX: desiredX, targetZ: desiredZ, smoothX, smoothZ } = resolveMotion({
+      body,
+      delta,
+      runPressed,
+      hasInput,
+      hasTouchInput,
+      moveDir,
+      dashDirection,
+      forward,
+      up,
+      rotation,
+      bodyQuaternion,
+    });
 
-    if (hasInput) {
-      const inputMagnitude = Math.min(1, moveDir.length());
-      dashDirection.copy(moveDir).normalize();
-      const speedScale = hasTouchInput ? Math.max(0.2, inputMagnitude) : 1;
-      moveDir.copy(dashDirection).multiplyScalar(targetSpeed * speedScale);
-      targetX = moveDir.x;
-      targetZ = moveDir.z;
-      const desiredYaw = Math.atan2(moveDir.x, moveDir.z);
-      rotation.setFromAxisAngle(up, desiredYaw);
-      body.setRotation(rotation, true);
-    } else {
-      const bodyRotation = body.rotation();
-      bodyQuaternion.set(bodyRotation.x, bodyRotation.y, bodyRotation.z, bodyRotation.w);
-      dashDirection.set(0, 0, 1).applyQuaternion(bodyQuaternion);
-      dashDirection.y = 0;
-      if (dashDirection.lengthSq() < 1e-4) {
-        dashDirection.set(forward.x, 0, forward.z);
-      }
-      dashDirection.normalize();
-    }
+    tryStartDash({
+      body,
+      rapier,
+      world,
+      position,
+      dashDirection,
+      dashJustPressed,
+      dashRef,
+      dashCooldownRef,
+      rollTimerRef: rollTimer,
+      attackTimerRef,
+    });
 
-    const now = performance.now() / 1000;
-    if (
-      dashJustPressed &&
-      !dashRef.current.active &&
-      now >= dashCooldownRef.current &&
-      rollTimer.current <= 0 &&
-      attackTimerRef.current <= 0
-    ) {
-      const ray = new rapier.Ray(
-        {
-          x: position.x,
-          y: position.y + 1,
-          z: position.z,
-        },
-        {
-          x: dashDirection.x,
-          y: 0,
-          z: dashDirection.z,
-        },
-      );
-      const hit = world.castRay(
-        ray,
-        DASH_MAX_DISTANCE + DASH_RAY_BUFFER,
-        true,
-        undefined,
-        undefined,
-        undefined,
-        body,
-      );
+    updateAbilityCooldowns(delta, rollCooldownRef, attackCooldownRef);
+    tryStartRoll(
+      groundedTimer.current,
+      rollJustPressed,
+      dashRef.current,
+      rollTimer,
+      rollCooldownRef,
+      attackTimerRef,
+      rollDirectionRef,
+      dashDirection,
+      rotation,
+      up,
+      body,
+    );
+    tryStartAttack(
+      grounded,
+      attackJustPressed,
+      hasInput,
+      dashRef.current,
+      rollTimer,
+      attackTimerRef,
+      attackCooldownRef,
+      attackDirectionRef,
+      dashDirection,
+      forward,
+      rotation,
+      up,
+      body,
+    );
 
-      let allowedDistance = DASH_MAX_DISTANCE;
-      if (hit && Number.isFinite(hit.timeOfImpact)) {
-        allowedDistance = Math.max(DASH_MIN_DISTANCE, hit.timeOfImpact - DASH_COLLISION_OFFSET);
-      }
-
-      dashRef.current.active = true;
-      dashRef.current.timeLeft = DASH_DURATION;
-      dashRef.current.speed = allowedDistance / DASH_DURATION;
-      dashRef.current.direction.copy(dashDirection);
-      dashCooldownRef.current = now + DASH_COOLDOWN;
-    }
-
-    if (rollCooldownRef.current > 0) {
-      rollCooldownRef.current = Math.max(0, rollCooldownRef.current - delta);
-    }
-    if (attackCooldownRef.current > 0) {
-      attackCooldownRef.current = Math.max(0, attackCooldownRef.current - delta);
-    }
-
-    if (
-      groundedTimer.current <= COYOTE_TIME &&
-      rollJustPressed &&
-      !dashRef.current.active &&
-      rollTimer.current <= 0 &&
-      rollCooldownRef.current <= 0 &&
-      attackTimerRef.current <= 0
-    ) {
-      rollTimer.current = ROLL_DURATION;
-      rollCooldownRef.current = ROLL_COOLDOWN;
-      rollDirectionRef.current.copy(dashDirection);
-      const rollYaw = Math.atan2(rollDirectionRef.current.x, rollDirectionRef.current.z);
-      rotation.setFromAxisAngle(up, rollYaw);
-      body.setRotation(rotation, true);
-    }
-
-    if (
-      grounded &&
-      attackJustPressed &&
-      !dashRef.current.active &&
-      rollTimer.current <= 0 &&
-      attackTimerRef.current <= 0 &&
-      attackCooldownRef.current <= 0
-    ) {
-      attackTimerRef.current = ATTACK_DURATION;
-      attackCooldownRef.current = ATTACK_COOLDOWN;
-      attackDirectionRef.current.copy(hasInput ? dashDirection : forward);
-      const attackYaw = Math.atan2(attackDirectionRef.current.x, attackDirectionRef.current.z);
-      rotation.setFromAxisAngle(up, attackYaw);
-      body.setRotation(rotation, true);
-    }
-
-    const desiredX = targetX;
-    const desiredZ = targetZ;
-    const smoothing = 1 - Math.exp(-SMOOTHING * delta);
-    const smoothX = MathUtils.lerp(linvel.x, desiredX, smoothing);
-    const smoothZ = MathUtils.lerp(linvel.z, desiredZ, smoothing);
-
-    if (jumpJustPressed) {
-      jumpBuffer.current = 0;
-    } else if (Number.isFinite(jumpBuffer.current)) {
-      jumpBuffer.current += delta;
-    }
-    const canJump =
-      jumpBuffer.current <= JUMP_BUFFER_TIME &&
-      groundedTimer.current <= COYOTE_TIME &&
-      !dashRef.current.active &&
-      rollTimer.current <= 0 &&
-      attackTimerRef.current <= 0;
-    let nextY = linvel.y - GRAVITY * delta;
-    if (canJump) {
-      const horizontalIntentSpeed = Math.hypot(desiredX, desiredZ);
-      const jumpBoost = MathUtils.clamp(1 + (horizontalIntentSpeed / RUN_SPEED) * 0.08, 1, 1.1);
-      nextY = JUMP_SPEED * jumpBoost;
-      if (jumpAudioRef.current.length > 0 && jumpJustPressed && !jumpSoundLockedUntilLandRef.current) {
-        const jumpAudio = jumpAudioRef.current[jumpAudioIndexRef.current % jumpAudioRef.current.length];
-        jumpAudioIndexRef.current += 1;
-        jumpAudio.currentTime = 0;
-        jumpAudio.playbackRate = 0.98 + Math.random() * 0.05;
-        jumpAudio.play().catch(() => { });
-        jumpSoundLockedUntilLandRef.current = true;
-      }
-      jumpBuffer.current = Number.POSITIVE_INFINITY;
-      groundedTimer.current = COYOTE_TIME + 1;
-    } else if (grounded) {
-      nextY = 0;
-    }
+    const nextY = resolveJumpVerticalVelocity({
+      delta,
+      jumpJustPressed,
+      jumpBufferRef: jumpBuffer,
+      groundedTimerRef: groundedTimer,
+      dashRef,
+      rollTimerRef: rollTimer,
+      attackTimerRef,
+      grounded,
+      linvelY: linvel.y,
+      desiredX,
+      desiredZ,
+      jumpAudioRef,
+      jumpAudioIndexRef,
+      jumpSoundLockedUntilLandRef,
+    });
 
     applyActionVelocity({
       body,

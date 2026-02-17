@@ -1,17 +1,12 @@
 import { useEffect, type MutableRefObject, type RefObject } from 'react';
-import { Vector3 } from 'three';
 import { safeSetAudioTime } from './helpers';
+import type { DashRuntimeState } from './types';
 import { createEmptyInputState, type PlayerInputState } from './types';
 
 type UsePlayerControllerInputParams = {
   inputRef: MutableRefObject<PlayerInputState>;
   dashButtonPrevRef: MutableRefObject<boolean>;
-  dashRef: MutableRefObject<{
-    active: boolean;
-    timeLeft: number;
-    speed: number;
-    direction: Vector3;
-  }>;
+  dashRef: MutableRefObject<DashRuntimeState>;
   jumpButtonHeldRef: MutableRefObject<boolean>;
   rollButtonHeldRef: MutableRefObject<boolean>;
   attackButtonHeldRef: MutableRefObject<boolean>;
