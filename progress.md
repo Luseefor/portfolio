@@ -269,3 +269,13 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
 - Validation:
   - `npm run -s lint` ✅
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts` ✅
+- Mobile controls modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/ui/MobileControls.tsx` into `ui/mobile-controls/` modules:
+    - hooks: `useMobileJoystick.ts`, `useMobileLookPad.ts`
+    - UI: `MobileSettingsButton.tsx`, `MobileJoystick.tsx`, `MobileLookPad.tsx`, `MobileActionButtons.tsx`
+    - shared: `constants.ts`, `math.ts`
+  - Preserved joystick deadzone/run-threshold behavior, pointer-id guards/capture, look-pad drag thresholds, action pulse timing, visibility/blocked reset behavior, and cleanup semantics.
+  - Reduced `MobileControls.tsx` from 335 lines to 63 lines; all new module files are <= 150 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts` ✅
