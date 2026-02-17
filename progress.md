@@ -202,3 +202,25 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
 - TODO/Suggestions for next agent:
   - If precise visual QA is required, install matching Playwright browser binary (`npx playwright install chromium`) and run DOM-level scenario validation against `data-testid="activity-legend-trigger"`.
   - Consider capping return-particle count when activity density is extremely high to avoid heavy burst workloads on low-end devices.
+- Interactive chest overhaul pass (10 unique identity panels + strict Konami hint hunt):
+  - Added shared chest content system under `src/components/interactive/dungeon/ui/chest-content/` with deterministic 10-chest mapping and ordered `KONAMI_HINT_FRAGMENTS`.
+  - Added panel variants for: About, Experience, Education, Projects, Skills, Services, Engineering Activity, Resume, Contact, Social Links.
+  - Added persisted hint progression (`interactiveKonamiHintProgressV1`) with strict order enforcement, reset action, and completion state.
+  - Upgraded `ChestPanel` to render per-chest variant content + Cipher Fragment status + global fragment progress + landing-page completion CTA.
+  - Wired `DungeonInteractionManager` and `InteractiveCanvas` for hint progression persistence, toasts, and reset plumbing.
+  - Refactored identity shared content registry and updated identity `ServicesSection` + `ContactSection` to consume shared content.
+  - Added tests:
+    - `src/components/interactive/dungeon/__tests__/chestHints.test.ts` (strict-order progression paths)
+    - `src/components/interactive/dungeon/__tests__/chestRegistry.test.ts` (10-step mapping contract + uniqueness)
+- Validation:
+  - `npm -C /Users/lucifer/portfolio run lint` ✅
+  - `npm -C /Users/lucifer/portfolio run test -- --run` ✅ (30 tests)
+  - `npm -C /Users/lucifer/portfolio run build` ✅
+- Web-game skill loop notes:
+  - Ran the Playwright client workflow from local copy due module resolution of `playwright` from skill directory path.
+  - Artifact generated: `output/web-game/shot-0.png` (welcome overlay rendered).
+  - First captured browser error file: `output/web-game/errors-0.json` (`ERR_CONNECTION_REFUSED` resource fetch in run context).
+  - Interactive scene currently causes the skill client to hang in its virtual-time choreography loop after initial launch; process had to be terminated in this environment.
+- TODO/Suggestions for next agent:
+  - If full browser-level interactive validation is required, run headed Playwright with a custom script that does not rely on the skill client's virtual-time shim and can force click Enter on the welcome overlay.
+  - Optional content polish: replace education placeholders with final real data.
