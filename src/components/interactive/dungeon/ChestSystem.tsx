@@ -314,7 +314,8 @@ function Chest({ chest, isOpen, isNearby, onOpen, masterVolume }: ChestProps) {
   const handlePointerDown = (event: ThreeEvent<PointerEvent>) => {
     if (event.button !== 0) return;
     event.stopPropagation();
-    if (!isOpen) onOpen();
+    // Guard local pointer interactions to nearby-only openings.
+    if (!isOpen && isNearby) onOpen();
   };
 
   return (
@@ -494,7 +495,17 @@ export function ChestSystem({
           }}
           isOpen={activeChestId === entry.chest.id}
           isNearby={nearbyChestId === entry.chest.id}
-          onOpen={() => onChestOpen(entry.chest)}
+          onOpen={() => {
+            // Authoritative proximity check at click time prevents opening
+            // distant chests when UI nearby state is stale for a frame.
+            const playerPosition = playerPositionRef.current;
+            const dx = playerPosition.x - entry.position[0];
+            const dz = playerPosition.z - entry.position[2];
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            const scaledInteractionRadius = entry.chest.interactionRadius * DUNGEON_SCALE;
+            if (distance > scaledInteractionRadius) return;
+            onChestOpen(entry.chest);
+          }}
           masterVolume={masterVolume}
         />
       ))}
