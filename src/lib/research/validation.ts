@@ -3,6 +3,7 @@ import type { ResearchSourceConfig } from '@/lib/research/types';
 const SOURCE_KINDS = new Set<ResearchSourceConfig['kind']>(['paper', 'blog', 'mixed']);
 const METHODS = new Set<ResearchSourceConfig['method']>(['GET', 'POST']);
 const AUTH_TYPES = new Set<ResearchSourceConfig['authType']>(['none', 'bearer', 'header']);
+type ValidationResult<T> = { value?: T; error?: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -44,9 +45,39 @@ function parseStringMap(
   return { value: parsed };
 }
 
+function coerceNumber(value: unknown): number {
+  return typeof value === 'number' ? value : Number(value);
+}
+
+function parseRequiredEnum<T extends string>(
+  value: unknown,
+  validValues: Set<T>,
+): T | undefined {
+  const parsed = asNonEmptyString(value) as T | undefined;
+  if (!parsed || !validValues.has(parsed)) {
+    return undefined;
+  }
+  return parsed;
+}
+
+function parsePatchEnumField<T extends string>(
+  updates: Partial<ResearchSourceConfig>,
+  field: keyof Pick<ResearchSourceConfig, 'kind' | 'authType' | 'method'>,
+  value: unknown,
+  validValues: Set<T>,
+  errorMessage: string,
+) {
+  const parsed = parseRequiredEnum(value, validValues);
+  if (!parsed) {
+    return { error: errorMessage };
+  }
+  updates[field] = parsed as ResearchSourceConfig[keyof Pick<ResearchSourceConfig, 'kind' | 'authType' | 'method'>];
+  return {};
+}
+
 function parseMapping(
   value: unknown,
-): { value?: ResearchSourceConfig['mapping']; error?: string } {
+): ValidationResult<ResearchSourceConfig['mapping']> {
   if (!isRecord(value)) {
     return { error: 'Expected mapping to be an object.' };
   }
@@ -95,11 +126,14 @@ export function validateCreateSourceConfig(
   const id = asNonEmptyString(input.id);
   const name = asNonEmptyString(input.name);
   const endpoint = parseUrl(input.endpoint);
-  const method = asNonEmptyString(input.method)?.toUpperCase() as ResearchSourceConfig['method'] | undefined;
-  const authType = asNonEmptyString(input.authType) as ResearchSourceConfig['authType'] | undefined;
-  const kind = asNonEmptyString(input.kind) as ResearchSourceConfig['kind'] | undefined;
-  const timeoutMs = typeof input.timeoutMs === 'number' ? input.timeoutMs : Number(input.timeoutMs);
-  const priority = typeof input.priority === 'number' ? input.priority : Number(input.priority);
+  const method = parseRequiredEnum(
+    asNonEmptyString(input.method)?.toUpperCase(),
+    METHODS,
+  );
+  const authType = parseRequiredEnum(input.authType, AUTH_TYPES);
+  const kind = parseRequiredEnum(input.kind, SOURCE_KINDS);
+  const timeoutMs = coerceNumber(input.timeoutMs);
+  const priority = coerceNumber(input.priority);
   const enabled = typeof input.enabled === 'boolean' ? input.enabled : false;
   const authEnvKey = asNonEmptyString(input.authEnvKey);
 
@@ -107,18 +141,6 @@ export function validateCreateSourceConfig(
     return {
       error: 'id, name, endpoint, method, authType, and kind are required.',
     };
-  }
-
-  if (!METHODS.has(method)) {
-    return { error: 'method must be GET or POST.' };
-  }
-
-  if (!AUTH_TYPES.has(authType)) {
-    return { error: 'authType must be none, bearer, or header.' };
-  }
-
-  if (!SOURCE_KINDS.has(kind)) {
-    return { error: 'kind must be paper, blog, or mixed.' };
   }
 
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
@@ -186,11 +208,8 @@ export function validatePatchSourceConfig(
   }
 
   if ('kind' in input) {
-    const kind = asNonEmptyString(input.kind) as ResearchSourceConfig['kind'] | undefined;
-    if (!kind || !SOURCE_KINDS.has(kind)) {
-      return { error: 'kind must be paper, blog, or mixed.' };
-    }
-    updates.kind = kind;
+    const result = parsePatchEnumField(updates, 'kind', input.kind, SOURCE_KINDS, 'kind must be paper, blog, or mixed.');
+    if (result.error) return result;
   }
 
   if ('endpoint' in input) {
@@ -202,21 +221,25 @@ export function validatePatchSourceConfig(
   }
 
   if ('method' in input) {
-    const method = asNonEmptyString(input.method)?.toUpperCase() as
-      | ResearchSourceConfig['method']
-      | undefined;
-    if (!method || !METHODS.has(method)) {
-      return { error: 'method must be GET or POST.' };
-    }
-    updates.method = method;
+    const result = parsePatchEnumField(
+      updates,
+      'method',
+      asNonEmptyString(input.method)?.toUpperCase(),
+      METHODS,
+      'method must be GET or POST.',
+    );
+    if (result.error) return result;
   }
 
   if ('authType' in input) {
-    const authType = asNonEmptyString(input.authType) as ResearchSourceConfig['authType'] | undefined;
-    if (!authType || !AUTH_TYPES.has(authType)) {
-      return { error: 'authType must be none, bearer, or header.' };
-    }
-    updates.authType = authType;
+    const result = parsePatchEnumField(
+      updates,
+      'authType',
+      input.authType,
+      AUTH_TYPES,
+      'authType must be none, bearer, or header.',
+    );
+    if (result.error) return result;
   }
 
   if ('authEnvKey' in input) {
@@ -256,8 +279,7 @@ export function validatePatchSourceConfig(
   }
 
   if ('timeoutMs' in input) {
-    const timeoutMs =
-      typeof input.timeoutMs === 'number' ? input.timeoutMs : Number(input.timeoutMs);
+    const timeoutMs = coerceNumber(input.timeoutMs);
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
       return { error: 'timeoutMs must be a positive number.' };
     }
@@ -265,7 +287,7 @@ export function validatePatchSourceConfig(
   }
 
   if ('priority' in input) {
-    const priority = typeof input.priority === 'number' ? input.priority : Number(input.priority);
+    const priority = coerceNumber(input.priority);
     if (!Number.isFinite(priority)) {
       return { error: 'priority must be a number.' };
     }
