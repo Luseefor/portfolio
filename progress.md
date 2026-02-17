@@ -279,3 +279,13 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
 - Validation:
   - `npm run -s lint` ✅
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts` ✅
+- Settings menu modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/ui/DungeonSettingsMenu.tsx` into `ui/settings-menu/` modules:
+    - `useLocalDungeonSettings.ts`
+    - `SettingsHeader.tsx`, `SettingsPanelContent.tsx`, `SettingsFooter.tsx`
+    - `QualitySetting.tsx`, `RangeSetting.tsx`, `constants.ts`
+  - Preserved settings behavior: local-store sync, graphics/volume/sensitivity/exposure updates, ESC close, modal backdrop close, and footer/home action.
+  - Reduced `DungeonSettingsMenu.tsx` from 329 lines to 70 lines; all new module files are <= 150 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/dungeonLayout.render.test.tsx` ✅
