@@ -336,3 +336,11 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
 - Validation:
   - `npm run -s lint` ✅
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Identity project modal modularization pass (file-size cleanup):
+  - Split `src/components/identity/ProjectDetailsModal.tsx` body content into `identity/project-details/ProjectDetailsBody.tsx`.
+  - Added shared type in `identity/project-details/types.ts`.
+  - Preserved modal shell/backdrop animation, close behavior, and project details content/actions.
+  - Reduced `ProjectDetailsModal.tsx` from 186 lines to 93 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
