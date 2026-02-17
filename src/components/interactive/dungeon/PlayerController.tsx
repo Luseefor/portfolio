@@ -12,18 +12,15 @@ import {
   ATTACK_LUNGE_SPEED,
   ATTACK_LUNGE_WINDOW,
   COYOTE_TIME,
-  DASH_CAMERA_KICK,
   DASH_COLLISION_OFFSET,
   DASH_COOLDOWN,
   DASH_DURATION,
-  DASH_FOV_DAMPING,
   DASH_MAX_DISTANCE,
   DASH_MIN_DISTANCE,
   DASH_RAY_BUFFER,
   GRAVITY,
   JUMP_BUFFER_TIME,
   JUMP_SPEED,
-  PLAYER_STATE_PUBLISH_INTERVAL,
   ROLL_COOLDOWN,
   ROLL_DURATION,
   ROLL_SPEED,
@@ -44,9 +41,9 @@ import { createEmptyInputState } from './player-controller/types';
 import {
   createInitialPlayerSnapshot,
   resolvePlayerAnimation,
-  shouldPublishPlayerSnapshot,
 } from './player-controller/state';
 import { updateMovementAudio } from './player-controller/audioRuntime';
+import { publishPlayerStateIfNeeded, updateDashFov } from './player-controller/runtimeCameraState';
 import { usePlayerControllerInput } from './player-controller/usePlayerControllerInput';
 import { usePlayerControllerAudio } from './player-controller/usePlayerControllerAudio';
 import { usePlayerState } from '@/lib/playerState';
@@ -387,39 +384,17 @@ export default function PlayerController({
       );
     }
 
-    const finalPosition = body.translation();
-    const finalVel = body.linvel();
-    const horizontalSpeed = Math.hypot(finalVel.x, finalVel.z);
-    const stateRotation = body.rotation();
-    bodyQuaternion.set(stateRotation.x, stateRotation.y, stateRotation.z, stateRotation.w);
-    stateForward.set(0, 0, 1).applyQuaternion(bodyQuaternion);
-    stateForward.y = 0;
-    if (stateForward.lengthSq() < 1e-5) {
-      stateForward.set(0, 0, 1);
-    } else {
-      stateForward.normalize();
-    }
-    const isMovingState = horizontalSpeed > 0.15;
-    const nextState = {
-      position: { x: finalPosition.x, y: finalPosition.y, z: finalPosition.z },
-      forward: { x: stateForward.x, y: stateForward.y, z: stateForward.z },
-      look: { x: forward.x, y: 0, z: forward.z },
-      speed: horizontalSpeed,
+    publishPlayerStateIfNeeded({
+      body,
+      bodyQuaternion,
+      stateForward,
+      lookForward: forward,
       grounded,
-      isMoving: isMovingState,
-    };
-    const lastState = lastPublishedPlayerStateRef.current;
-
-    playerStatePublishTimerRef.current += delta;
-    const shouldPublish =
-      playerStatePublishTimerRef.current >= PLAYER_STATE_PUBLISH_INTERVAL ||
-      shouldPublishPlayerSnapshot(nextState, lastState);
-
-    if (shouldPublish) {
-      playerStatePublishTimerRef.current = 0;
-      lastPublishedPlayerStateRef.current = nextState;
-      setPlayerState(nextState);
-    }
+      delta,
+      playerStatePublishTimerRef,
+      lastPublishedPlayerStateRef,
+      setPlayerState,
+    });
 
     const speed = Math.hypot(smoothX, smoothZ);
     updateMovementAudio({
@@ -442,13 +417,7 @@ export default function PlayerController({
     wasGroundedRef.current = grounded;
 
     if (isPerspectiveCamera(camera)) {
-      const dashFovTarget = dashRef.current.active ? baseFovRef.current + DASH_CAMERA_KICK : baseFovRef.current;
-      const fovBlend = 1 - Math.exp(-DASH_FOV_DAMPING * delta);
-      const nextFov = MathUtils.lerp(camera.fov, dashFovTarget, fovBlend);
-      if (Math.abs(nextFov - camera.fov) > 0.001) {
-        camera.fov = nextFov;
-        camera.updateProjectionMatrix();
-      }
+      updateDashFov(camera, dashRef.current.active, baseFovRef.current, delta);
     }
 
     const nextAnim: PlayerAnimation = resolvePlayerAnimation(
