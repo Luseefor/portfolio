@@ -248,3 +248,15 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
   - `npm run -s lint` ✅
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts` ✅
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/dungeonLayout.render.test.tsx` ✅
+- Interaction manager modularization pass (file-size cleanup):
+  - Replaced `src/components/interactive/dungeon/DungeonInteractionManager.tsx` implementation with a compatibility export facade.
+  - Moved functionality into `src/components/interactive/dungeon/dungeon-interaction/` modules:
+    - `DungeonUI.tsx`, `HintToast.tsx`
+    - `useDungeonInteraction.ts`
+    - `useDungeonInteractionKeyboard.ts`
+    - `useDungeonUiAudio.ts`
+    - `useHintProgressState.ts`
+  - Preserved behavior for: chest open flow, hint fragment progression/toasts, settings/welcome/panel key handling, and mute toggle semantics.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts` ✅
