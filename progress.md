@@ -344,3 +344,49 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
 - Validation:
   - `npm run -s lint` ✅
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Emergency dungeon recovery completion pass (2026-02-17):
+  - Added F1 debug overlay toggle with visible ground/grid/axes/origin-cube + strong debug light.
+    - Commit: `chore: add debug overlay toggles`
+  - Restored render diagnostics and fallback behavior:
+    - explicit missing-node warnings (`Missing node: <key> <available-keys>`),
+    - layout-empty warnings,
+    - origin probe mesh fallback when renderable visuals are unresolved.
+    - Commit: `fix: dungeon render pipeline restored`
+  - Stabilized camera/mouse lifecycle:
+    - CameraRig mount order now follows player body setup,
+    - pointer-lock change/error handling hardened,
+    - pointer drag state reset on lock changes,
+    - pointer lock ESC/re-enter test coverage added.
+    - Commit: `fix: camera rig follow + mouse look`
+  - Baseline lighting readability pass:
+    - centralized DungeonScene fog/ambient/hemisphere/directional from `sceneLighting` constants,
+    - tuned fog/light intensities + exposure baseline.
+    - Commit: `fix: scene lighting baseline`
+
+- Additional completion commits:
+  - Added guaranteed minimal dungeon fallback definitions near origin:
+    - `DUNGEON_LAYOUT_MINIMAL`
+    - `DUNGEON_LAYOUT_GRAPH_MINIMAL`
+    - wired fallback use in `DungeonWorld` when primary build returns zero pieces.
+    - Commit: `feat: minimal verified dungeon layout`
+  - Restored strict type correctness in research validation patch enum parsing.
+    - Commit: `fix: restore research validation typing`
+  - Added extreme-case validation tests (input/render/perf hot-paths).
+    - Commit: `test: validated extreme input, camera, physics, and render cases`
+
+- Mandatory suite execution summary (automated):
+  - `npm run -s lint` ✅
+  - `npm run -s test` ✅ (45 tests)
+  - `npm run -s build -- --webpack` ✅
+  - Runtime Playwright sanity checks (production server on 4173):
+    - canvas renders and interactive page loads without console errors in minimal sanity run.
+    - screenshots captured:
+      - `output/dungeon-runtime/00-initial.png`
+      - `output/dungeon-runtime/01-after-enter.png`
+      - `output/dungeon-runtime/02-after-look.png`
+      - `output/dungeon-runtime/03-look-before.png`
+      - `output/dungeon-runtime/04-look-after-drag.png`
+
+- Runtime caveat:
+  - Headless Chromium does not grant pointer lock in this environment (`WrongDocumentError`), so pointer-lock true-state could not be asserted in headless runtime checks.
+  - Pointer lock + re-entry behavior is covered by dedicated unit tests (`pointerLock.test.tsx`) and lifecycle hardening in code.
