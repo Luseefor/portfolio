@@ -327,3 +327,12 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
 - Validation:
   - `npm run -s lint` ✅
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Identity contact modularization pass (file-size cleanup):
+  - Split `src/components/identity/ContactSection.tsx` helpers into `identity/contact-section/`:
+    - `useContactForm.ts`
+    - `ContactSocialLinks.tsx`
+  - Preserved submit/status flow (`Transmit Signal` lifecycle), form reset behavior, and social/footer rendering.
+  - Reduced `ContactSection.tsx` from 203 lines to 139 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅

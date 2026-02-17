@@ -1,23 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { Send, Github, Linkedin, Mail } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { useStore } from '@/utils/store';
 import { getThemeColor, hexToRgba } from '@/utils/themes';
 import dynamic from 'next/dynamic';
 import { PORTFOLIO_CONTENT } from './portfolio-template';
+import { ContactSocialLinks } from './contact-section/ContactSocialLinks';
+import { useContactForm } from './contact-section/useContactForm';
 
 const FuturisticCard = dynamic(() => import('./FuturisticCard'), { ssr: false });
 const LiquidGlassButton = dynamic(() => import('@/components/shared/ui/LiquidGlassButton'), {
   ssr: false,
 });
-
-const SOCIAL_ICON_BY_KIND = {
-  github: Github,
-  linkedin: Linkedin,
-  email: Mail,
-} as const;
 
 export default function ContactSection() {
   const { currentTheme, isDark } = useStore();
@@ -26,38 +22,7 @@ export default function ContactSection() {
     [currentTheme, isDark],
   );
   const themeFade = hexToRgba(themeColor, isDark ? 0.35 : 0.7);
-  const [status, setStatus] = useState('Transmit Signal');
-
-  const [formData, setFormData] = useState({ name: '', email: '', message: '' });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStatus('Transmitting...');
-
-    try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        setStatus('Signal Received');
-        setFormData({ name: '', email: '', message: '' });
-      } else {
-        setStatus('Transmission Failed');
-      }
-    } catch (error) {
-      console.error('Transmission Error:', error);
-      setStatus('Connection Error');
-    } finally {
-      setTimeout(() => setStatus('Transmit Signal'), 3000);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const { status, formData, handleSubmit, handleChange } = useContactForm();
 
   const socialLinks = PORTFOLIO_CONTENT.socials.links;
 
@@ -167,36 +132,7 @@ export default function ContactSection() {
           </form>
         </FuturisticCard>
 
-        <div className="flex justify-center gap-6 mt-16">
-          {socialLinks.map((item, i) => {
-            const Icon = SOCIAL_ICON_BY_KIND[item.kind];
-            return (
-              <motion.a
-                key={i}
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                whileHover={{ y: -5, color: themeColor }}
-                className={`transition-colors p-2 ${
-                  isDark ? 'text-slate-500 hover:text-white' : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                <Icon size={24} />
-              </motion.a>
-            );
-          })}
-        </div>
-
-        <div
-          className={`mt-12 text-xs font-mono uppercase tracking-widest ${
-            isDark ? 'text-slate-600' : 'text-slate-500'
-          }`}
-        >
-          <p>
-            &copy; {new Date().getFullYear()} Rijan Ghimire.{' '}
-            <span className="hidden md:inline">All rights reserved.</span>
-          </p>
-        </div>
+        <ContactSocialLinks socialLinks={socialLinks} isDark={isDark} themeColor={themeColor} />
       </motion.div>
     </section>
   );
