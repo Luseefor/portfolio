@@ -260,3 +260,12 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
 - Validation:
   - `npm run -s lint` ✅
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts` ✅
+- HUD modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/ui/DungeonHUD.tsx` into `ui/dungeon-hud/` modules:
+    - minimap: `MinimapPanel.tsx`, `MinimapGrid.tsx`, `MinimapRoomsRoutesLayer.tsx`, `MinimapChestsLayer.tsx`, `MinimapPlayerLayer.tsx`, `constants.ts`
+    - desktop overlays: `ProgressPanel.tsx`, `ControlsHintPanel.tsx`, `MovementStatusPanel.tsx`, `DesktopHudOverlays.tsx`
+  - Preserved minimap rendering (rooms/routes/chests/player cone), legend, desktop stats, movement indicators, and touch-device gating.
+  - Reduced `DungeonHUD.tsx` from 391 lines to 47 lines; all new module files are <= 150 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts` ✅
