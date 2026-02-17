@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
-import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import {
   AdditiveBlending,
-  SpotLight as SpotLightImpl,
+  DoubleSide,
+  Object3D,
 } from 'three';
 import {
   AMBIENT_PROP_PLACEMENT_LIMIT,
@@ -21,11 +21,9 @@ import {
   CEILING_THICKNESS,
   FLOOR_KINDS,
   FLOOR_VISUAL_OVERHANG,
-  POT_BREAK_BASE_VOLUME,
   POT_BROKEN_NODE_FALLBACKS,
   POT_INTACT_NODE_FALLBACKS,
   POT_PLACEMENT_LIMIT,
-  POT_RESPAWN_MS,
   RUINS_GLB_PATH,
   SPAWN_BORDER_HIDE_PADDING,
   TORCH_LIGHT_DECAY,
@@ -76,6 +74,9 @@ import {
   wallFacingRotationY,
 } from './dungeon-world/wallSpatial';
 import { colliderArgsFromSize, groundAlignObjectToZeroY, setTorchGlowMaterial } from './dungeon-world/propHelpers';
+import { usePotBreakState } from './dungeon-world/usePotBreakState';
+import { useTorchFlicker } from './dungeon-world/useTorchFlicker';
+import { useDungeonVisualLiftSync } from './dungeon-world/useDungeonVisualLiftSync';
 import type {
   AmbientPropVisual,
   BorderSegment,
@@ -92,8 +93,7 @@ import {
   buildDungeon,
 } from '@/game/dungeon/buildDungeon';
 import { createSafeNodeResolver } from '@/game/dungeon/utils';
-import { clearDungeonVisualLiftTiles, setDungeonVisualLiftTiles } from '@/lib/dungeonVisualLift';
-import { clampVolume, useSettings } from '@/lib/settings';
+import { useSettings } from '@/lib/settings';
 
 function isSegmentInsideSpawnCutout(segment: BorderSegment) {
   const spawn = DUNGEON_LAYOUT_GRAPH.spawnPlatform;
@@ -111,13 +111,9 @@ function isSegmentInsideSpawnCutout(segment: BorderSegment) {
 }
 
 export default function DungeonWorld() {
-  const [brokenPotIds, setBrokenPotIds] = useState<Set<string>>(() => new Set());
-  const torchLightRefs = useRef<Record<string, SpotLightImpl | null>>({});
-  const potBreakAudioRef = useRef<HTMLAudioElement[]>([]);
-  const potBreakAudioIndexRef = useRef(0);
-  const potRespawnTimersRef = useRef<Map<string, number>>(new Map());
   const masterVolume = useSettings((state) => state.masterVolume);
   const graphicsQuality = useSettings((state) => state.graphicsQuality);
+  const { brokenPotIds, handlePotPointerDown } = usePotBreakState(masterVolume);
   const torchLimit = graphicsQuality === 'low' ? 12 : graphicsQuality === 'medium' ? 16 : TORCH_PLACEMENT_LIMIT;
   const torchIntensityScale = graphicsQuality === 'low' ? 0.75 : graphicsQuality === 'medium' ? 0.9 : 1;
   const wallFillPointLightEnabled = graphicsQuality === 'high';
@@ -586,96 +582,8 @@ export default function DungeonWorld() {
     [brokenPotIds, potVisuals],
   );
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const respawnTimers = potRespawnTimersRef.current;
-    if (!potBreakAudioRef.current.length) {
-      potBreakAudioRef.current = [
-        new Audio('/sounds/props/pot_break.wav'),
-        new Audio('/sounds/props/pot_break.wav'),
-      ];
-      potBreakAudioRef.current.forEach((audio) => {
-        audio.preload = 'auto';
-        audio.volume = POT_BREAK_BASE_VOLUME;
-      });
-    }
-    return () => {
-      potBreakAudioRef.current.forEach((audio) => audio.pause());
-      respawnTimers.forEach((timerId) => {
-        window.clearTimeout(timerId);
-      });
-      respawnTimers.clear();
-    };
-  }, []);
-
-  useEffect(() => {
-    const volumeScale = clampVolume(masterVolume);
-    potBreakAudioRef.current.forEach((audio) => {
-      audio.volume = POT_BREAK_BASE_VOLUME * volumeScale;
-    });
-  }, [masterVolume]);
-
-  const handlePotPointerDown = (potId: string, event: ThreeEvent<PointerEvent>) => {
-    if (event.button !== 0) return;
-    event.stopPropagation();
-    if (brokenPotIds.has(potId)) return;
-
-    const nextAudio = potBreakAudioRef.current.length
-      ? potBreakAudioRef.current[potBreakAudioIndexRef.current % potBreakAudioRef.current.length]
-      : null;
-    potBreakAudioIndexRef.current += 1;
-    if (nextAudio) {
-      nextAudio.currentTime = 0;
-      nextAudio.playbackRate = 0.96 + Math.random() * 0.08;
-      nextAudio.play().catch(() => { });
-    }
-
-    const existingTimer = potRespawnTimersRef.current.get(potId);
-    if (existingTimer !== undefined && typeof window !== 'undefined') {
-      window.clearTimeout(existingTimer);
-    }
-
-    setBrokenPotIds((previous) => {
-      if (previous.has(potId)) return previous;
-      const next = new Set(previous);
-      next.add(potId);
-      return next;
-    });
-
-    if (typeof window !== 'undefined') {
-      const restoreTimer = window.setTimeout(() => {
-        setBrokenPotIds((previous) => {
-          if (!previous.has(potId)) return previous;
-          const next = new Set(previous);
-          next.delete(potId);
-          return next;
-        });
-        potRespawnTimersRef.current.delete(potId);
-      }, POT_RESPAWN_MS);
-      potRespawnTimersRef.current.set(potId, restoreTimer);
-    }
-  };
-
-  useFrame((state) => {
-    const elapsed = state.clock.elapsedTime;
-    for (let i = 0; i < torchVisuals.length; i += 1) {
-      const torch = torchVisuals[i];
-      const light = torchLightRefs.current[torch.id];
-      if (!light) continue;
-
-      const flicker =
-        Math.sin(elapsed * 7.4 + torch.flickerSeed) * 0.2 +
-        Math.sin(elapsed * 11.2 + torch.flickerSeed * 1.7) * 0.08;
-      light.intensity = torch.baseIntensity * (1 + flicker);
-    }
-  });
-
-  useEffect(() => {
-    setDungeonVisualLiftTiles(dungeon.walkableTiles);
-    return () => {
-      clearDungeonVisualLiftTiles();
-    };
-  }, [dungeon.walkableTiles]);
+  const { torchLightRefs } = useTorchFlicker(torchVisuals);
+  useDungeonVisualLiftSync(dungeon.walkableTiles);
 
   return (
       <group name="dungeon-world-debug-layout">
