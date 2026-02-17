@@ -17,6 +17,8 @@ export default function InteractiveCanvas() {
     openedChests,
     nearbyChestId,
     activePanel,
+    hintProgress,
+    hintToast,
     isSettingsOpen,
     isWelcomeOpen,
     handleChestOpen,
@@ -25,6 +27,7 @@ export default function InteractiveCanvas() {
     handleOpenSettings,
     handleCloseSettings,
     handleCloseWelcome,
+    handleResetHints,
   } = useDungeonInteraction();
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
   const setHasFocus = useDungeonInput((state) => state.setHasFocus);
@@ -319,11 +322,14 @@ export default function InteractiveCanvas() {
         openedChests={openedChests}
         nearbyChestId={nearbyChestId}
         activePanel={activePanel}
+        hintProgress={hintProgress}
+        hintToast={hintToast}
         isSettingsOpen={isSettingsOpen}
         isWelcomeOpen={isWelcomeOpen}
         onClosePanel={handleClosePanel}
         onCloseSettings={handleCloseSettings}
         onCloseWelcome={handleCloseWelcome}
+        onResetHints={handleResetHints}
       />
       <MobileControls
         visible={isTouchDevice}

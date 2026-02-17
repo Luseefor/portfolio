@@ -1,53 +1,63 @@
 'use client';
 
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { KeyRound, RotateCcw, ScrollText } from 'lucide-react';
 import type { ChestPOI } from '@/constants/dungeonLayout';
+import ChestContentRenderer from '@/components/interactive/dungeon/ui/chest-content/ChestContentRenderer';
+import {
+  KONAMI_HINT_FRAGMENTS,
+  getChestContentDefinition,
+} from '@/components/interactive/dungeon/ui/chest-content/registry';
+import type { HintProgressState } from '@/components/interactive/dungeon/ui/chest-content/hints';
 import { useDungeonUiTheme } from './useDungeonUiTheme';
 
 interface ChestPanelProps {
   chest: ChestPOI | null;
   onClose: () => void;
+  hintProgress: HintProgressState;
+  onResetHints: () => void;
 }
 
-export default function ChestPanel({ chest, onClose }: ChestPanelProps) {
+export default function ChestPanel({ chest, onClose, hintProgress, onResetHints }: ChestPanelProps) {
   const theme = useDungeonUiTheme();
 
-  const handleLootAction = () => {
-    if (chest?.loot?.url) {
-      window.open(chest.loot.url, '_blank', 'noopener,noreferrer');
-    }
-  };
+  const definition = chest ? getChestContentDefinition(chest.id) : null;
+  const totalSteps = KONAMI_HINT_FRAGMENTS.length;
+  const discoveredCount = hintProgress.discoveredSteps.length;
+  const expectedStep = hintProgress.nextStep;
+
+  const isHintUnlocked = chest ? hintProgress.discoveredChestIds.includes(chest.id) : false;
+  const isOutOfOrderChest =
+    definition && !isHintUnlocked ? definition.hint.step !== expectedStep : false;
 
   return (
     <AnimatePresence>
-      {chest && (
+      {chest && definition && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
+            className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[3px]"
             onClick={onClose}
           />
 
-          {/* Panel */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.94, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-            className="fixed left-1/2 top-1/2 z-50 w-[min(92vw,400px)] -translate-x-1/2 -translate-y-1/2"
+            exit={{ opacity: 0, scale: 0.96, y: 10 }}
+            transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
+            className="fixed left-1/2 top-1/2 z-50 w-[min(94vw,860px)] -translate-x-1/2 -translate-y-1/2"
           >
             <div
-              className="overflow-hidden rounded-2xl border bg-gradient-to-br from-stone-900/98 to-stone-800/98 backdrop-blur-xl"
+              className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-stone-950/98 to-stone-900/98 backdrop-blur-xl"
               style={{
                 borderColor: theme.accentBorder,
-                boxShadow: `0 0 60px ${theme.accentGlow}, inset 0 1px 0 rgba(255,255,255,0.05)`,
+                boxShadow: `0 0 70px ${theme.accentGlowStrong}, inset 0 1px 0 rgba(255,255,255,0.05)`,
               }}
             >
-              {/* Header glow */}
               <div
                 className="absolute inset-x-0 top-0 h-px"
                 style={{
@@ -55,99 +65,107 @@ export default function ChestPanel({ chest, onClose }: ChestPanelProps) {
                 }}
               />
 
-              {/* Chest icon */}
-              <div className="flex justify-center pt-6">
-                <div
-                  className="flex h-16 w-16 items-center justify-center rounded-2xl border bg-gradient-to-br shadow-[0_0_24px]"
-                  style={{
-                    borderColor: theme.accentBorder,
-                    backgroundImage: `linear-gradient(135deg, ${theme.accentBgStrong}, ${theme.accentBgSoft})`,
-                    boxShadow: `0 0 24px ${theme.accentGlow}`,
-                  }}
-                >
-                  <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 24 24" style={{ color: theme.accent }}>
-                    <path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 13c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zM10 4h4v2h-4V4z" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-6 pt-4 text-center">
-                {/* Loot type tag */}
-                <div
-                  className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1"
-                  style={{ borderColor: theme.accentBorder, backgroundColor: theme.accentBgSoft }}
-                >
-                  <div className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ backgroundColor: theme.accent }} />
-                  <span className="text-[9px] font-black uppercase tracking-[0.4em]" style={{ color: theme.accentText }}>
-                    {chest.loot?.type ?? 'Treasure'}
-                  </span>
-                </div>
-
-                {/* Title */}
-                <h2 className="mt-2 text-2xl font-black tracking-tight" style={{ color: theme.accentText }}>
-                  {chest.title}
-                </h2>
-
-                {/* Description */}
-                <p className="mt-4 text-sm leading-relaxed text-stone-400">{chest.description}</p>
-
-                {/* Divider */}
-                <div
-                  className="my-5 h-px"
-                  style={{
-                    background: `linear-gradient(90deg, transparent, ${theme.accentBorder}, transparent)`,
-                  }}
-                />
-
-                {/* Actions */}
-                <div className="flex justify-center gap-3">
-                  {chest.loot && (
-                    <button
-                      onClick={handleLootAction}
-                      className="group relative flex items-center gap-2 overflow-hidden rounded-xl border px-5 py-3 text-sm font-bold uppercase tracking-wider text-white transition-all"
+              <div className="max-h-[88vh] overflow-y-auto p-6">
+                <div className="mb-5 flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border"
                       style={{
-                        borderColor: theme.accentBorderStrong,
-                        backgroundImage: `linear-gradient(180deg, ${theme.accentBgStrong}, ${theme.accentBgSoft})`,
-                        boxShadow: `0 0 20px ${theme.accentGlow}`,
+                        borderColor: theme.accentBorder,
+                        backgroundImage: `linear-gradient(135deg, ${theme.accentBgStrong}, ${theme.accentBgSoft})`,
+                        boxShadow: `0 0 24px ${theme.accentGlow}`,
                       }}
                     >
-                      <span className="relative">{chest.loot.label}</span>
-                      <svg
-                        className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                      <ScrollText size={20} style={{ color: theme.accent }} />
+                    </div>
+                    <div>
+                      <p
+                        className="text-[10px] uppercase tracking-[0.28em] font-terminal"
+                        style={{ color: theme.accentMuted }}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M14 5l7 7m0 0l-7 7m7-7H3"
-                        />
-                      </svg>
-                    </button>
+                        {definition.subtitle}
+                      </p>
+                      <h2 className="mt-1 text-2xl font-black tracking-tight" style={{ color: theme.accentText }}>
+                        {definition.title}
+                      </h2>
+                      <p className="mt-1 text-sm text-stone-400">{chest.description}</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-right">
+                    <p className="text-[10px] uppercase tracking-[0.2em] font-terminal text-stone-400">
+                      Fragments Recovered
+                    </p>
+                    <p className="text-lg font-black" style={{ color: theme.accentText }}>
+                      {discoveredCount}/{totalSteps}
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  className="mb-5 rounded-2xl border border-white/10 bg-black/35 p-4"
+                  style={{ boxShadow: `0 0 24px ${theme.accentGlow}` }}
+                >
+                  <div className="mb-2 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.24em] font-terminal" style={{ color: theme.accentMuted }}>
+                    <KeyRound size={12} />
+                    Cipher Fragment
+                  </div>
+
+                  {isHintUnlocked ? (
+                    <p className="text-base font-black" style={{ color: theme.accentText }}>
+                      Sequence {definition.hint.step}: {definition.hint.key}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-sm text-stone-300">Encrypted. Recover prior fragment first.</p>
+                      {isOutOfOrderChest ? (
+                        <p className="mt-2 text-[11px] uppercase tracking-[0.18em] font-terminal text-amber-300/80">
+                          Required next fragment: Sequence {expectedStep}
+                        </p>
+                      ) : null}
+                    </>
                   )}
 
+                  {discoveredCount === totalSteps ? (
+                    <div className="mt-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+                      Full code recovered. Return to landing page to execute the Konami sequence.
+                    </div>
+                  ) : null}
+                </div>
+
+                <ChestContentRenderer chest={chest} definition={definition} theme={theme} />
+
+                <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:justify-between">
                   <button
-                    onClick={onClose}
-                    className="flex items-center gap-2 rounded-xl border border-stone-600/40 bg-stone-700/30 px-5 py-3 text-sm font-semibold uppercase tracking-wider text-stone-400 transition-all hover:border-stone-500/50 hover:bg-stone-600/40 hover:text-stone-300"
+                    onClick={onResetHints}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.02] px-4 py-2 text-[11px] uppercase tracking-[0.24em] font-terminal text-stone-300 transition hover:border-white/30"
                   >
-                    <span>Close</span>
-                    <kbd className="rounded border border-stone-600/50 bg-stone-700/50 px-1.5 py-0.5 text-[10px]">
-                      ESC
-                    </kbd>
+                    <RotateCcw size={12} />
+                    Reset Clues
                   </button>
+
+                  <div className="flex items-center gap-3">
+                    {discoveredCount === totalSteps ? (
+                      <Link
+                        href="/"
+                        className="inline-flex items-center justify-center rounded-xl border px-4 py-2 text-[11px] uppercase tracking-[0.24em] font-terminal"
+                        style={{ borderColor: theme.accentBorderStrong, color: theme.accentText }}
+                      >
+                        Go to Landing
+                      </Link>
+                    ) : null}
+                    <button
+                      onClick={onClose}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-stone-600/40 bg-stone-700/30 px-4 py-2 text-[11px] uppercase tracking-[0.24em] font-terminal text-stone-300 transition hover:border-stone-500/50 hover:bg-stone-600/40"
+                    >
+                      Close
+                      <kbd className="rounded border border-stone-600/50 bg-stone-700/50 px-1.5 py-0.5 text-[10px]">
+                        ESC
+                      </kbd>
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              {/* Bottom decoration */}
-              <div
-                className="absolute inset-x-0 bottom-0 h-px"
-                style={{
-                  background: `linear-gradient(90deg, transparent, ${theme.accentBorder}, transparent)`,
-                }}
-              />
             </div>
           </motion.div>
         </>

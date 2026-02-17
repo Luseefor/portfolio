@@ -4,11 +4,23 @@ import { useMemo } from 'react';
 import { useStore } from '@/utils/store';
 import { getThemeColor, hexToRgba } from '@/utils/themes';
 
+export type DungeonUiThemePalette = {
+  accent: string;
+  accentText: string;
+  accentMuted: string;
+  accentBorder: string;
+  accentBorderStrong: string;
+  accentBgSoft: string;
+  accentBgStrong: string;
+  accentGlow: string;
+  accentGlowStrong: string;
+};
+
 export function useDungeonUiTheme() {
   const currentTheme = useStore((state) => state.currentTheme);
   const isDark = useStore((state) => state.isDark);
 
-  return useMemo(() => {
+  return useMemo<DungeonUiThemePalette>(() => {
     const accent = getThemeColor(currentTheme, isDark);
     return {
       accent,
