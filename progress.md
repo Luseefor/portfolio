@@ -224,3 +224,16 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
 - TODO/Suggestions for next agent:
   - If full browser-level interactive validation is required, run headed Playwright with a custom script that does not rely on the skill client's virtual-time shim and can force click Enter on the welcome overlay.
   - Optional content polish: replace education placeholders with final real data.
+- Camera hook modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/useThirdPersonCamera.ts` into focused modules under `src/components/interactive/dungeon/third-person-camera/`:
+    - `state.ts` (runtime refs)
+    - `math.ts` (angle/damping/bounds helpers)
+    - `lookInput.ts` (mouse/touch delta + zoom input helpers)
+    - `usePointerLookControls.ts` (pointer lock + drag + wheel listener lifecycle)
+    - `collision.ts` (multi-ray collision probe + distance recovery)
+    - `runtime.ts` (per-frame camera orchestration)
+    - `types.ts`, `constants.ts`
+  - `useThirdPersonCamera.ts` reduced to orchestration-only (50 lines) with no behavioral changes.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/cameraRig.math.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
