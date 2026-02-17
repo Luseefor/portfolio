@@ -3,99 +3,69 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
-import { Group, MathUtils, PerspectiveCamera, Quaternion, Vector3, type Camera } from 'three';
+import { Group, MathUtils, Vector3 } from 'three';
 import { Suspense } from 'react';
 import PlayerCharacter, { type PlayerAnimation } from './PlayerCharacter';
+import {
+  ATTACK_COOLDOWN,
+  ATTACK_DURATION,
+  ATTACK_LUNGE_SPEED,
+  ATTACK_LUNGE_WINDOW,
+  COYOTE_TIME,
+  DASH_CAMERA_KICK,
+  DASH_COLLISION_OFFSET,
+  DASH_COOLDOWN,
+  DASH_DURATION,
+  DASH_FOV_DAMPING,
+  DASH_MAX_DISTANCE,
+  DASH_MIN_DISTANCE,
+  DASH_RAY_BUFFER,
+  GRAVITY,
+  GROUND_RAY_LENGTH,
+  GROUND_RAY_ORIGIN_OFFSET,
+  JUMP_BASE_VOLUME,
+  JUMP_BUFFER_TIME,
+  JUMP_SPEED,
+  LAND_BASE_VOLUME,
+  MAX_GROUNDED_UP_VELOCITY,
+  MIN_LAND_AIRBORNE_TIME,
+  MIN_LAND_IMPACT_SPEED,
+  MOVE_AXIS_DEADZONE,
+  MOVE_AXIS_RUN_THRESHOLD,
+  PLAYER_LIFT_DOWN_SMOOTHING,
+  PLAYER_LIFT_UP_SMOOTHING,
+  PLAYER_STATE_DIR_DOT_EPSILON,
+  PLAYER_STATE_POS_EPSILON,
+  PLAYER_STATE_PUBLISH_INTERVAL,
+  PLAYER_STATE_SPEED_EPSILON,
+  ROLL_COOLDOWN,
+  ROLL_DURATION,
+  ROLL_SPEED,
+  RUN_LOOP_BASE_VOLUME,
+  RUN_LOOP_SPEED_THRESHOLD,
+  RUN_LOOP_START_OFFSET,
+  RUN_LOOP_WRAP_EPSILON,
+  RUN_SPEED,
+  SMOOTHING,
+  START_POSITION,
+  STEP_BASE_VOLUME,
+  STEP_INTERVAL_WALK,
+  WALK_SPEED,
+  frameScratch,
+} from './player-controller/constants';
+import {
+  clampPlayerX,
+  clampPlayerZ,
+  isPerspectiveCamera,
+  safeSetAudioTime,
+} from './player-controller/helpers';
+import { createEmptyInputState } from './player-controller/types';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import { usePlayerState } from '@/lib/playerState';
 import { clampVolume, useSettings } from '@/lib/settings';
 import { getDungeonVisualLiftAt } from '@/lib/dungeonVisualLift';
-import { DUNGEON_BOUNDS } from '@/constants/dungeonBounds';
-import { DUNGEON_LAYOUT_GRAPH } from '@/constants/dungeonLayout';
 
-const WALK_SPEED = 2.4;
-const RUN_SPEED = 6.2;
-const SMOOTHING = 10;
-const JUMP_SPEED = 7.2;
-const GRAVITY = 24;
-const START_POSITION: [number, number, number] = [
-  DUNGEON_LAYOUT_GRAPH.spawnPoint[0],
-  DUNGEON_LAYOUT_GRAPH.spawnPoint[1],
-  DUNGEON_LAYOUT_GRAPH.spawnPoint[2],
-];
-const STEP_INTERVAL_WALK = 0.6;
-const PLAYER_LIFT_UP_SMOOTHING = 18;
-const PLAYER_LIFT_DOWN_SMOOTHING = 8;
-const DASH_DURATION = 0.2;
-const DASH_COOLDOWN = 0.95;
-const DASH_MAX_DISTANCE = 5.8;
-const DASH_MIN_DISTANCE = 1.6;
-const DASH_RAY_BUFFER = 0.45;
-const DASH_COLLISION_OFFSET = 0.4;
-const DASH_CAMERA_KICK = 2.25;
-const DASH_FOV_DAMPING = 14;
-const ROLL_DURATION = 0.62;
-const ROLL_SPEED = 8.4;
-const ROLL_COOLDOWN = 0.35;
-const ATTACK_DURATION = 0.38;
-const ATTACK_COOLDOWN = 0.24;
-const ATTACK_LUNGE_WINDOW = 0.14;
-const ATTACK_LUNGE_SPEED = 2.1;
-const RUN_LOOP_SPEED_THRESHOLD = WALK_SPEED * 1.35;
-const RUN_LOOP_START_OFFSET = 3;
-const RUN_LOOP_WRAP_EPSILON = 0.04;
-const MIN_LAND_IMPACT_SPEED = 2.5;
-const MIN_LAND_AIRBORNE_TIME = 0.14;
-const COYOTE_TIME = 0.24;
-const JUMP_BUFFER_TIME = 0.24;
-const GROUND_RAY_ORIGIN_OFFSET = 0.14;
-const GROUND_RAY_LENGTH = 0.62;
-const MAX_GROUNDED_UP_VELOCITY = 2.2;
-const MOVE_AXIS_DEADZONE = 0.08;
-const MOVE_AXIS_RUN_THRESHOLD = 0.78;
-const PLAYER_STATE_PUBLISH_INTERVAL = 1 / 20;
-const PLAYER_STATE_POS_EPSILON = 0.025;
-const PLAYER_STATE_SPEED_EPSILON = 0.1;
-const PLAYER_STATE_DIR_DOT_EPSILON = 0.998;
-const STEP_BASE_VOLUME = 0.35;
-const RUN_LOOP_BASE_VOLUME = 0.42;
-const JUMP_BASE_VOLUME = 0.42;
-const LAND_BASE_VOLUME = 0.48;
-
-const forward = new Vector3();
-const right = new Vector3();
-const up = new Vector3(0, 1, 0);
-const moveDir = new Vector3();
-const dashDirection = new Vector3();
-const rotation = new Quaternion();
-const bodyQuaternion = new Quaternion();
-const stateForward = new Vector3();
-
-function clampPlayerX(value: number) {
-  return Math.min(
-    DUNGEON_BOUNDS.maxX - DUNGEON_BOUNDS.playerPadding,
-    Math.max(DUNGEON_BOUNDS.minX + DUNGEON_BOUNDS.playerPadding, value),
-  );
-}
-
-function clampPlayerZ(value: number) {
-  return Math.min(
-    DUNGEON_BOUNDS.maxZ - DUNGEON_BOUNDS.playerPadding,
-    Math.max(DUNGEON_BOUNDS.minZ + DUNGEON_BOUNDS.playerPadding, value),
-  );
-}
-
-function isPerspectiveCamera(camera: Camera): camera is PerspectiveCamera {
-  return (camera as PerspectiveCamera).isPerspectiveCamera === true;
-}
-
-function safeSetAudioTime(audio: HTMLAudioElement, time: number) {
-  try {
-    audio.currentTime = Number.isFinite(time) && time > 0 ? time : 0;
-  } catch {
-    // Ignore seek failures before metadata is ready.
-  }
-}
+const { forward, right, up, moveDir, dashDirection, rotation, bodyQuaternion, stateForward } = frameScratch;
 
 export default function PlayerController({
   bodyRef,
@@ -110,17 +80,7 @@ export default function PlayerController({
   const { rapier, world } = useRapier();
   const setPlayerState = usePlayerState((state) => state._setPlayerState);
   const masterVolume = useSettings((state) => state.masterVolume);
-  const inputRef = useRef({
-    forward: false,
-    backward: false,
-    left: false,
-    right: false,
-    run: false,
-    dash: false,
-    jump: false,
-    roll: false,
-    attack: false,
-  });
+  const inputRef = useRef(createEmptyInputState());
 
   const [animation, setAnimation] = useState<PlayerAnimation>('idle');
   const groundedTimer = useRef(0);
@@ -275,17 +235,7 @@ export default function PlayerController({
     const onKeyDown = (e: KeyboardEvent) => handleKey(e, true);
     const onKeyUp = (e: KeyboardEvent) => handleKey(e, false);
     const onBlur = () => {
-      inputRef.current = {
-        forward: false,
-        backward: false,
-        left: false,
-        right: false,
-        run: false,
-        dash: false,
-        jump: false,
-        roll: false,
-        attack: false,
-      };
+      inputRef.current = createEmptyInputState();
       dashButtonPrevRef.current = false;
       dashRef.current.active = false;
       dashRef.current.timeLeft = 0;
