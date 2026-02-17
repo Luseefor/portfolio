@@ -13,10 +13,11 @@ import DungeonDebugPrimitives from './debug/DungeonDebugPrimitives';
 import { useDungeonDebugOverlayToggle } from './debug/useDungeonDebugOverlayToggle';
 import type { ChestPOI } from '@/constants/dungeonLayout';
 import { CAMERA_PITCH } from '@/constants/camera';
+import { sceneLighting } from '@/constants/scene';
 
-const FOG_COLOR = new Color('#101418');
+const FOG_COLOR = new Color(sceneLighting.fogColor);
 const BASE_BACKGROUND = '#0a0d10';
-const BASE_FOG_DENSITY = 0.0175;
+const BASE_FOG_DENSITY = sceneLighting.fogDensity;
 
 function getShadowMapSize(graphicsQuality: DungeonSceneProps['graphicsQuality']) {
   if (graphicsQuality === 'high') return 1024;
@@ -65,12 +66,16 @@ export default function DungeonScene({
       <fogExp2 attach="fog" args={[FOG_COLOR, BASE_FOG_DENSITY]} />
 
       {/* Global lighting */}
-      <ambientLight intensity={0.2} color="#cfd8df" />
-      <hemisphereLight intensity={0.35} color="#b8cad6" groundColor="#1c1d1d" />
+      <ambientLight intensity={sceneLighting.ambientIntensity} color={sceneLighting.ambientColor} />
+      <hemisphereLight
+        intensity={sceneLighting.hemisphereIntensity}
+        color={sceneLighting.hemisphereSky}
+        groundColor={sceneLighting.hemisphereGround}
+      />
       <directionalLight
-        position={[12, 18, 8]}
-        intensity={0.72}
-        color="#f8e4c7"
+        position={sceneLighting.fillDirectionalPosition}
+        intensity={sceneLighting.fillDirectionalIntensity}
+        color={sceneLighting.fillDirectionalColor}
         castShadow={shouldUseDirectionalShadows}
         shadow-mapSize-width={shadowMapSize}
         shadow-mapSize-height={shadowMapSize}
