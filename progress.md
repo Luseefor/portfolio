@@ -237,3 +237,14 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
 - Validation:
   - `npm run -s lint` ✅
   - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/cameraRig.math.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Chest system modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/ChestSystem.tsx` into focused `chest-system/` modules:
+    - `Chest.tsx`, `ChestMarker.tsx`
+    - `useChestAudio.ts`, `useChestVisuals.ts`, `useRenderedChests.ts`
+    - `placement.ts`, `proximity.ts`, `model.ts`, `constants.ts`
+  - Preserved existing runtime behavior: placement heuristics, click gating by proximity, marker pulse/bob animation, and open/close audio transitions.
+  - Reduced `ChestSystem.tsx` from 517 lines to 71 lines; all new module files are <= 150 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/dungeonLayout.render.test.tsx` ✅
