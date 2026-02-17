@@ -12,20 +12,14 @@ import {
   AMBIENT_PROP_PLACEMENT_LIMIT,
   BORDER_COLLIDER_HEIGHT_PAD,
   BORDER_COLLIDER_PAD,
-  BORDER_WALL_SOURCE_KINDS,
   CEILING_CAP_EXPAND,
   CEILING_CAP_RISE,
   CEILING_CAP_THICKNESS,
-  CEILING_CLEARANCE,
-  CEILING_EXPAND,
-  CEILING_THICKNESS,
   FLOOR_KINDS,
-  FLOOR_VISUAL_OVERHANG,
   POT_BROKEN_NODE_FALLBACKS,
   POT_INTACT_NODE_FALLBACKS,
   POT_PLACEMENT_LIMIT,
   RUINS_GLB_PATH,
-  SPAWN_BORDER_HIDE_PADDING,
   TORCH_LIGHT_DECAY,
   TORCH_MOUNT_HEIGHT,
   TORCH_PLACEMENT_LIMIT,
@@ -34,10 +28,6 @@ import {
   TORCH_WALL_FILL_BACK_OFFSET,
   TORCH_WALL_FILL_HEIGHT,
   TORCH_WALL_GLOW_SIZE,
-  WALL_BACKER_EXPAND_X,
-  WALL_BACKER_EXPAND_Y,
-  WALL_BACKER_OFFSET,
-  WALL_BACKER_THICKNESS,
 } from './dungeon-world/constants';
 import {
   ceilingCapMaterial,
@@ -48,13 +38,9 @@ import {
 import {
   ambientPropNodeCandidates,
   bushNodeCandidates,
-  ceilingNodeCandidates,
-  floorNodeCandidates,
   hashString,
   potVariantFor,
   torchNodeCandidates,
-  wallBackerNodeCandidates,
-  wallNodeCandidates,
 } from './dungeon-world/nodeCandidates';
 import {
   buildScaledFloorObject,
@@ -63,12 +49,9 @@ import {
   setObjectMaterialsDoubleSided,
   underlaySpecForFloor,
 } from './dungeon-world/floorUtils';
-import { buildBorderSegments } from './dungeon-world/borderSegments';
-import { buildVerticalBorderWalls, splitWallIntoPanels } from './dungeon-world/wallPanelSplit';
 import { floorSurfaceYAt } from './dungeon-world/floorQueries';
-import { orientWallPanelTowardInterior, resolvePropXZForPanel } from './dungeon-world/propPlacement';
+import { resolvePropXZForPanel } from './dungeon-world/propPlacement';
 import {
-  buildWallCollisionBoxes,
   findNearestWallPanel,
   moveTowardWallPanel,
   wallFacingRotationY,
@@ -77,38 +60,16 @@ import { colliderArgsFromSize, groundAlignObjectToZeroY, setTorchGlowMaterial } 
 import { usePotBreakState } from './dungeon-world/usePotBreakState';
 import { useTorchFlicker } from './dungeon-world/useTorchFlicker';
 import { useDungeonVisualLiftSync } from './dungeon-world/useDungeonVisualLiftSync';
-import type {
-  AmbientPropVisual,
-  BorderSegment,
-  BushVisual,
-  CeilingVisual,
-  FloorVisual,
-  PotVisual,
-  TorchVisual,
-  WallBackerVisual,
-  WallVisual,
-} from './dungeon-world/types';
+import { useFloorCeilingVisuals } from './dungeon-world/useFloorCeilingVisuals';
+import { useWallPanelLayout } from './dungeon-world/useWallPanelLayout';
+import { useWallVisuals } from './dungeon-world/useWallVisuals';
+import type { AmbientPropVisual, BushVisual, PotVisual, TorchVisual } from './dungeon-world/types';
 import { DUNGEON_LAYOUT_GRAPH } from '@/constants/dungeonLayout';
 import {
   buildDungeon,
 } from '@/game/dungeon/buildDungeon';
 import { createSafeNodeResolver } from '@/game/dungeon/utils';
 import { useSettings } from '@/lib/settings';
-
-function isSegmentInsideSpawnCutout(segment: BorderSegment) {
-  const spawn = DUNGEON_LAYOUT_GRAPH.spawnPlatform;
-  const minX = spawn.center[0] - spawn.size.width * 0.5 - SPAWN_BORDER_HIDE_PADDING;
-  const maxX = spawn.center[0] + spawn.size.width * 0.5 + SPAWN_BORDER_HIDE_PADDING;
-  const minZ = spawn.center[2] - spawn.size.depth * 0.5 - SPAWN_BORDER_HIDE_PADDING;
-  const maxZ = spawn.center[2] + spawn.size.depth * 0.5 + SPAWN_BORDER_HIDE_PADDING;
-
-  return (
-    segment.position[0] >= minX &&
-    segment.position[0] <= maxX &&
-    segment.position[2] >= minZ &&
-    segment.position[2] <= maxZ
-  );
-}
 
 export default function DungeonWorld() {
   const masterVolume = useSettings((state) => state.masterVolume);
@@ -129,177 +90,14 @@ export default function DungeonWorld() {
     [dungeon.pieces],
   );
 
-  const floorVisuals = useMemo<FloorVisual[]>(() => {
-    return floorPieces.map((piece) => {
-      const nodeCandidates = floorNodeCandidates(piece);
-      const sourceNode = resolveNode(nodeCandidates[0], nodeCandidates.slice(1), `floor:${piece.id}`);
-      if (!sourceNode) {
-        return { piece, object: null };
-      }
-
-      const floorObject = buildScaledFloorObject(sourceNode, [
-        piece.size[0] + FLOOR_VISUAL_OVERHANG,
-        piece.size[1],
-        piece.size[2] + FLOOR_VISUAL_OVERHANG,
-      ]);
-      if (!floorObject) {
-        return { piece, object: null };
-      }
-
-      return { piece, object: floorObject };
-    });
-  }, [floorPieces, resolveNode]);
-
-  const ceilingVisuals = useMemo<CeilingVisual[]>(() => {
-    return floorPieces.map((piece) => {
-      const nodeCandidates = ceilingNodeCandidates(piece);
-      const sourceNode = resolveNode(nodeCandidates[0], nodeCandidates.slice(1), `ceiling:${piece.id}`);
-      const size: [number, number, number] = [
-        piece.size[0] + CEILING_EXPAND,
-        CEILING_THICKNESS,
-        piece.size[2] + CEILING_EXPAND,
-      ];
-      const position: [number, number, number] = [
-        piece.position[0],
-        piece.position[1] + piece.size[1] * 0.5 + CEILING_CLEARANCE,
-        piece.position[2],
-      ];
-
-      if (!sourceNode) {
-        return {
-          id: `ceiling-${piece.id}`,
-          position,
-          size,
-          rotationY: piece.rotationY,
-          object: null,
-        };
-      }
-
-      const object = buildScaledFloorObject(sourceNode, size);
-      if (!object) {
-        return {
-          id: `ceiling-${piece.id}`,
-          position,
-          size,
-          rotationY: piece.rotationY,
-          object: null,
-        };
-      }
-
-      setObjectMaterialsDoubleSided(object);
-
-      return {
-        id: `ceiling-${piece.id}`,
-        position,
-        size,
-        rotationY: piece.rotationY,
-        object,
-      };
-    });
-  }, [floorPieces, resolveNode]);
-
-  const floorIds = useMemo(() => new Set(floorPieces.map((piece) => piece.id)), [floorPieces]);
-
-  const floorColliders = useMemo(
-    () => dungeon.colliders.filter((collider) => floorIds.has(collider.id)),
-    [dungeon.colliders, floorIds],
+  const { floorVisuals, ceilingVisuals, floorColliders } = useFloorCeilingVisuals(
+    floorPieces,
+    resolveNode,
+    dungeon.colliders,
   );
 
-  const borderWallSegments = useMemo(
-    () => buildBorderSegments(dungeon.pieces.filter((piece) => BORDER_WALL_SOURCE_KINDS.has(piece.kind))),
-    [dungeon.pieces],
-  );
-
-  const borderWallsRaw = useMemo(
-    () => buildVerticalBorderWalls(borderWallSegments),
-    [borderWallSegments],
-  );
-
-  const borderWalls = useMemo(
-    () => borderWallsRaw.filter((wall) => !isSegmentInsideSpawnCutout(wall)),
-    [borderWallsRaw],
-  );
-
-  const wallPanels = useMemo(
-    () =>
-      borderWalls
-        .flatMap((wall) => splitWallIntoPanels(wall))
-        .map((panel) => orientWallPanelTowardInterior(panel, floorPieces)),
-    [borderWalls, floorPieces],
-  );
-
-  const wallVisuals = useMemo<WallVisual[]>(
-    () =>
-      wallPanels.map((panel) => {
-        const candidates = wallNodeCandidates(panel.id);
-        const sourceNode = resolveNode(candidates[0], candidates.slice(1), `wall:${panel.id}`);
-        if (!sourceNode) {
-          return { ...panel, object: null };
-        }
-
-        const object = buildScaledFloorObject(sourceNode, panel.size);
-        if (!object) {
-          return { ...panel, object: null };
-        }
-
-        setObjectMaterialsDoubleSided(object);
-        return { ...panel, object };
-      }),
-    [resolveNode, wallPanels],
-  );
-
-  const wallCollisionBoxes = useMemo(() => buildWallCollisionBoxes(wallPanels), [wallPanels]);
-
-  const wallBackers = useMemo<WallBackerVisual[]>(
-    () =>
-      wallPanels.map((panel) => {
-        const candidates = wallBackerNodeCandidates(panel.id);
-        const sourceNode = resolveNode(candidates[0], candidates.slice(1), `wall-backer:${panel.id}`);
-        const size: [number, number, number] = [
-          panel.size[0] + WALL_BACKER_EXPAND_X,
-          panel.size[1] + WALL_BACKER_EXPAND_Y,
-          WALL_BACKER_THICKNESS,
-        ];
-        const normalX = Math.sin(panel.rotationY);
-        const normalZ = Math.cos(panel.rotationY);
-        const position: [number, number, number] = [
-          panel.position[0] - normalX * WALL_BACKER_OFFSET,
-          panel.position[1],
-          panel.position[2] - normalZ * WALL_BACKER_OFFSET,
-        ];
-
-        if (!sourceNode) {
-          return {
-            id: `backer-${panel.id}`,
-            position,
-            size,
-            rotationY: panel.rotationY,
-            object: null,
-          };
-        }
-
-        const object = buildScaledFloorObject(sourceNode, size);
-        if (!object) {
-          return {
-            id: `backer-${panel.id}`,
-            position,
-            size,
-            rotationY: panel.rotationY,
-            object: null,
-          };
-        }
-
-        setObjectMaterialsDoubleSided(object);
-        return {
-          id: `backer-${panel.id}`,
-          position,
-          size,
-          rotationY: panel.rotationY,
-          object,
-        };
-      }),
-    [resolveNode, wallPanels],
-  );
+  const { borderWalls, wallPanels } = useWallPanelLayout(dungeon.pieces, floorPieces);
+  const { wallVisuals, wallBackers, wallCollisionBoxes } = useWallVisuals(wallPanels, resolveNode);
 
   const bushVisuals = useMemo<BushVisual[]>(() => {
     const bushes: BushVisual[] = [];
