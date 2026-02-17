@@ -2,23 +2,22 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Github, Linkedin, Instagram, Mail } from 'lucide-react';
+import { Send, Github, Linkedin, Mail } from 'lucide-react';
 import { useStore } from '@/utils/store';
 import { getThemeColor, hexToRgba } from '@/utils/themes';
 import dynamic from 'next/dynamic';
+import { PORTFOLIO_CONTENT } from './portfolio-template';
 
 const FuturisticCard = dynamic(() => import('./FuturisticCard'), { ssr: false });
 const LiquidGlassButton = dynamic(() => import('@/components/shared/ui/LiquidGlassButton'), {
   ssr: false,
 });
-const PORTFOLIO_CONTENT = {
-  contact: {
-    email: 'ghimirerijan199@gmail.com',
-    github: 'https://github.com/Luseefor',
-    linkedin: 'https://www.linkedin.com/in/rijan-ghimire-37ba4a2b0/',
-    instagram: 'https://www.instagram.com/rijanghimire1/',
-  },
-};
+
+const SOCIAL_ICON_BY_KIND = {
+  github: Github,
+  linkedin: Linkedin,
+  email: Mail,
+} as const;
 
 export default function ContactSection() {
   const { currentTheme, isDark } = useStore();
@@ -33,7 +32,7 @@ export default function ContactSection() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatus(' transmitting...');
+    setStatus('Transmitting...');
 
     try {
       const response = await fetch('/api/contact', {
@@ -45,14 +44,13 @@ export default function ContactSection() {
       if (response.ok) {
         setStatus('Signal Received');
         setFormData({ name: '', email: '', message: '' });
-        setTimeout(() => setStatus('Transmit Signal'), 3000);
       } else {
         setStatus('Transmission Failed');
-        setTimeout(() => setStatus('Transmit Signal'), 3000);
       }
     } catch (error) {
       console.error('Transmission Error:', error);
       setStatus('Connection Error');
+    } finally {
       setTimeout(() => setStatus('Transmit Signal'), 3000);
     }
   };
@@ -61,12 +59,7 @@ export default function ContactSection() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const socialLinks = [
-    { icon: Github, href: PORTFOLIO_CONTENT.contact.github },
-    { icon: Linkedin, href: PORTFOLIO_CONTENT.contact.linkedin },
-    { icon: Instagram, href: PORTFOLIO_CONTENT.contact.instagram },
-    { icon: Mail, href: `mailto:${PORTFOLIO_CONTENT.contact.email}` },
-  ];
+  const socialLinks = PORTFOLIO_CONTENT.socials.links;
 
   return (
     <section id="contact" className="relative py-32 px-6 md:px-12 max-w-4xl mx-auto text-center">
@@ -75,7 +68,6 @@ export default function ContactSection() {
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
       >
-        {/* Header */}
         <div className="mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div
@@ -105,7 +97,7 @@ export default function ContactSection() {
               isDark ? 'text-slate-200' : 'text-slate-600'
             }`}
           >
-            Ready to upgrade your digital infrastructure? establishing direct uplink...
+            Ready to upgrade your digital infrastructure? Establishing direct uplink...
           </p>
         </div>
 
@@ -128,13 +120,6 @@ export default function ContactSection() {
                       ? 'bg-white/5 border border-white/10 text-white placeholder:text-slate-600'
                       : 'bg-white border border-black/10 text-slate-900 placeholder:text-slate-400'
                   }`}
-                  style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.12)' }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = themeColor)}
-                  onBlur={(e) =>
-                    (e.currentTarget.style.borderColor = isDark
-                      ? 'rgba(255,255,255,0.1)'
-                      : 'rgba(15,23,42,0.12)')
-                  }
                 />
               </div>
               <div className="space-y-2">
@@ -153,13 +138,6 @@ export default function ContactSection() {
                       ? 'bg-white/5 border border-white/10 text-white placeholder:text-slate-600'
                       : 'bg-white border border-black/10 text-slate-900 placeholder:text-slate-400'
                   }`}
-                  style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.12)' }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = themeColor)}
-                  onBlur={(e) =>
-                    (e.currentTarget.style.borderColor = isDark
-                      ? 'rgba(255,255,255,0.1)'
-                      : 'rgba(15,23,42,0.12)')
-                  }
                 />
               </div>
             </div>
@@ -180,13 +158,6 @@ export default function ContactSection() {
                     ? 'bg-white/5 border border-white/10 text-white placeholder:text-slate-600'
                     : 'bg-white border border-black/10 text-slate-900 placeholder:text-slate-400'
                 }`}
-                style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.12)' }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = themeColor)}
-                onBlur={(e) =>
-                  (e.currentTarget.style.borderColor = isDark
-                    ? 'rgba(255,255,255,0.1)'
-                    : 'rgba(15,23,42,0.12)')
-                }
               />
             </div>
 
@@ -196,26 +167,31 @@ export default function ContactSection() {
           </form>
         </FuturisticCard>
 
-        {/* Social Footer */}
         <div className="flex justify-center gap-6 mt-16">
-          {socialLinks.map((item, i) => (
-            <motion.a
-              key={i}
-              href={item.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              whileHover={{ y: -5, color: themeColor }}
-              className={`transition-colors p-2 ${
-                isDark ? 'text-slate-500 hover:text-white' : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              <item.icon size={24} />
-            </motion.a>
-          ))}
+          {socialLinks.map((item, i) => {
+            const Icon = SOCIAL_ICON_BY_KIND[item.kind];
+            return (
+              <motion.a
+                key={i}
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ y: -5, color: themeColor }}
+                className={`transition-colors p-2 ${
+                  isDark ? 'text-slate-500 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <Icon size={24} />
+              </motion.a>
+            );
+          })}
         </div>
 
-        {/* Copyright */}
-        <div className={`mt-12 text-xs font-mono uppercase tracking-widest ${isDark ? 'text-slate-600' : 'text-slate-500'}`}>
+        <div
+          className={`mt-12 text-xs font-mono uppercase tracking-widest ${
+            isDark ? 'text-slate-600' : 'text-slate-500'
+          }`}
+        >
           <p>
             &copy; {new Date().getFullYear()} Rijan Ghimire.{' '}
             <span className="hidden md:inline">All rights reserved.</span>

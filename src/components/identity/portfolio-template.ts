@@ -1,5 +1,12 @@
+export type ServiceIconKey = 'globe' | 'cpu' | 'server';
+
+export type SocialLink = {
+  label: string;
+  url: string;
+  kind: 'github' | 'linkedin' | 'email';
+};
+
 export const PORTFOLIO_CONTENT = {
-  // Basic Identity
   hero: {
     greeting: 'Hello, I am',
     title: 'Rijan Ghimire',
@@ -9,7 +16,6 @@ export const PORTFOLIO_CONTENT = {
     status: 'Available',
   },
 
-  // About Section
   about: {
     title: '01 // ABOUT',
     description:
@@ -19,9 +25,30 @@ export const PORTFOLIO_CONTENT = {
       { label: 'Projects', value: '10+' },
       { label: 'Domain', value: 'AI / HW' },
     ],
+    highlights: [
+      'Systems that ship fast and scale cleanly.',
+      'Focused on reliability, performance, and measurable outcomes.',
+    ],
   },
 
-  // Experience
+  education: {
+    title: '03 // EDUCATION',
+    items: [
+      {
+        institution: 'Institution Placeholder',
+        degree: 'B.S. in Computer Science (Update)',
+        period: '2022 - Present',
+        notes: 'Replace with your exact institution and degree details.',
+      },
+      {
+        institution: 'School Placeholder',
+        degree: 'Secondary Education (Update)',
+        period: '2018 - 2022',
+        notes: 'Replace with your exact school and track details.',
+      },
+    ],
+  },
+
   experience: {
     title: '02 // EXPERIENCE',
     items: [
@@ -42,9 +69,8 @@ export const PORTFOLIO_CONTENT = {
     ],
   },
 
-  // Projects
   projects: {
-    title: '03 // WORKS',
+    title: '04 // WORKS',
     categories: [
       {
         name: 'Full Stack',
@@ -84,18 +110,73 @@ export const PORTFOLIO_CONTENT = {
     ],
   },
 
-  // Tech Stack
+  services: {
+    title: '05 // SERVICES',
+    items: [
+      {
+        id: 'SYS-01',
+        title: 'Product + Platform',
+        desc: 'I build full-stack systems that feel fast, stay reliable, and scale without drama.',
+        icon: 'globe' as ServiceIconKey,
+      },
+      {
+        id: 'SYS-02',
+        title: 'Data + AI Systems',
+        desc: 'RAG, evals, pipelines, and pragmatic ML that ships to production and stays measurable.',
+        icon: 'cpu' as ServiceIconKey,
+      },
+      {
+        id: 'SYS-03',
+        title: 'Infrastructure + Reliability',
+        desc: 'APIs, observability, performance tuning, and secure architecture that holds up in the wild.',
+        icon: 'server' as ServiceIconKey,
+      },
+    ],
+  },
+
   stack: {
-    title: '04 // STACK',
+    title: '06 // STACK',
     technologies: ['C++', 'Python', 'Rust', 'Next.js', 'React', 'PyTorch', 'CUDA', 'IoT'],
   },
 
-  // Contact
+  activity: {
+    title: '07 // ENGINEERING ACTIVITY',
+    focusAreas: ['Commits', 'Active days', 'Repo velocity', 'Public code signals'],
+  },
+
+  resume: {
+    title: '08 // RESUME',
+    summary: 'Open the latest resume packet for role-ready details and project highlights.',
+    url: '/My Resume - Main.pdf',
+    bullets: [
+      'Systems engineering and full-stack delivery highlights.',
+      'Architecture, reliability, and measurable impact outcomes.',
+      'Current role timeline and technical execution scope.',
+    ],
+  },
+
   contact: {
-    title: '05 // CONTACT',
+    title: '09 // CONTACT',
     email: 'ghimirerijan199@gmail.com',
-    github: 'github.com/Luseefor',
-    twitter: '@Luseefor',
+    github: 'https://github.com/Luseefor',
+    linkedin: 'https://www.linkedin.com/in/rijan-ghimire-37ba4a2b0/',
     cta: "Let's build the future.",
+  },
+
+  socials: {
+    title: '10 // SOCIALS',
+    links: [
+      { label: 'GitHub', url: 'https://github.com/Luseefor', kind: 'github' as const },
+      {
+        label: 'LinkedIn',
+        url: 'https://www.linkedin.com/in/rijan-ghimire-37ba4a2b0/',
+        kind: 'linkedin' as const,
+      },
+      {
+        label: 'Email',
+        url: 'mailto:ghimirerijan199@gmail.com',
+        kind: 'email' as const,
+      },
+    ] as SocialLink[],
   },
 };
