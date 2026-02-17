@@ -62,6 +62,7 @@ import {
   resolvePlayerAnimation,
   shouldPublishPlayerSnapshot,
 } from './player-controller/state';
+import { usePlayerControllerInput } from './player-controller/usePlayerControllerInput';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import { usePlayerState } from '@/lib/playerState';
 import { clampVolume, useSettings } from '@/lib/settings';
@@ -189,74 +190,20 @@ export default function PlayerController({
     };
   }, [camera]);
 
-  useEffect(() => {
-    const handleKey = (event: KeyboardEvent, pressed: boolean) => {
-      switch (event.code) {
-        case 'KeyW':
-        case 'ArrowUp':
-          inputRef.current.forward = pressed;
-          break;
-        case 'KeyS':
-        case 'ArrowDown':
-          inputRef.current.backward = pressed;
-          break;
-        case 'KeyA':
-        case 'ArrowLeft':
-          inputRef.current.left = pressed;
-          break;
-        case 'KeyD':
-        case 'ArrowRight':
-          inputRef.current.right = pressed;
-          break;
-        case 'ShiftLeft':
-        case 'ShiftRight':
-          inputRef.current.run = pressed;
-          break;
-        case 'KeyQ':
-          inputRef.current.dash = pressed;
-          break;
-        case 'Space':
-          inputRef.current.jump = pressed;
-          break;
-        case 'KeyC':
-          inputRef.current.roll = pressed;
-          break;
-        case 'KeyR':
-          inputRef.current.attack = pressed;
-          break;
-      }
-    };
-
-    const onKeyDown = (e: KeyboardEvent) => handleKey(e, true);
-    const onKeyUp = (e: KeyboardEvent) => handleKey(e, false);
-    const onBlur = () => {
-      inputRef.current = createEmptyInputState();
-      dashButtonPrevRef.current = false;
-      dashRef.current.active = false;
-      dashRef.current.timeLeft = 0;
-      jumpButtonHeldRef.current = false;
-      rollButtonHeldRef.current = false;
-      attackButtonHeldRef.current = false;
-      rollCooldownRef.current = 0;
-      attackTimerRef.current = 0;
-      attackCooldownRef.current = 0;
-      jumpBuffer.current = Number.POSITIVE_INFINITY;
-      groundedTimer.current = 1;
-      if (runningLoopAudioRef.current) {
-        runningLoopAudioRef.current.pause();
-        safeSetAudioTime(runningLoopAudioRef.current, 0);
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('blur', onBlur);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-      window.removeEventListener('blur', onBlur);
-    };
-  }, []);
+  usePlayerControllerInput({
+    inputRef,
+    dashButtonPrevRef,
+    dashRef,
+    jumpButtonHeldRef,
+    rollButtonHeldRef,
+    attackButtonHeldRef,
+    rollCooldownRef,
+    attackTimerRef,
+    attackCooldownRef,
+    jumpBuffer,
+    groundedTimer,
+    runningLoopAudioRef,
+  });
 
   useFrame((_, delta) => {
     const body = rigidBodyRef.current;
