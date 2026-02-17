@@ -101,4 +101,39 @@ describe('pointer lock + focus integration', () => {
     fireEvent.blur(canvas);
     expect(useDungeonInput.getState().hasFocus).toBe(false);
   });
+
+  it('recovers pointer lock after ESC-style unlock', () => {
+    const { getByTestId } = render(<InteractiveCanvas />);
+    const canvas = getByTestId('r3f-canvas') as HTMLCanvasElement;
+    const pointerCanvas = canvas as HTMLCanvasElement & { requestPointerLock: () => void };
+    const requestSpy = vi.fn();
+    pointerCanvas.requestPointerLock = requestSpy;
+
+    pointerLockElement = canvas;
+    document.dispatchEvent(new Event('pointerlockchange'));
+    expect(useDungeonInput.getState().isPointerLocked).toBe(true);
+
+    pointerLockElement = null;
+    document.dispatchEvent(new Event('pointerlockchange'));
+    expect(useDungeonInput.getState().isPointerLocked).toBe(false);
+
+    fireEvent.mouseDown(canvas, { button: 0 });
+    expect(requestSpy).toHaveBeenCalledTimes(1);
+
+    pointerLockElement = canvas;
+    document.dispatchEvent(new Event('pointerlockchange'));
+    expect(useDungeonInput.getState().isPointerLocked).toBe(true);
+  });
+
+  it('clears pointer lock state when pointerlockerror is raised', () => {
+    const { getByTestId } = render(<InteractiveCanvas />);
+    const canvas = getByTestId('r3f-canvas') as HTMLCanvasElement;
+
+    pointerLockElement = canvas;
+    document.dispatchEvent(new Event('pointerlockchange'));
+    expect(useDungeonInput.getState().isPointerLocked).toBe(true);
+
+    document.dispatchEvent(new Event('pointerlockerror'));
+    expect(useDungeonInput.getState().isPointerLocked).toBe(false);
+  });
 });

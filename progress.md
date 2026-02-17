@@ -202,3 +202,191 @@ Original prompt: Refactor the entire camera system to behave like a modern MMORP
 - TODO/Suggestions for next agent:
   - If precise visual QA is required, install matching Playwright browser binary (`npx playwright install chromium`) and run DOM-level scenario validation against `data-testid="activity-legend-trigger"`.
   - Consider capping return-particle count when activity density is extremely high to avoid heavy burst workloads on low-end devices.
+- Interactive chest overhaul pass (10 unique identity panels + strict Konami hint hunt):
+  - Added shared chest content system under `src/components/interactive/dungeon/ui/chest-content/` with deterministic 10-chest mapping and ordered `KONAMI_HINT_FRAGMENTS`.
+  - Added panel variants for: About, Experience, Education, Projects, Skills, Services, Engineering Activity, Resume, Contact, Social Links.
+  - Added persisted hint progression (`interactiveKonamiHintProgressV1`) with strict order enforcement, reset action, and completion state.
+  - Upgraded `ChestPanel` to render per-chest variant content + Cipher Fragment status + global fragment progress + landing-page completion CTA.
+  - Wired `DungeonInteractionManager` and `InteractiveCanvas` for hint progression persistence, toasts, and reset plumbing.
+  - Refactored identity shared content registry and updated identity `ServicesSection` + `ContactSection` to consume shared content.
+  - Added tests:
+    - `src/components/interactive/dungeon/__tests__/chestHints.test.ts` (strict-order progression paths)
+    - `src/components/interactive/dungeon/__tests__/chestRegistry.test.ts` (10-step mapping contract + uniqueness)
+- Validation:
+  - `npm -C /Users/lucifer/portfolio run lint` ✅
+  - `npm -C /Users/lucifer/portfolio run test -- --run` ✅ (30 tests)
+  - `npm -C /Users/lucifer/portfolio run build` ✅
+- Web-game skill loop notes:
+  - Ran the Playwright client workflow from local copy due module resolution of `playwright` from skill directory path.
+  - Artifact generated: `output/web-game/shot-0.png` (welcome overlay rendered).
+  - First captured browser error file: `output/web-game/errors-0.json` (`ERR_CONNECTION_REFUSED` resource fetch in run context).
+  - Interactive scene currently causes the skill client to hang in its virtual-time choreography loop after initial launch; process had to be terminated in this environment.
+- TODO/Suggestions for next agent:
+  - If full browser-level interactive validation is required, run headed Playwright with a custom script that does not rely on the skill client's virtual-time shim and can force click Enter on the welcome overlay.
+  - Optional content polish: replace education placeholders with final real data.
+- Camera hook modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/useThirdPersonCamera.ts` into focused modules under `src/components/interactive/dungeon/third-person-camera/`:
+    - `state.ts` (runtime refs)
+    - `math.ts` (angle/damping/bounds helpers)
+    - `lookInput.ts` (mouse/touch delta + zoom input helpers)
+    - `usePointerLookControls.ts` (pointer lock + drag + wheel listener lifecycle)
+    - `collision.ts` (multi-ray collision probe + distance recovery)
+    - `runtime.ts` (per-frame camera orchestration)
+    - `types.ts`, `constants.ts`
+  - `useThirdPersonCamera.ts` reduced to orchestration-only (50 lines) with no behavioral changes.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/cameraRig.math.test.ts src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Chest system modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/ChestSystem.tsx` into focused `chest-system/` modules:
+    - `Chest.tsx`, `ChestMarker.tsx`
+    - `useChestAudio.ts`, `useChestVisuals.ts`, `useRenderedChests.ts`
+    - `placement.ts`, `proximity.ts`, `model.ts`, `constants.ts`
+  - Preserved existing runtime behavior: placement heuristics, click gating by proximity, marker pulse/bob animation, and open/close audio transitions.
+  - Reduced `ChestSystem.tsx` from 517 lines to 71 lines; all new module files are <= 150 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/dungeonLayout.render.test.tsx` ✅
+- Interaction manager modularization pass (file-size cleanup):
+  - Replaced `src/components/interactive/dungeon/DungeonInteractionManager.tsx` implementation with a compatibility export facade.
+  - Moved functionality into `src/components/interactive/dungeon/dungeon-interaction/` modules:
+    - `DungeonUI.tsx`, `HintToast.tsx`
+    - `useDungeonInteraction.ts`
+    - `useDungeonInteractionKeyboard.ts`
+    - `useDungeonUiAudio.ts`
+    - `useHintProgressState.ts`
+  - Preserved behavior for: chest open flow, hint fragment progression/toasts, settings/welcome/panel key handling, and mute toggle semantics.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts` ✅
+- HUD modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/ui/DungeonHUD.tsx` into `ui/dungeon-hud/` modules:
+    - minimap: `MinimapPanel.tsx`, `MinimapGrid.tsx`, `MinimapRoomsRoutesLayer.tsx`, `MinimapChestsLayer.tsx`, `MinimapPlayerLayer.tsx`, `constants.ts`
+    - desktop overlays: `ProgressPanel.tsx`, `ControlsHintPanel.tsx`, `MovementStatusPanel.tsx`, `DesktopHudOverlays.tsx`
+  - Preserved minimap rendering (rooms/routes/chests/player cone), legend, desktop stats, movement indicators, and touch-device gating.
+  - Reduced `DungeonHUD.tsx` from 391 lines to 47 lines; all new module files are <= 150 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts` ✅
+- Mobile controls modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/ui/MobileControls.tsx` into `ui/mobile-controls/` modules:
+    - hooks: `useMobileJoystick.ts`, `useMobileLookPad.ts`
+    - UI: `MobileSettingsButton.tsx`, `MobileJoystick.tsx`, `MobileLookPad.tsx`, `MobileActionButtons.tsx`
+    - shared: `constants.ts`, `math.ts`
+  - Preserved joystick deadzone/run-threshold behavior, pointer-id guards/capture, look-pad drag thresholds, action pulse timing, visibility/blocked reset behavior, and cleanup semantics.
+  - Reduced `MobileControls.tsx` from 335 lines to 63 lines; all new module files are <= 150 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts` ✅
+- Settings menu modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/ui/DungeonSettingsMenu.tsx` into `ui/settings-menu/` modules:
+    - `useLocalDungeonSettings.ts`
+    - `SettingsHeader.tsx`, `SettingsPanelContent.tsx`, `SettingsFooter.tsx`
+    - `QualitySetting.tsx`, `RangeSetting.tsx`, `constants.ts`
+  - Preserved settings behavior: local-store sync, graphics/volume/sensitivity/exposure updates, ESC close, modal backdrop close, and footer/home action.
+  - Reduced `DungeonSettingsMenu.tsx` from 329 lines to 70 lines; all new module files are <= 150 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/dungeonLayout.render.test.tsx` ✅
+- Interactive canvas modularization pass (file-size cleanup):
+  - Split `src/components/interactive/InteractiveCanvas.tsx` into focused hooks under `src/components/interactive/interactive-canvas/`:
+    - `config.ts`
+    - `useDetectTouchMode.ts`, `useDisablePointerLockOnTouch.ts`
+    - `useCanvasPointerEvents.ts`, `useCanvasFocusOnKey.ts`
+    - `useKeyboardMovement.ts`, `usePointerLockSync.ts`
+    - `useRendererSettings.ts`
+  - Preserved pointer-lock flow, right-click unlock handling, keyboard movement mapping/reset, touch-device detection, renderer quality/exposure syncing, and existing UI/chest/mobile wiring.
+  - Reduced `InteractiveCanvas.tsx` from 344 lines to 135 lines; all new module files are <= 150 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/dungeonLayout.render.test.tsx` ✅
+- Dungeon particles modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/DungeonParticles.tsx` into `dungeon-particles/` components:
+    - `DustMotes.tsx`, `EmberSparkEmitter.tsx`, `EmberSystem.tsx`
+  - Kept existing exports (`DustMotes`, `EmberSystem`) and preserved particle behavior.
+- Chest panel modularization pass (file-size cleanup):
+  - Split `src/components/interactive/dungeon/ui/ChestPanel.tsx` into `ui/chest-panel/` sections:
+    - `ChestPanelHeader.tsx`, `HintFragmentCard.tsx`, `ChestPanelFooter.tsx`
+  - Preserved hint unlock/out-of-order messaging, fragment progress, and footer actions.
+- Dungeon layout modularization pass (file-size cleanup):
+  - Moved primitive geometry/material/key classification logic from `DungeonLayout.tsx` to `dungeon-layout/primitives.ts`.
+  - Reduced `DungeonLayout.tsx` to 74 lines while preserving floor/wall/column/prop rendering behavior.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/dungeonLayout.render.test.tsx src/components/interactive/dungeon/__tests__/pointerLock.test.tsx src/components/interactive/dungeon/__tests__/mobileControls.test.tsx src/components/interactive/dungeon/__tests__/chestHints.test.ts src/components/interactive/dungeon/__tests__/chestRegistry.test.ts src/components/interactive/dungeon/__tests__/movement.math.test.ts src/components/interactive/dungeon/__tests__/animationState.test.ts` ✅
+- Status:
+  - All files under `src/components/interactive` are now <= 150 lines.
+- Home UI modularization pass (file-size cleanup):
+  - Split `src/components/home/ThemeDropdown.tsx` into `home/theme-dropdown/` modules:
+    - `ThemeDropdownTrigger.tsx`, `ThemeDropdownMenu.tsx`, `types.ts`
+  - Split `src/components/home/GlassCard.tsx` into `home/glass-card/` modules:
+    - `Magnetic.tsx`, `useCardTilt.ts`, `GlassCardHeader.tsx`, `GlassCardFooter.tsx`
+  - Preserved hover/tilt/magnetic interactions, appearance toggles, accent selection, and Konami-mode controls.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Identity contact modularization pass (file-size cleanup):
+  - Split `src/components/identity/ContactSection.tsx` helpers into `identity/contact-section/`:
+    - `useContactForm.ts`
+    - `ContactSocialLinks.tsx`
+  - Preserved submit/status flow (`Transmit Signal` lifecycle), form reset behavior, and social/footer rendering.
+  - Reduced `ContactSection.tsx` from 203 lines to 139 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Identity project modal modularization pass (file-size cleanup):
+  - Split `src/components/identity/ProjectDetailsModal.tsx` body content into `identity/project-details/ProjectDetailsBody.tsx`.
+  - Added shared type in `identity/project-details/types.ts`.
+  - Preserved modal shell/backdrop animation, close behavior, and project details content/actions.
+  - Reduced `ProjectDetailsModal.tsx` from 186 lines to 93 lines.
+- Validation:
+  - `npm run -s lint` ✅
+  - `npm run -s test -- src/components/interactive/dungeon/__tests__/pointerLock.test.tsx` ✅
+- Emergency dungeon recovery completion pass (2026-02-17):
+  - Added F1 debug overlay toggle with visible ground/grid/axes/origin-cube + strong debug light.
+    - Commit: `chore: add debug overlay toggles`
+  - Restored render diagnostics and fallback behavior:
+    - explicit missing-node warnings (`Missing node: <key> <available-keys>`),
+    - layout-empty warnings,
+    - origin probe mesh fallback when renderable visuals are unresolved.
+    - Commit: `fix: dungeon render pipeline restored`
+  - Stabilized camera/mouse lifecycle:
+    - CameraRig mount order now follows player body setup,
+    - pointer-lock change/error handling hardened,
+    - pointer drag state reset on lock changes,
+    - pointer lock ESC/re-enter test coverage added.
+    - Commit: `fix: camera rig follow + mouse look`
+  - Baseline lighting readability pass:
+    - centralized DungeonScene fog/ambient/hemisphere/directional from `sceneLighting` constants,
+    - tuned fog/light intensities + exposure baseline.
+    - Commit: `fix: scene lighting baseline`
+
+- Additional completion commits:
+  - Added guaranteed minimal dungeon fallback definitions near origin:
+    - `DUNGEON_LAYOUT_MINIMAL`
+    - `DUNGEON_LAYOUT_GRAPH_MINIMAL`
+    - wired fallback use in `DungeonWorld` when primary build returns zero pieces.
+    - Commit: `feat: minimal verified dungeon layout`
+  - Restored strict type correctness in research validation patch enum parsing.
+    - Commit: `fix: restore research validation typing`
+  - Added extreme-case validation tests (input/render/perf hot-paths).
+    - Commit: `test: validated extreme input, camera, physics, and render cases`
+
+- Mandatory suite execution summary (automated):
+  - `npm run -s lint` ✅
+  - `npm run -s test` ✅ (45 tests)
+  - `npm run -s build -- --webpack` ✅
+  - Runtime Playwright sanity checks (production server on 4173):
+    - canvas renders and interactive page loads without console errors in minimal sanity run.
+    - screenshots captured:
+      - `output/dungeon-runtime/00-initial.png`
+      - `output/dungeon-runtime/01-after-enter.png`
+      - `output/dungeon-runtime/02-after-look.png`
+      - `output/dungeon-runtime/03-look-before.png`
+      - `output/dungeon-runtime/04-look-after-drag.png`
+
+- Runtime caveat:
+  - Headless Chromium does not grant pointer lock in this environment (`WrongDocumentError`), so pointer-lock true-state could not be asserted in headless runtime checks.
+  - Pointer lock + re-entry behavior is covered by dedicated unit tests (`pointerLock.test.tsx`) and lifecycle hardening in code.

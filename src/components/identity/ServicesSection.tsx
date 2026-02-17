@@ -6,29 +6,14 @@ import { Globe, Cpu, Server } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useStore } from '@/utils/store';
 import { getThemeColor, hexToRgba } from '@/utils/themes';
+import { PORTFOLIO_CONTENT, type ServiceIconKey } from './portfolio-template';
 
 const FuturisticCard = dynamic(() => import('./FuturisticCard'), { ssr: false });
-
-const services = [
-  {
-    title: 'Product + Platform',
-    desc: 'I build full-stack systems that feel fast, stay reliable, and scale without drama.',
-    icon: Globe,
-    id: 'SYS-01',
-  },
-  {
-    title: 'Data + AI Systems',
-    desc: 'RAG, evals, pipelines, and pragmatic ML that ships to production and stays measurable.',
-    icon: Cpu,
-    id: 'SYS-02',
-  },
-  {
-    title: 'Infrastructure + Reliability',
-    desc: 'APIs, observability, performance tuning, and secure architecture that holds up in the wild.',
-    icon: Server,
-    id: 'SYS-03',
-  },
-];
+const SERVICE_ICONS: Record<ServiceIconKey, typeof Globe> = {
+  globe: Globe,
+  cpu: Cpu,
+  server: Server,
+};
 
 export default function ServicesSection() {
   const { currentTheme, isDark } = useStore();
@@ -75,7 +60,9 @@ export default function ServicesSection() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {services.map((service, i) => (
+        {PORTFOLIO_CONTENT.services.items.map((service, i) => {
+          const Icon = SERVICE_ICONS[service.icon];
+          return (
           <FuturisticCard key={i} themeColor={themeColor} isDark={isDark} className="min-h-[240px]">
             <div
               className={`mb-5 inline-flex p-3 rounded-lg ${
@@ -83,7 +70,7 @@ export default function ServicesSection() {
               }`}
               style={{ color: themeColor }}
             >
-              <service.icon size={32} />
+              <Icon size={32} />
             </div>
             <h3
               className={`text-xl font-semibold mb-3 tracking-tight ${
@@ -100,7 +87,8 @@ export default function ServicesSection() {
               {service.desc}
             </p>
           </FuturisticCard>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

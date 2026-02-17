@@ -8,7 +8,15 @@ import { getThemeColor } from '@/utils/themes';
 import ThemeDropdown from '@/components/home/ThemeDropdown';
 
 export default function FuturisticNavbar() {
-  const { currentTheme, isDark, setCurrentTheme, setIsDark } = useStore();
+  const {
+    currentTheme,
+    isDark,
+    setCurrentTheme,
+    setIsDark,
+    konamiUnlocked,
+    konamiEnabled,
+    setKonamiEnabled,
+  } = useStore();
   const themeColor = React.useMemo(
     () => getThemeColor(currentTheme, isDark),
     [currentTheme, isDark],
@@ -49,6 +57,9 @@ export default function FuturisticNavbar() {
             isDark={isDark}
             toggleDark={() => setIsDark(!isDark)}
             themeColor={themeColor}
+            konamiUnlocked={konamiUnlocked}
+            konamiEnabled={konamiEnabled}
+            onKonamiToggle={setKonamiEnabled}
             renderTrigger={({ themeColor }) => (
               <span
                 className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full shadow-[0_0_15px_currentColor]"

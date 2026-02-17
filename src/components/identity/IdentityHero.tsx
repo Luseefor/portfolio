@@ -11,10 +11,7 @@ const HeroAvatar3D = dynamic(() => import('./HeroAvatar3D'), { ssr: false });
 
 export default function IdentityHero() {
   const { currentTheme, isDark } = useStore();
-  const themeColor = React.useMemo(
-    () => getThemeColor(currentTheme, isDark),
-    [currentTheme, isDark],
-  );
+  const themeColor = React.useMemo(() => getThemeColor(currentTheme, isDark), [currentTheme, isDark]);
   const themeTextSoft = hexToRgba(themeColor, 0.8);
   const themeTextSoftHover = hexToRgba(themeColor, 0.9);
   const themeLine = hexToRgba(themeColor, 0.3);
@@ -56,13 +53,9 @@ export default function IdentityHero() {
               animate={{
                 opacity: 1,
                 scale: 1,
-                textShadow: themeColor ? [`0 0 20px ${themeColor}20`, `0 0 40px ${themeColor}40`, `0 0 20px ${themeColor}20`] : undefined
+                textShadow: themeColor ? [`0 0 20px ${themeColor}20`, `0 0 40px ${themeColor}40`, `0 0 20px ${themeColor}20`] : undefined,
               }}
-              transition={{
-                opacity: { delay: 0.3, duration: 0.8 },
-                scale: { delay: 0.3, type: 'spring', damping: 15 },
-                textShadow: { duration: 4, repeat: Infinity, ease: "easeInOut" }
-              }}
+              transition={{ opacity: { delay: 0.3, duration: 0.8 }, scale: { delay: 0.3, type: 'spring', damping: 15 }, textShadow: { duration: 4, repeat: Infinity, ease: 'easeInOut' } }}
             >
               I&apos;m{' '}
               <span

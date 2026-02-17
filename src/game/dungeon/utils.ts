@@ -35,15 +35,10 @@ export function createSafeNodeResolver(nodes: Record<string, Object3D>): SafeNod
       }
     }
 
-    const warningKey = `${context}:${preferred}`;
+    const warningKey = preferred;
     if (!warned.has(warningKey)) {
       warned.add(warningKey);
-      console.warn('[DungeonWorld] Missing node key', {
-        context,
-        preferred,
-        fallbacks,
-        available: keys,
-      });
+      console.warn('Missing node:', preferred, keys, `context=${context}`, `fallbacks=${fallbacks.join(',')}`);
     }
 
     return null;
