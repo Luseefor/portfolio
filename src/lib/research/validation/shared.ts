@@ -63,7 +63,9 @@ export function parsePatchEnumField<T extends string>(
 ) {
   const parsed = parseRequiredEnum(value, validValues);
   if (!parsed) return { error: errorMessage };
-  updates[field] = parsed as ResearchSourceConfig[keyof Pick<ResearchSourceConfig, 'kind' | 'authType' | 'method'>];
+  if (field === 'kind') updates.kind = parsed as ResearchSourceConfig['kind'];
+  if (field === 'authType') updates.authType = parsed as ResearchSourceConfig['authType'];
+  if (field === 'method') updates.method = parsed as ResearchSourceConfig['method'];
   return {};
 }
 
