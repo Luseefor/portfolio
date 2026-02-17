@@ -36,15 +36,9 @@ import {
   ROLL_COOLDOWN,
   ROLL_DURATION,
   ROLL_SPEED,
-  RUN_LOOP_BASE_VOLUME,
-  RUN_LOOP_SPEED_THRESHOLD,
-  RUN_LOOP_START_OFFSET,
-  RUN_LOOP_WRAP_EPSILON,
   RUN_SPEED,
   SMOOTHING,
   START_POSITION,
-  STEP_BASE_VOLUME,
-  STEP_INTERVAL_WALK,
   WALK_SPEED,
   frameScratch,
 } from './player-controller/constants';
@@ -52,7 +46,6 @@ import {
   clampPlayerX,
   clampPlayerZ,
   isPerspectiveCamera,
-  safeSetAudioTime,
 } from './player-controller/helpers';
 import { createEmptyInputState } from './player-controller/types';
 import {
@@ -60,11 +53,12 @@ import {
   resolvePlayerAnimation,
   shouldPublishPlayerSnapshot,
 } from './player-controller/state';
+import { updateMovementAudio } from './player-controller/audioRuntime';
 import { usePlayerControllerInput } from './player-controller/usePlayerControllerInput';
 import { usePlayerControllerAudio } from './player-controller/usePlayerControllerAudio';
 import { useDungeonInput } from '@/lib/dungeonInput';
 import { usePlayerState } from '@/lib/playerState';
-import { clampVolume, useSettings } from '@/lib/settings';
+import { useSettings } from '@/lib/settings';
 import { getDungeonVisualLiftAt } from '@/lib/dungeonVisualLift';
 
 const { forward, right, up, moveDir, dashDirection, rotation, bodyQuaternion, stateForward } = frameScratch;
@@ -464,7 +458,6 @@ export default function PlayerController({
     const finalPosition = body.translation();
     const finalVel = body.linvel();
     const horizontalSpeed = Math.hypot(finalVel.x, finalVel.z);
-    const volumeScale = clampVolume(masterVolume);
     const stateRotation = body.rotation();
     bodyQuaternion.set(stateRotation.x, stateRotation.y, stateRotation.z, stateRotation.w);
     stateForward.set(0, 0, 1).applyQuaternion(bodyQuaternion);
@@ -497,63 +490,20 @@ export default function PlayerController({
     }
 
     const speed = Math.hypot(smoothX, smoothZ);
-    const useRunningLoop =
-      grounded &&
-      speed >= RUN_LOOP_SPEED_THRESHOLD &&
-      runPressed &&
-      rollTimer.current <= 0 &&
-      attackTimerRef.current <= 0 &&
-      !dashRef.current.active;
-    const runningLoopAudio = runningLoopAudioRef.current;
-    if (runningLoopAudio) {
-      const hasDuration = Number.isFinite(runningLoopAudio.duration) && runningLoopAudio.duration > 0;
-      const loopStart =
-        hasDuration && runningLoopAudio.duration > RUN_LOOP_START_OFFSET + RUN_LOOP_WRAP_EPSILON
-          ? RUN_LOOP_START_OFFSET
-          : 0;
-      if (useRunningLoop) {
-        runningLoopAudio.volume = RUN_LOOP_BASE_VOLUME * volumeScale;
-        runningLoopAudio.playbackRate = 0.98 + Math.min(0.16, Math.max(0, speed - WALK_SPEED) * 0.06);
-        if (
-          hasDuration &&
-          runningLoopAudio.currentTime >= runningLoopAudio.duration - RUN_LOOP_WRAP_EPSILON
-        ) {
-          safeSetAudioTime(runningLoopAudio, loopStart);
-        }
-        if (runningLoopAudio.paused) {
-          safeSetAudioTime(runningLoopAudio, loopStart);
-          runningLoopAudio.play().catch(() => { });
-        }
-      } else if (!runningLoopAudio.paused) {
-        runningLoopAudio.pause();
-        safeSetAudioTime(runningLoopAudio, 0);
-      }
-    }
-    stepTimer.current -= delta;
-    if (
-      grounded &&
-      speed > 0.2 &&
-      rollTimer.current <= 0 &&
-      attackTimerRef.current <= 0 &&
-      !dashRef.current.active &&
-      !useRunningLoop
-    ) {
-      if (stepTimer.current <= 0) {
-        const walkIndex = stepIndex.current % stepAudioRef.current.length;
-        const walkStepAudio = stepAudioRef.current[walkIndex];
-        const stepAudio = walkStepAudio;
-        if (stepAudio) {
-          stepAudio.currentTime = 0;
-          stepAudio.volume = STEP_BASE_VOLUME * volumeScale;
-          stepAudio.playbackRate = 0.92 + Math.random() * 0.08;
-          stepAudio.play().catch(() => { });
-        }
-        stepIndex.current += 1;
-        stepTimer.current = STEP_INTERVAL_WALK * (0.95 + Math.random() * 0.1);
-      }
-    } else {
-      stepTimer.current = 0;
-    }
+    updateMovementAudio({
+      grounded,
+      speed,
+      runPressed,
+      isRolling: rollTimer.current > 0,
+      isAttacking: attackTimerRef.current > 0,
+      isDashing: dashRef.current.active,
+      delta,
+      masterVolume,
+      stepTimerRef: stepTimer,
+      stepIndexRef: stepIndex,
+      stepAudioRef,
+      runningLoopAudioRef,
+    });
     jumpButtonHeldRef.current = jumpPressed;
     rollButtonHeldRef.current = rollPressed;
     attackButtonHeldRef.current = attackPressed;
