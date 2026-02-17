@@ -1,5 +1,5 @@
 import type { MutableRefObject } from 'react';
-import type { RapierRigidBody } from '@react-three/rapier';
+import type { RapierContext, RapierRigidBody } from '@react-three/rapier';
 
 export type ThirdPersonCameraOptions = {
   targetBody?: MutableRefObject<RapierRigidBody | null>;
@@ -21,12 +21,7 @@ export type Vec3Like = {
 };
 
 export type RapierRayFactory = {
-  Ray: new (
-    origin: { x: number; y: number; z: number },
-    direction: { x: number; y: number; z: number },
-  ) => unknown;
+  Ray: RapierContext['rapier']['Ray'];
 };
 
-export type RapierWorld = {
-  castRay: (...args: unknown[]) => { timeOfImpact: number } | null;
-};
+export type RapierWorld = RapierContext['world'];

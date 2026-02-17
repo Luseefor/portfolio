@@ -1,4 +1,5 @@
 import type { MutableRefObject } from 'react';
+import type { RapierContext, RapierRigidBody } from '@react-three/rapier';
 import type { Quaternion, Vector3 } from 'three';
 import {
   ATTACK_COOLDOWN,
@@ -15,20 +16,10 @@ import {
 } from './constants';
 import type { DashRuntimeState } from './types';
 
-type BodyLike = {
-  setRotation: (rotation: Quaternion, wakeUp: boolean) => void;
-};
-
-type RayHit = { timeOfImpact: number };
-type RayCasterWorld = { castRay: (...args: unknown[]) => RayHit | null };
-type RapierApi = {
-  Ray: new (origin: { x: number; y: number; z: number }, direction: { x: number; y: number; z: number }) => unknown;
-};
-
 type StartDashParams = {
-  body: BodyLike;
-  rapier: RapierApi;
-  world: RayCasterWorld;
+  body: RapierRigidBody;
+  rapier: RapierContext['rapier'];
+  world: RapierContext['world'];
   position: { x: number; y: number; z: number };
   dashDirection: Vector3;
   dashJustPressed: boolean;
@@ -92,7 +83,7 @@ export function tryStartRoll(
   dashDirection: Vector3,
   rotation: Quaternion,
   up: Vector3,
-  body: BodyLike,
+  body: RapierRigidBody,
 ) {
   if (
     groundedTimer > COYOTE_TIME ||
@@ -124,7 +115,7 @@ export function tryStartAttack(
   forward: Vector3,
   rotation: Quaternion,
   up: Vector3,
-  body: BodyLike,
+  body: RapierRigidBody,
 ) {
   if (!grounded || !attackJustPressed || dashRef.active || rollTimerRef.current > 0 || attackTimerRef.current > 0 || attackCooldownRef.current > 0) {
     return;

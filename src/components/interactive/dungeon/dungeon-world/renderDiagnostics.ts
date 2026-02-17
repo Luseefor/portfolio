@@ -4,7 +4,10 @@ import { buildScaledFloorObject, setObjectMaterialsDoubleSided } from './floorUt
 
 const ORIGIN_PROBE_NODE_KEYS = ['Floor_Standard', 'Floor_SquareLarge', 'Wall'] as const;
 
-type VisualEntry = { object?: Object3D | null } | null | undefined;
+type VisualEntry =
+  | { object?: Object3D | null; intactObject?: Object3D | null; brokenObject?: Object3D | null }
+  | null
+  | undefined;
 
 export function warnAboutDungeonLayoutNodes(
   layout: DungeonPlacement[],
@@ -46,7 +49,7 @@ export function hasRenderableVisualObjects(...groups: VisualEntry[][]) {
   for (let g = 0; g < groups.length; g += 1) {
     const group = groups[g];
     for (let i = 0; i < group.length; i += 1) {
-      if (group[i]?.object) return true;
+      if (group[i]?.object || group[i]?.intactObject || group[i]?.brokenObject) return true;
     }
   }
   return false;

@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import type { RapierRigidBody } from '@react-three/rapier';
+import type { RapierContext, RapierRigidBody } from '@react-three/rapier';
 import type { MutableRefObject } from 'react';
 import type { Camera } from 'three';
 import {
@@ -27,8 +27,8 @@ type UsePlayerControllerFrameParams = {
   rigidBodyRef: MutableRefObject<RapierRigidBody | null>;
   camera: Camera;
   cameraYawRef?: MutableRefObject<number>;
-  rapier: { Ray: new (origin: { x: number; y: number; z: number }, direction: { x: number; y: number; z: number }) => unknown };
-  world: { castRay: (...args: unknown[]) => { timeOfImpact: number } | null };
+  rapier: RapierContext['rapier'];
+  world: RapierContext['world'];
   masterVolume: number;
   setPlayerState: (state: ReturnType<typeof usePlayerControllerRuntimeState>['lastPublishedPlayerStateRef']['current']) => void;
   runtime: ReturnType<typeof usePlayerControllerRuntimeState>;

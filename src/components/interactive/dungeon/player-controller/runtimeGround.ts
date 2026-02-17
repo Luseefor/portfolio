@@ -1,5 +1,5 @@
 import type { MutableRefObject, RefObject } from 'react';
-import type { RapierRigidBody } from '@react-three/rapier';
+import type { RapierContext, RapierRigidBody } from '@react-three/rapier';
 import { MathUtils, type Group } from 'three';
 import { getDungeonVisualLiftAt } from '@/lib/dungeonVisualLift';
 import {
@@ -12,22 +12,10 @@ import {
   PLAYER_LIFT_UP_SMOOTHING,
 } from './constants';
 
-type RayHit = {
-  timeOfImpact: number;
-};
-
-type RayCasterWorld = {
-  castRay: (...args: unknown[]) => RayHit | null;
-};
-
-type RapierApi = {
-  Ray: new (origin: { x: number; y: number; z: number }, direction: { x: number; y: number; z: number }) => unknown;
-};
-
 type RuntimeGroundParams = {
   body: RapierRigidBody;
-  rapier: RapierApi;
-  world: RayCasterWorld;
+  rapier: RapierContext['rapier'];
+  world: RapierContext['world'];
   delta: number;
   visualLiftRef: MutableRefObject<number>;
   characterRootRef: RefObject<Group | null>;

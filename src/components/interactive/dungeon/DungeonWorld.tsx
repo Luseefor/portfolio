@@ -25,6 +25,7 @@ import DungeonTorchLayer from './dungeon-world/render/DungeonTorchLayer';
 import DungeonPotLayer from './dungeon-world/render/DungeonPotLayer';
 import DungeonColliderLayer from './dungeon-world/render/DungeonColliderLayer';
 import { DUNGEON_LAYOUT, DUNGEON_LAYOUT_GRAPH } from '@/constants/dungeonLayout';
+import { DUNGEON_LAYOUT_GRAPH_MINIMAL, DUNGEON_LAYOUT_MINIMAL } from '@/constants/dungeonLayoutMinimal';
 import {
   buildDungeon,
 } from '@/game/dungeon/buildDungeon';
@@ -49,7 +50,16 @@ export default function DungeonWorld() {
   const resolveNode = useMemo(() => createSafeNodeResolver(ruinsNodes), [ruinsNodes]);
   const originProbeObject = useMemo(() => buildOriginProbeObject(ruinsNodes), [ruinsNodes]);
 
-  const dungeon = useMemo(() => buildDungeon(DUNGEON_LAYOUT_GRAPH), []);
+  const dungeon = useMemo(() => {
+    const primary = buildDungeon(DUNGEON_LAYOUT_GRAPH);
+    if (primary.pieces.length > 0) return primary;
+    console.warn('[DungeonWorld] Primary dungeon graph was empty. Falling back to DUNGEON_LAYOUT_GRAPH_MINIMAL.');
+    return buildDungeon(DUNGEON_LAYOUT_GRAPH_MINIMAL);
+  }, []);
+  const layoutForDiagnostics = useMemo(
+    () => (DUNGEON_LAYOUT.length > 0 ? DUNGEON_LAYOUT : DUNGEON_LAYOUT_MINIMAL),
+    [],
+  );
 
   const floorPieces = useMemo(
     () => dungeon.pieces.filter((piece) => FLOOR_KINDS.has(piece.kind)),
@@ -105,8 +115,8 @@ export default function DungeonWorld() {
   );
 
   useEffect(() => {
-    warnAboutDungeonLayoutNodes(DUNGEON_LAYOUT, ruinsNodes);
-  }, [ruinsNodes]);
+    warnAboutDungeonLayoutNodes(layoutForDiagnostics, ruinsNodes);
+  }, [layoutForDiagnostics, ruinsNodes]);
 
   useEffect(() => {
     if (dungeon.pieces.length > 0) return;
