@@ -46,7 +46,14 @@ export function HintFragmentCard({
       )}
 
       {discoveredCount === totalSteps ? (
-        <div className="mt-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+        <div
+          className="mt-3 rounded-xl border px-3 py-2 text-sm"
+          style={{
+            borderColor: theme.accentBorder,
+            backgroundColor: theme.accentBgSoft,
+            color: theme.accentText,
+          }}
+        >
           Full code recovered. Return to landing page to execute the Konami sequence.
         </div>
       ) : null}

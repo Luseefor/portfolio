@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Send } from 'lucide-react';
-import { PORTFOLIO_CONTENT } from '@/components/identity/portfolio-template';
+import { portfolioData } from '@/content/portfolio';
 import type { ChestPanelTemplateProps } from '@/components/interactive/dungeon/ui/chest-content/panel-types';
 
 export default function ContactPanel({ theme }: ChestPanelTemplateProps) {
@@ -41,7 +41,7 @@ export default function ContactPanel({ theme }: ChestPanelTemplateProps) {
   return (
     <div className="space-y-4">
       <p className="text-xs uppercase tracking-[0.2em] font-terminal" style={{ color: theme.accentMuted }}>
-        {PORTFOLIO_CONTENT.contact.cta}
+        {portfolioData.contact.cta}
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-3">
@@ -83,7 +83,7 @@ export default function ContactPanel({ theme }: ChestPanelTemplateProps) {
         </button>
       </form>
 
-      <p className="text-xs text-stone-400">Direct: {PORTFOLIO_CONTENT.contact.email}</p>
+      <p className="text-xs text-stone-400">Direct: {portfolioData.contact.email}</p>
     </div>
   );
 }
