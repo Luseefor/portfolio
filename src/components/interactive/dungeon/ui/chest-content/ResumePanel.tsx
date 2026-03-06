@@ -1,7 +1,7 @@
 'use client';
 
 import { FileText, Download } from 'lucide-react';
-import { PORTFOLIO_CONTENT } from '@/components/identity/portfolio-template';
+import { portfolioData } from '@/content/portfolio';
 import type { ChestPanelTemplateProps } from '@/components/interactive/dungeon/ui/chest-content/panel-types';
 
 export default function ResumePanel({ theme }: ChestPanelTemplateProps) {
@@ -12,11 +12,11 @@ export default function ResumePanel({ theme }: ChestPanelTemplateProps) {
           <FileText size={12} />
           Resume Packet
         </div>
-        <p className="text-sm leading-relaxed text-stone-300">{PORTFOLIO_CONTENT.resume.summary}</p>
+        <p className="text-sm leading-relaxed text-stone-300">{portfolioData.resume.summary}</p>
       </div>
 
       <div className="space-y-2">
-        {PORTFOLIO_CONTENT.resume.bullets.map((bullet) => (
+        {portfolioData.resume.bullets.map((bullet) => (
           <div key={bullet} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-stone-200">
             {bullet}
           </div>
@@ -24,7 +24,7 @@ export default function ResumePanel({ theme }: ChestPanelTemplateProps) {
       </div>
 
       <a
-        href={PORTFOLIO_CONTENT.resume.url}
+        href={portfolioData.contact.resumeHref}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-[11px] uppercase tracking-[0.24em] font-terminal text-stone-100"

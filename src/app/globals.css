@@ -1,36 +1,112 @@
 @import 'tailwindcss';
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
-  --font-terminal: 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace;
+  --background: #0b1016;
+  --foreground: #e7edf3;
+  --bg-base: #0b1016;
+  --bg-elevated: #121922;
+  --bg-panel: #161f2a;
+  --bg-soft: #1c2733;
+  --text-primary: #e7edf3;
+  --text-secondary: #a2afbc;
+  --text-muted: #718090;
+  --border-default: #263241;
+  --border-strong: #324154;
+  --accent-main: #b8c7d9;
+  --accent-strong: #d7e2f0;
+  --accent-soft: #8ea2b8;
+  --accent-wash: #d9d3c7;
+  --font-sans: var(--font-sans-ui), 'Segoe UI', sans-serif;
+  --font-display: var(--font-display-ui), Georgia, serif;
+  --font-terminal: var(--font-mono-ui), 'SFMono-Regular', ui-monospace, monospace;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-display);
+  --font-sans: var(--font-sans);
   --font-mono: var(--font-terminal);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-display), 'Space Grotesk', 'Segoe UI', sans-serif;
+  font-family: var(--font-sans), 'Segoe UI', sans-serif;
+  letter-spacing: -0.01em;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .font-display {
-  font-family: var(--font-display), 'Space Grotesk', 'Segoe UI', sans-serif;
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.03em;
 }
 
 .font-terminal {
   font-family: var(--font-terminal), 'JetBrains Mono', 'SFMono-Regular', monospace;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+::selection {
+  background: rgba(184, 199, 217, 0.24);
+  color: var(--text-primary);
+}
+
+a,
+button,
+input,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+* {
+  -webkit-user-drag: none;
+}
+
+a,
+button,
+img,
+svg,
+video {
+  user-drag: none;
+  -webkit-user-drag: none;
+}
+
+@keyframes skills-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.skills-marquee-track {
+  width: max-content;
+  animation: skills-marquee 22s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skills-marquee-track {
+    animation: none;
+  }
 }

@@ -1,13 +1,13 @@
 'use client';
 
 import { GraduationCap, BookMarked } from 'lucide-react';
-import { PORTFOLIO_CONTENT } from '@/components/identity/portfolio-template';
+import { portfolioData } from '@/content/portfolio';
 import type { ChestPanelTemplateProps } from '@/components/interactive/dungeon/ui/chest-content/panel-types';
 
 export default function EducationPanel({ theme }: ChestPanelTemplateProps) {
   return (
     <div className="space-y-4">
-      {PORTFOLIO_CONTENT.education.items.map((entry, index) => (
+      {portfolioData.education.map((entry, index) => (
         <div
           key={`${entry.institution}-${index}`}
           className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-4"

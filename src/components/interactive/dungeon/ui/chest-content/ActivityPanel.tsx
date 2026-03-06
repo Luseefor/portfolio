@@ -1,92 +1,32 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Activity, GitBranch, CalendarClock } from 'lucide-react';
-import { PORTFOLIO_CONTENT } from '@/components/identity/portfolio-template';
+import { portfolioData } from '@/content/portfolio';
 import type { ChestPanelTemplateProps } from '@/components/interactive/dungeon/ui/chest-content/panel-types';
 
-type ActivityPayload = {
-  summary: {
-    totalCommits: number;
-    activeDays: number;
-    activeRepos: number;
-    publicRepos: number;
-  };
-  events: Array<{
-    id: string;
-    title: string;
-    description: string;
-    dateLabel: string;
-  }>;
-  message?: string;
-};
-
-const EMPTY_PAYLOAD: ActivityPayload = {
-  summary: {
-    totalCommits: 0,
-    activeDays: 0,
-    activeRepos: 0,
-    publicRepos: 0,
-  },
-  events: [],
-};
-
 export default function ActivityPanel({ theme }: ChestPanelTemplateProps) {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<ActivityPayload>(EMPTY_PAYLOAD);
-  const activityLabels = PORTFOLIO_CONTENT.activity.focusAreas;
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    const loadActivity = async () => {
-      try {
-        const response = await fetch('/api/engineering-activity', { cache: 'no-store' });
-        const payload = (await response.json()) as ActivityPayload;
-        if (!isCancelled) {
-          setData({
-            summary: payload.summary ?? EMPTY_PAYLOAD.summary,
-            events: payload.events ?? [],
-            message: payload.message,
-          });
-        }
-      } catch {
-        if (!isCancelled) {
-          setData({ ...EMPTY_PAYLOAD, message: 'Unable to load activity telemetry.' });
-        }
-      } finally {
-        if (!isCancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadActivity();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
+  const metrics = portfolioData.activity.metrics;
+  const events = portfolioData.activity.events;
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         {[
           {
-            label: activityLabels[0] ?? 'Commits',
-            value: data.summary.totalCommits,
+            label: metrics[0]?.label ?? 'Delivery Mode',
+            value: metrics[0]?.value ?? 'Product',
           },
           {
-            label: activityLabels[1] ?? 'Active Days',
-            value: data.summary.activeDays,
+            label: metrics[1]?.label ?? 'Strength',
+            value: metrics[1]?.value ?? 'Systems',
           },
           {
-            label: activityLabels[2] ?? 'Active Repos',
-            value: data.summary.activeRepos,
+            label: metrics[2]?.label ?? 'Edge',
+            value: metrics[2]?.value ?? 'Frontend',
           },
           {
-            label: activityLabels[3] ?? 'Public Repos',
-            value: data.summary.publicRepos,
+            label: metrics[3]?.label ?? 'Fit',
+            value: metrics[3]?.value ?? 'Product',
           },
         ].map((item, index) => (
           <div
@@ -100,7 +40,7 @@ export default function ActivityPanel({ theme }: ChestPanelTemplateProps) {
             >
               {item.label}
             </p>
-            <p className="mt-1 text-xl font-black text-stone-100">{loading ? '...' : item.value}</p>
+            <p className="mt-1 text-sm font-black uppercase tracking-[0.12em] text-stone-100">{item.value}</p>
           </div>
         ))}
       </div>
@@ -111,13 +51,11 @@ export default function ActivityPanel({ theme }: ChestPanelTemplateProps) {
           Recent Activity
         </div>
 
-        {loading ? (
-          <p className="text-sm text-stone-300">Loading engineering telemetry...</p>
-        ) : data.events.length === 0 ? (
-          <p className="text-sm text-stone-300">{data.message ?? 'No recent events available.'}</p>
+        {events.length === 0 ? (
+          <p className="text-sm text-stone-300">No recent activity highlights available.</p>
         ) : (
           <div className="space-y-3">
-            {data.events.slice(0, 3).map((event, index) => (
+            {events.slice(0, 3).map((event, index) => (
               <div key={event.id} className="rounded-xl border border-white/10 bg-black/30 p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-stone-100">{event.title}</p>

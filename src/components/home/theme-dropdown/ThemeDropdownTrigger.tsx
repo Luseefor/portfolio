@@ -34,14 +34,14 @@ export function ThemeDropdownTrigger({
   return (
     <button
       onClick={onToggle}
-      className={`flex items-center gap-3 rounded-full border px-4 py-2 transition-all backdrop-blur-md md:px-5 ${
+      className={`flex min-h-11 items-center gap-3 rounded-full border px-4 py-2 transition-all backdrop-blur-md md:px-5 ${
         isDark
-          ? 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
-          : 'border-black/5 bg-black/5 text-slate-900/60 hover:border-black/10'
+          ? 'border-white/10 bg-white/[0.04] text-white/70 hover:border-white/15'
+          : 'border-slate-300/70 bg-white/90 text-slate-700 hover:border-slate-400/80'
       }`}
     >
-      <div className="h-2 w-2 rounded-full animate-pulse" style={{ backgroundColor: themeColor, boxShadow: `0 0 8px ${themeColor}` }} />
-      <span className="text-[10px] font-black uppercase tracking-widest">{currentThemeName}</span>
+      <div className="h-2 w-2 rounded-full" style={{ backgroundColor: themeColor }} />
+      <span className="text-[10px] font-semibold uppercase tracking-[0.22em]">{currentThemeName}</span>
       <motion.div animate={{ rotate: isOpen ? 180 : 0 }}>
         <Palette size={12} />
       </motion.div>

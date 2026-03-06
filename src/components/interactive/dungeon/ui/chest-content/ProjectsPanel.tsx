@@ -1,13 +1,11 @@
 'use client';
 
 import { ArrowUpRight } from 'lucide-react';
-import { PORTFOLIO_CONTENT } from '@/components/identity/portfolio-template';
+import { portfolioData } from '@/content/portfolio';
 import type { ChestPanelTemplateProps } from '@/components/interactive/dungeon/ui/chest-content/panel-types';
 
 export default function ProjectsPanel({ theme }: ChestPanelTemplateProps) {
-  const projects = PORTFOLIO_CONTENT.projects.categories.flatMap((category) =>
-    category.items.map((item) => ({ ...item, category: category.name })),
-  );
+  const projects = portfolioData.projects;
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -24,7 +22,7 @@ export default function ProjectsPanel({ theme }: ChestPanelTemplateProps) {
             <ArrowUpRight size={14} className="text-stone-500 transition-colors group-hover:text-stone-200" />
           </div>
           <h4 className="text-lg font-bold text-stone-100">{project.title}</h4>
-          <p className="mt-2 text-sm text-stone-300">{project.desc}</p>
+          <p className="mt-2 text-sm text-stone-300">{project.summary}</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {project.stack.slice(0, 4).map((tech) => (
               <span

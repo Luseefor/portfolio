@@ -1,7 +1,7 @@
 'use client';
 
 import { Globe, Cpu, Server } from 'lucide-react';
-import { PORTFOLIO_CONTENT, type ServiceIconKey } from '@/components/identity/portfolio-template';
+import { portfolioData, type ServiceIconKey } from '@/content/portfolio';
 import type { ChestPanelTemplateProps } from '@/components/interactive/dungeon/ui/chest-content/panel-types';
 
 const SERVICE_ICONS: Record<ServiceIconKey, typeof Globe> = {
@@ -13,7 +13,7 @@ const SERVICE_ICONS: Record<ServiceIconKey, typeof Globe> = {
 export default function ServicesPanel({ theme }: ChestPanelTemplateProps) {
   return (
     <div className="space-y-3">
-      {PORTFOLIO_CONTENT.services.items.map((service) => {
+      {portfolioData.services.map((service) => {
         const Icon = SERVICE_ICONS[service.icon];
         return (
           <div

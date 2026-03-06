@@ -1,44 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rijan Ghimire Portfolio
 
-## Getting Started
+This repository contains a streamlined Next.js portfolio focused on hiring-facing clarity with one secondary interactive demo.
 
-First, run the development server:
+## Routes
+
+- `/`: primary portfolio with projects, experience, skills, contact, and resume CTA
+- `/interactive`: technical showcase for the WebGL dungeon demo
+- `/api/contact`: contact form submission endpoint
+
+## Stack
+
+- Next.js App Router
+- React 19
+- Tailwind CSS 4
+- Framer Motion
+- React Three Fiber / Drei / Rapier for the interactive demo
+
+## Development
 
 ```bash
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Quality Checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run build
+npm test
+```
 
-## Learn More
+## Notes
 
-To learn more about Next.js, take a look at the following resources:
+- Theme preference is persisted in local storage.
+- The interactive route is intentionally secondary and is framed as a project case study rather than the main portfolio identity.
+- Portfolio content lives in `src/content/portfolio.ts` and is shared by the homepage and the interactive demo panels.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## SMTP Setup (Contact Form)
 
-## Testing
+`/api/contact` now requires valid SMTP configuration and sends email using:
 
-See `TESTING.md` for automated commands and the manual edge-case checklist.
+- `from`: `SMTP_FROM` (or `SMTP_USER`)
+- `reply-to`: visitor email from the form
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Required env vars:
 
-## Attribution
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `CONTACT_EMAIL`
 
-Submarine by Poly by Google [CC-BY] via Poly Pizza
+Recommended:
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `SMTP_FROM`
+- `SMTP_FROM_NAME`
+- `SMTP_SECURE` (`true` for port 465, otherwise `false`)

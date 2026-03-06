@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowUpRight, Github, Linkedin, Mail } from 'lucide-react';
-import { PORTFOLIO_CONTENT } from '@/components/identity/portfolio-template';
+import { portfolioData } from '@/content/portfolio';
 import type { ChestPanelTemplateProps } from '@/components/interactive/dungeon/ui/chest-content/panel-types';
 
 const SOCIAL_ICON_BY_KIND = {
@@ -13,7 +13,7 @@ const SOCIAL_ICON_BY_KIND = {
 export default function SocialsPanel({ theme }: ChestPanelTemplateProps) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      {PORTFOLIO_CONTENT.socials.links.map((link) => {
+      {portfolioData.socials.map((link) => {
         const Icon = SOCIAL_ICON_BY_KIND[link.kind];
         return (
           <a
