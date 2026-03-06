@@ -12,16 +12,12 @@ const ThemeDropdown = ({
   isDark,
   toggleDark,
   themeColor,
-  konamiUnlocked = false,
-  konamiEnabled = false,
-  onKonamiToggle,
   renderTrigger,
   triggerClassName,
 }: ThemeDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const currentThemeName = THEMES[currentTheme as keyof typeof THEMES]?.name ?? currentTheme.toUpperCase();
-  const themeControlsDisabled = konamiEnabled;
-  const showKonamiControls = konamiUnlocked && typeof onKonamiToggle === 'function';
+  const currentThemeName =
+    THEMES[currentTheme as keyof typeof THEMES]?.name ?? currentTheme.toUpperCase();
 
   return (
     <div className="relative">
@@ -39,11 +35,7 @@ const ThemeDropdown = ({
         onThemeChange={onThemeChange}
         isDark={isDark}
         toggleDark={toggleDark}
-        konamiEnabled={konamiEnabled}
-        onKonamiToggle={onKonamiToggle}
         isOpen={isOpen}
-        themeControlsDisabled={themeControlsDisabled}
-        showKonamiControls={showKonamiControls}
         onClose={() => setIsOpen(false)}
       />
     </div>

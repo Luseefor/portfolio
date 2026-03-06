@@ -6,9 +6,6 @@ export interface ThemeDropdownProps {
   isDark: boolean;
   toggleDark: () => void;
   themeColor: string;
-  konamiUnlocked?: boolean;
-  konamiEnabled?: boolean;
-  onKonamiToggle?: (enabled: boolean) => void;
   renderTrigger?: (params: {
     isOpen: boolean;
     themeColor: string;
