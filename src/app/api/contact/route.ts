@@ -1,64 +1,162 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
+type ContactPayload = {
+  name?: unknown;
+  email?: unknown;
+  message?: unknown;
+  context?: unknown;
+  company?: unknown;
+};
+
+function sanitizeText(value: unknown) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function parseSmtpConfig() {
+  const host = process.env.SMTP_HOST?.trim() ?? '';
+  const user = process.env.SMTP_USER?.trim() ?? '';
+  const pass = process.env.SMTP_PASS ?? '';
+  const to = process.env.CONTACT_EMAIL?.trim() || user;
+  const from = process.env.SMTP_FROM?.trim() || user;
+  const fromName = process.env.SMTP_FROM_NAME?.trim() || 'Portfolio Contact';
+  const port = Number(process.env.SMTP_PORT || 587);
+  const secure = process.env.SMTP_SECURE
+    ? process.env.SMTP_SECURE === 'true'
+    : port === 465;
+
+  if (!host || !user || !pass || !to || !from || Number.isNaN(port)) {
+    return null;
+  }
+
+  return { host, user, pass, to, from, fromName, port, secure };
+}
+
+let transporterPromise: Promise<nodemailer.Transporter> | null = null;
+
+async function getTransporter() {
+  if (transporterPromise) return transporterPromise;
+
+  const config = parseSmtpConfig();
+  if (!config) {
+    throw new Error('SMTP configuration is incomplete.');
+  }
+
+  transporterPromise = (async () => {
+    const transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: {
+        user: config.user,
+        pass: config.pass,
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    });
+
+    await transporter.verify();
+    return transporter;
+  })();
+
+  try {
+    return await transporterPromise;
+  } catch (error) {
+    transporterPromise = null;
+    throw error;
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { name, email, message } = body;
+    const body = (await req.json()) as ContactPayload;
+    const name = sanitizeText(body.name);
+    const email = sanitizeText(body.email);
+    const message = sanitizeText(body.message);
+    const context = sanitizeText(body.context);
+    const company = sanitizeText(body.company);
 
-    // Basic validation
+    if (company) {
+      return NextResponse.json({ success: true, message: 'Message received.' });
+    }
+
     if (!name || !email || !message) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    console.log('📨 Contact Form Submission Received:', { name, email, message });
-
-    // Check for SMTP configuration
-    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, CONTACT_EMAIL } = process.env;
-
-    if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-      console.warn(
-        '⚠️ SMTP Configuration missing. Email will NOT be sent. Logged to console only.',
+      return NextResponse.json(
+        { error: 'Name, email, and message are required.' },
+        { status: 400 },
       );
-      // Return success in dev mode so the UI feels responsive
-      return NextResponse.json({
-        success: true,
-        message: 'Message received (Simulation Mode: Configure SMTP to send real emails)',
-      });
     }
 
-    // Configure Transporter
-    const transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: Number(SMTP_PORT) || 587,
-      secure: Boolean(process.env.SMTP_SECURE) || false, // true for 465, false for other ports
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-    });
+    if (!isValidEmail(email)) {
+      return NextResponse.json(
+        { error: 'Enter a valid email address.' },
+        { status: 400 },
+      );
+    }
 
-    // Send Email
+    if (name.length > 120 || email.length > 200 || context.length > 200 || message.length > 4000) {
+      return NextResponse.json(
+        { error: 'One or more fields are too long.' },
+        { status: 400 },
+      );
+    }
+
+    const smtpConfig = parseSmtpConfig();
+    if (!smtpConfig) {
+      return NextResponse.json(
+        {
+          error:
+            'Contact delivery is not configured yet. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and CONTACT_EMAIL.',
+        },
+        { status: 500 },
+      );
+    }
+
+    const transporter = await getTransporter();
+
     await transporter.sendMail({
-      from: `"${name}" <${email}>`, // Note: Some providers override this to the auth user
-      to: CONTACT_EMAIL || SMTP_USER, // Default to sending to yourself
+      from: `"${smtpConfig.fromName}" <${smtpConfig.from}>`,
+      replyTo: email,
+      to: smtpConfig.to,
       subject: `Portfolio Contact: ${name}`,
-      text: message,
+      text: `Name: ${name}\nEmail: ${email}\nContext: ${context || 'Not provided'}\n\n${message}`,
       html: `
-                <div style="font-family: sans-serif; color: #333;">
-                    <h2>New Contact Form Submission</h2>
-                    <p><strong>Name:</strong> ${name}</p>
-                    <p><strong>Email:</strong> ${email}</p>
-                    <hr />
-                    <p><strong>Message:</strong></p>
-                    <p style="white-space: pre-wrap;">${message}</p>
-                </div>
-            `,
+        <div style="font-family: sans-serif; color: #111827;">
+          <h2>New Portfolio Contact Submission</h2>
+          <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+          <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+          <p><strong>Context:</strong> ${escapeHtml(context || 'Not provided')}</p>
+          <hr />
+          <p><strong>Message:</strong></p>
+          <p style="white-space: pre-wrap;">${escapeHtml(message)}</p>
+        </div>
+      `,
     });
 
-    return NextResponse.json({ success: true, message: 'Message sent successfully' });
+    return NextResponse.json({
+      success: true,
+      message: 'Message sent successfully. I will get back to you soon.',
+    });
   } catch (error) {
-    console.error('❌ Contact API Error:', error);
-    return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Unknown SMTP error';
+    console.error('Contact API SMTP error:', message);
+    return NextResponse.json(
+      { error: 'Failed to send the message right now. Please try again later.' },
+      { status: 500 },
+    );
   }
 }
