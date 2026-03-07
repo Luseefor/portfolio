@@ -113,7 +113,7 @@ export default function Home() {
     borderColor: subtleBorder,
     color: palette.textPrimary,
   };
-  const revealTransition = reduceMotion ? { duration: 0 } : { duration: 0.45 };
+  const revealTransition = reduceMotion ? { duration: 0 } : { duration: 0.24 };
   const heroStagger = {
     hidden: {},
     show: {
@@ -389,9 +389,9 @@ export default function Home() {
         <motion.section
           id="projects"
           className="py-14 md:py-16"
-          initial={reduceMotion ? undefined : { opacity: 0, y: 16 }}
+          initial={reduceMotion ? undefined : { opacity: 0, y: 8 }}
           whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
+          viewport={{ once: true, amount: 0.08 }}
           transition={revealTransition}
         >
           <SectionLabel number="01" label="Featured Project" accent={accent} />
@@ -500,20 +500,26 @@ export default function Home() {
                   index === selectedProjects.length - 1 ? 'border-b' : ''
                 }`}
                 style={{ borderColor: subtleBorder }}
-                initial={reduceMotion ? undefined : { opacity: 0, y: 10 }}
+                initial={reduceMotion ? undefined : { opacity: 0, y: 6 }}
                 whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.4 }}
+                viewport={{ once: true, amount: 0.12 }}
                 transition={
                   reduceMotion
                     ? { duration: 0 }
-                    : { duration: 0.34, delay: Math.min(index * 0.04, 0.16) }
+                    : { duration: 0.2 }
                 }
               >
-                <div>
+                <div className="hidden md:block">
                   <NumberedLabel value={`${String(index + 1).padStart(2, '0')}`} accent={accent} />
                 </div>
 
                 <div>
+                  <p
+                    className="mb-2 font-terminal text-[11px] font-semibold uppercase tracking-[0.18em] md:hidden"
+                    style={{ color: accent }}
+                  >
+                    {String(index + 1).padStart(2, '0')}
+                  </p>
                   <p
                     className="font-terminal text-[10px] uppercase tracking-[0.18em]"
                     style={{ color: accent }}
