@@ -60,3 +60,7 @@ Recommended:
 - `SMTP_FROM`
 - `SMTP_FROM_NAME`
 - `SMTP_SECURE` (`true` for port 465, otherwise `false`)
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
