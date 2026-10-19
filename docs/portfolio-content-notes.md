@@ -27,3 +27,12 @@ There are 11 placeholders across Experience (9) and Timeline (2). Timeline repea
 - No required asset is missing. `/My Resume - Main.pdf` is present; HTTP resolution is included in validation.
 - Two writing entries are labeled planned posts. Supply article bodies and publication dates when ready; until then their pages say “Full post coming soon”.
 - Confirm expected graduation year, current GPA if desired, Aletiq/Liberty role dates, and the measurement behind the resume's 70% claim.
+
+## Validation
+
+- `npm run lint` and `npm run build`: passed. Homepage and all eight project / two writing detail pages are prerendered.
+- `CI=1 npm test`: all 38 existing tests passed. The Vitest worker configuration disables Node's native Web Storage only on runtimes that support the flag, allowing JSDOM to provide browser storage. No dungeon source or tests were edited.
+- `e2e/portfolio.spec.ts`: all 8 tests passed against the production build using installed Chrome with a temporary Playwright config (`channel: 'chrome'`). The default Chromium launch initially could not run because its browser binary was missing.
+- Browser checks cover no-JavaScript reading, SEO, no scene asset requests, PDF content and status, all project routes, writing stubs, unknown-slug 404s, all three clipboard paths, and widths 390 / 768 / 1024 / 1440. The last clipboard path initially failed selection; the focus handler was fixed and all eight checks reran successfully.
+- Existing test warnings about mocked Three.js DOM elements and Node build warnings remain nonfatal.
+- Protected paths (`/interactive`, interactive components, store, themes, contact API, and PersonalAssistantBlob) have no diff from `d08c60b`. No dependency files changed.
