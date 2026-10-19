@@ -1,4 +1,9 @@
 export type PortfolioProject = {
+  slug: string;
+  status: string;
+  role: string;
+  focus: string;
+  domains: string;
   title: string;
   category: string;
   summary: string;
@@ -9,6 +14,15 @@ export type PortfolioProject = {
   codeHref?: string;
   demoComingSoon?: boolean;
   hideRepository?: boolean;
+};
+
+export type WritingPost = {
+  slug: string;
+  title: string;
+  summary: string;
+  dateLabel: string;
+  href: string;
+  body?: string[];
 };
 
 export type ServiceIconKey = 'globe' | 'cpu' | 'server';
@@ -66,11 +80,38 @@ export type TimelineEntry = {
 };
 
 export const portfolioData = {
+  seo: {
+    title: 'Rijan Ghimire | Software Engineer',
+    description:
+      'Software engineer studying Computer Engineering and Mathematics at Southern Miss. Explore developer tools, mathematical software, web products, and engineering notes. Open to internships and early-career roles.',
+    keywords: [
+      'Rijan Ghimire',
+      'software engineer',
+      'internships',
+      'TypeScript',
+      'React',
+      'Next.js',
+      'developer tools',
+      'mathematical software',
+      'Synthex UI',
+      'Vinculum',
+    ],
+  },
+  location: 'Hattiesburg, Mississippi',
+  selectedProjectSlugs: [
+    'vinculum',
+    'lumawall',
+    'faredelta',
+    'liberty-jewelers',
+    'aletiq',
+    'metrox',
+  ],
   hero: {
     name: 'Rijan Ghimire',
-    headline: 'Software engineer building performant web, AI, and systems-driven products.',
+    headline:
+      'Software engineer building mathematical software, developer tools, and web products.',
     summary:
-      'I work across frontend systems, backend logic, and interactive demos with an emphasis on clear user experience and dependable implementation.',
+      'I study Computer Engineering and Mathematics at Southern Miss and build across frontend systems, backend services, and native apps.',
     status: 'Open to internships and early-career software engineering roles',
     roleLabel: 'Software Engineer',
     quote: 'Choose tools for the problem. Design for reliability. Execute with discipline.',
@@ -97,7 +138,65 @@ export const portfolioData = {
   ],
   projects: [
     {
+      slug: 'vinculum',
+      title: 'Vinculum',
+      category: 'Mathematical Software',
+      status: 'Public editor',
+      role: 'Software Engineer',
+      focus: 'Math editor · Persistence · Rust/WASM computation',
+      domains: 'Mathematical software · Developer tools',
+      summary:
+        'A local-first workspace for editing equations, curves, surfaces, and vector fields in 2D and 3D.',
+      ownership:
+        'Built the editor workflow, scene persistence, expression validation, sharing, and export systems. The documented computation boundary moves real numeric expressions and vector-field grid sampling into Rust/WASM.',
+      result:
+        'Supports browser-local projects, recoverable scenes, URL sharing, and JSON, PNG, and SVG exports. Symbolic algebra and several sampling algorithms remain in TypeScript.',
+      stack: ['TypeScript', 'React', 'Rust', 'WebAssembly', 'Three.js'],
+      demoHref: 'https://vinculum.rijan.sh/editor',
+      codeHref: 'https://github.com/Luseefor/vinculum',
+    },
+    {
+      slug: 'lumawall',
+      title: 'LumaWall',
+      category: 'Native macOS App',
+      status: 'Source available · Build locally',
+      role: 'Software Engineer',
+      focus: 'Per-display playback · Scheduling · Power policy',
+      domains: 'Native applications · Media systems',
+      summary:
+        'Local video wallpapers for macOS, with per-display playback, scheduled playlists, and power-aware controls.',
+      ownership:
+        'Built native and overlay playback paths with shared video decoding, playlist scheduling, and power and Reduce Motion policies.',
+      result:
+        'Provides a local-build app with per-display wallpaper assignments. A signed, notarized download is not yet available.',
+      stack: ['Swift', 'macOS', 'WallpaperKit'],
+      codeHref: 'https://github.com/Luseefor/LumaWall',
+    },
+    {
+      slug: 'faredelta',
+      title: 'FareDelta',
+      category: 'Full-stack Web Product',
+      status: 'Public beta',
+      role: 'Full Stack Engineer',
+      focus: 'Flexible-date search · Fare history · Alerts',
+      domains: 'Data pipelines · Web products',
+      summary:
+        'Flexible-date flight search with saved routes, fare history, and price alerts using cached fare observations.',
+      ownership:
+        'Built a Next.js interface and API proxy backed by FastAPI and PostgreSQL, with provider normalization, scheduled refreshes, and route tracking.',
+      result:
+        'Supports flexible-date comparisons and price alerts. Observed fares are cached provider data and do not guarantee live inventory or booking availability.',
+      stack: ['Next.js', 'TypeScript', 'FastAPI', 'PostgreSQL'],
+      demoHref: 'https://faredelta.rijan.sh',
+      codeHref: 'https://github.com/Luseefor/faredelta',
+    },
+    {
+      slug: 'synthex-ui',
       title: 'Synthex UI',
+      status: 'Built and live',
+      role: 'Frontend Systems Engineer',
+      focus: 'Component library · Theme system · Layout engine',
+      domains: 'Developer tools · Frontend infrastructure',
       category: 'Design System / Component Library',
       summary:
         'Built a polished UI system and preview environment with theming, component docs, dashboard demos, and a live playground for evaluating patterns in one place.',
@@ -110,7 +209,12 @@ export const portfolioData = {
       codeHref: 'https://github.com/Luseefor/synthex-ui',
     },
     {
+      slug: 'aletiq',
       title: 'Aletiq',
+      status: 'In development',
+      role: 'Founder + Engineer',
+      focus: 'Product direction · Full-stack implementation',
+      domains: 'Product engineering · Systems design',
       category: 'Founder-led Product Build',
       summary:
         'Building Aletiq collectively as a founder and engineer, with product direction and technical execution moving together instead of being split across separate roles.',
@@ -123,7 +227,12 @@ export const portfolioData = {
       hideRepository: true,
     },
     {
+      slug: 'liberty-jewelers',
       title: 'Liberty Jewelers',
+      status: 'Delivered storefront',
+      role: 'Full Stack Engineer',
+      focus: 'Storefront · CMS · Payments',
+      domains: 'E-commerce · Content management',
       category: 'Production E-commerce',
       summary:
         'Built a custom storefront and internal CMS that gave a live jewelry business a cleaner buying flow and a simpler way to manage products and content.',
@@ -133,10 +242,14 @@ export const portfolioData = {
         'Delivered a production-ready commerce stack that supported merchandising, checkout, and day-to-day content changes without relying on a generic template.',
       stack: ['Next.js', 'TypeScript', 'PostgreSQL', 'Stripe'],
       demoHref: 'https://www.libertygoldanddiamonds.com/',
-      codeHref: 'https://github.com/Luseefor',
     },
     {
+      slug: 'interactive-dungeon-portfolio',
       title: 'Interactive Dungeon Portfolio',
+      status: 'Technical demo',
+      role: 'Software Engineer',
+      focus: 'Camera · Movement · Collision · UI state',
+      domains: 'Browser graphics · Interactive systems',
       category: 'Technical Demo',
       summary:
         'Built a third-person WebGL experience that demonstrates camera systems, movement controls, collision handling, and layered UI state in the browser.',
@@ -149,7 +262,12 @@ export const portfolioData = {
       hideRepository: true,
     },
     {
+      slug: 'metrox',
       title: 'MetroX',
+      status: 'Framework in development',
+      role: 'Software Engineer',
+      focus: 'Evaluation workflows · Runtime integration · Scorecards',
+      domains: 'Applied AI · Reliability engineering',
       category: 'AI Reliability Framework',
       summary:
         'Built a data-driven reliability and safety testing framework for LLM systems and agent contracts with reproducible run snapshots, statistical diagnostics, and gated evaluation workflows.',
@@ -163,8 +281,10 @@ export const portfolioData = {
     },
   ] as PortfolioProject[],
   featuredProject: {
+    slug: 'synthex-ui',
     title: 'Synthex UI',
-    subtitle: 'Component library, theme system, preview environment, and documentation experience in one product-grade frontend build.',
+    subtitle:
+      'Component library, theme system, preview environment, and documentation experience in one product-grade frontend build.',
     summary:
       'Synthex UI is the best example of how I approach frontend systems work: not just building components, but building the environment around them so they can be tested, themed, documented, and evaluated like a real product.',
     body: [
@@ -176,25 +296,44 @@ export const portfolioData = {
     focus: 'Design System · Theme Engine · Docs + Playground',
     domains: 'Component Architecture · DX · Frontend Infrastructure',
   },
+  writing: [
+    {
+      slug: 'rust-wasm-computation-boundary',
+      title: 'Drawing the Rust/WASM boundary in Vinculum',
+      summary:
+        'Planned engineering note on expression validation, bounded grid sampling, and compatibility with saved scenes.',
+      dateLabel: 'Planned post',
+      href: '/writing/rust-wasm-computation-boundary',
+    },
+    {
+      slug: 'designing-a-themeable-workbench',
+      title: 'Designing a themeable workbench',
+      summary:
+        'Planned notes on separating a layout engine from its React adapter and keeping a component library consistent.',
+      dateLabel: 'Planned post',
+      href: '/writing/designing-a-themeable-workbench',
+    },
+  ] as WritingPost[],
   experience: [
     {
       role: 'Founder + Engineer',
       company: 'Aletiq',
       period: '2025 - Present',
       bullets: [
-        'Building Aletiq collectively while owning both product and engineering work instead of splitting strategy from implementation.',
-        'Driving interface decisions, technical architecture, and early system implementation to turn a founder-led product into an active build with real momentum.',
-        'Working across product direction and execution so the system evolves coherently from idea to usable software.',
+        'Build TODO(metric): product workflows shipped for Aletiq.',
+        'Deliver TODO(metric): interface and backend milestones from product design through implementation.',
+        'Validate TODO(metric): product decisions through user feedback or testing.',
       ],
     },
     {
-      role: 'Lead Developer',
-      company: 'Applied Engineering',
-      period: '2024 - Present',
+      role: 'Software Engineering Projects',
+      company: 'Applied Engineering Experience',
+      period: 'Jan 2023 - May 2024',
       bullets: [
-        'Built hardware-integrated web systems where the interface had to stay reliable under operational constraints instead of only looking polished in a demo.',
-        'Led implementation across frontend delivery, backend integration, and deployment decisions rather than staying isolated in a single layer of the stack.',
-        'Worked on IoT energy tooling and security-sensitive workflows with an emphasis on correctness, maintainability, and steady delivery.',
+        'Reduced administrative workload by 70% with an NFC attendance and school management platform (resume-reported).',
+        'Automated TODO(metric): library tracking and reporting workflows across inventory, borrowing, and fines.',
+        'Prototyped TODO(metric): energy-monitoring installations using embedded sensors and microcontrollers.',
+        'Secured TODO(metric): student voting sessions with authentication and encrypted workflows.',
       ],
     },
     {
@@ -202,9 +341,9 @@ export const portfolioData = {
       company: 'Liberty Jewelers',
       period: '2023 - 2024',
       bullets: [
-        'Shipped a custom storefront and content workflow for a live commerce business rather than relying on an off-the-shelf template.',
-        'Integrated payments, database-backed content management, and the tooling needed to keep product updates moving without constant developer intervention.',
-        'Balanced visual polish with the practical demands of performance, maintainability, and everyday business use.',
+        'Shipped TODO(metric): storefront and checkout workflows for a jewelry business.',
+        'Automated TODO(metric): product updates through database-backed content tooling.',
+        'Improved TODO(metric): storefront performance against a measured baseline.',
       ],
     },
   ] satisfies ExperienceEntry[],
@@ -214,45 +353,40 @@ export const portfolioData = {
       title: 'Founder + Engineer',
       organization: 'Aletiq',
       summary:
-        'Building Aletiq collectively with direct ownership of product decisions, interface quality, and technical implementation across the early product stack.',
-      proof: 'founder-led execution · product direction · engineering ownership',
+        'Build TODO(metric): product workflows shipped across interface and backend systems.',
+      proof: 'Product direction · Engineering ownership',
     },
     {
       period: '2024 - Present',
-      title: 'Lead Developer',
-      organization: 'Applied Engineering',
+      title: 'Computer Engineering + Mathematics',
+      organization: 'University of Southern Mississippi',
       summary:
-        'Building hardware-integrated web systems, delivery workflows, and reliability-focused product infrastructure across applied engineering projects.',
-      proof: 'IoT systems · security-sensitive workflows · frontend to deployment',
+        'Pursue 2 B.S. degree programs while building mathematical software, developer tools, and native apps.',
+      proof: 'Vinculum · Synthex UI · LumaWall · FareDelta',
+    },
+    {
+      period: 'Jan 2023 - May 2024',
+      title: 'Software Engineering Projects',
+      organization: 'Applied Engineering Experience',
+      summary:
+        'Reduced administrative workload by 70% with an NFC attendance and school management platform (resume-reported).',
+      proof: 'NFC attendance · Role-based dashboards · Assignment workflows',
     },
     {
       period: '2023 - 2024',
       title: 'Full Stack Engineer',
       organization: 'Liberty Jewelers',
       summary:
-        'Shipped a custom storefront, payment flow, and content tooling for a live commerce business that needed real operational usefulness.',
-      proof: 'custom commerce stack · CMS workflow · production delivery',
-    },
-    {
-      period: '2022 - Present',
-      title: 'Computer Science',
-      organization: 'Undergraduate Studies',
-      summary:
-        'Formal coursework paired with hands-on product, AI, and systems work, with most learning reinforced through building and shipping projects.',
+        'Shipped TODO(metric): commerce workflows across the storefront, payments, and content management.',
+      proof: 'Custom storefront · CMS · Checkout',
     },
   ] as TimelineEntry[],
   education: [
     {
-      institution: 'Undergraduate Computer Science Studies',
-      degree: 'Computer Science',
-      period: '2022 - Present',
-      notes: 'Formal coursework paired with hands-on product, AI, and systems work.',
-    },
-    {
-      institution: 'STEM Foundation',
-      degree: 'Science and Mathematics Track',
-      period: '2018 - 2022',
-      notes: 'Built the analytical base for later software engineering and technical project work.',
+      institution: 'University of Southern Mississippi',
+      degree: 'B.S. Computer Engineering + B.S. Mathematics',
+      period: '2024 - Present',
+      notes: 'Dual degree studies alongside hands-on software and hardware projects.',
     },
   ] satisfies EducationEntry[],
   skills: [
@@ -318,7 +452,7 @@ export const portfolioData = {
   contact: {
     email: 'ghimirerijan199@gmail.com',
     github: 'https://github.com/Luseefor',
-    linkedin: 'https://www.linkedin.com/in/rijan-ghimire-37ba4a2b0/',
+    linkedin: 'https://www.linkedin.com/in/rijanghimire/',
     resumeHref: '/My Resume - Main.pdf',
     note: 'Available for internships, early-career software engineering roles, and technical collaborations.',
     cta: 'Open to strong teams, internships, and interesting technical work.',
@@ -335,7 +469,7 @@ export const portfolioData = {
     { label: 'GitHub', url: 'https://github.com/Luseefor', kind: 'github' },
     {
       label: 'LinkedIn',
-      url: 'https://www.linkedin.com/in/rijan-ghimire-37ba4a2b0/',
+      url: 'https://www.linkedin.com/in/rijanghimire/',
       kind: 'linkedin',
     },
     {
@@ -345,3 +479,19 @@ export const portfolioData = {
     },
   ] satisfies SocialLink[],
 } as const;
+
+/** Merge the featured narrative into its project record without duplicating project facts. */
+export function getPortfolioProject(slug: string) {
+  const project = portfolioData.projects.find((entry) => entry.slug === slug);
+  if (!project) return undefined;
+  return project.slug === portfolioData.featuredProject.slug
+    ? { ...project, ...portfolioData.featuredProject }
+    : { ...project, body: [] as string[] };
+}
+
+export function getProjectAction(project: PortfolioProject) {
+  if (project.demoHref) return { href: project.demoHref, label: 'Open live demo' };
+  if (project.codeHref && !project.hideRepository)
+    return { href: project.codeHref, label: 'Open repository' };
+  return { href: `/projects/${project.slug}`, label: 'Read project details' };
+}
