@@ -7,7 +7,6 @@ export default function CopyEmailButton({ email }: { email: string }) {
   const [status, setStatus] = useState('');
   const [showFallback, setShowFallback] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const fallbackRef = useRef<HTMLInputElement>(null);
 
   async function copyEmail() {
     let copied = false;
@@ -50,14 +49,13 @@ export default function CopyEmailButton({ email }: { email: string }) {
       </p>
       {showFallback ? (
         <input
-          ref={fallbackRef}
           type="text"
           readOnly
           value={email}
           aria-label="Email address to copy"
           className="mt-2 w-full rounded border bg-transparent p-2 text-sm"
           autoFocus
-          onFocus={() => fallbackRef.current?.select()}
+          onFocus={(event) => event.currentTarget.select()}
         />
       ) : null}
     </div>
