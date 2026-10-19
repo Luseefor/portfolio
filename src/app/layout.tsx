@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, IBM_Plex_Mono, Manrope } from 'next/font/google';
 import './globals.css';
+import { portfolioData } from '@/content/portfolio';
 
 const sans = Manrope({
   subsets: ['latin'],
@@ -20,20 +21,20 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Rijan Ghimire | Software Engineer',
-  description:
-    'Software engineer portfolio featuring product work, applied AI projects, and an interactive technical demo.',
+  title: portfolioData.seo.title,
+  description: portfolioData.seo.description,
+  authors: [{ name: portfolioData.hero.name }],
+  keywords: [...portfolioData.seo.keywords],
+  robots: { index: true, follow: true },
   openGraph: {
-    title: 'Rijan Ghimire | Software Engineer',
-    description:
-      'Software engineer portfolio featuring product work, applied AI projects, and an interactive technical demo.',
+    title: portfolioData.seo.title,
+    description: portfolioData.seo.description,
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Rijan Ghimire | Software Engineer',
-    description:
-      'Software engineer portfolio featuring product work, applied AI projects, and an interactive technical demo.',
+    title: portfolioData.seo.title,
+    description: portfolioData.seo.description,
   },
   icons: {
     icon: '/favicon.png',
@@ -47,7 +48,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${sans.variable} ${display.variable} ${mono.variable} antialiased`}>{children}</body>
+      <body className={`${sans.variable} ${display.variable} ${mono.variable} antialiased`}>
+        {children}
+      </body>
     </html>
   );
 }

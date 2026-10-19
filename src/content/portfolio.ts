@@ -114,6 +114,7 @@ export const portfolioData = {
       'I study Computer Engineering and Mathematics at Southern Miss and build across frontend systems, backend services, and native apps.',
     status: 'Open to internships and early-career software engineering roles',
     roleLabel: 'Software Engineer',
+    quickRead: 'Developer tools, mathematical software, and products you can inspect.',
     quote: 'Choose tools for the problem. Design for reliability. Execute with discipline.',
   },
   about: {
@@ -132,9 +133,9 @@ export const portfolioData = {
     ],
   },
   credibility: [
-    'Full-stack delivery across product, AI, and systems projects',
-    'Comfortable moving from interface polish to backend architecture',
-    'Built production-facing work and experimental technical demos',
+    '3 public Synthex packages: UI system, layout engine, and React adapter',
+    'Browser-local projects, recoverable scenes, and URL sharing in Vinculum',
+    'Native macOS playback, scheduling, and power policies in LumaWall',
   ],
   projects: [
     {
@@ -286,7 +287,7 @@ export const portfolioData = {
     subtitle:
       'Component library, theme system, preview environment, and documentation experience in one product-grade frontend build.',
     summary:
-      'Synthex UI is the best example of how I approach frontend systems work: not just building components, but building the environment around them so they can be tested, themed, documented, and evaluated like a real product.',
+      'A cross-platform component library and theme system, paired with a framework-independent layout engine and a React DOM adapter for dockable workbenches.',
     body: [
       'The project combines the UI system itself with a preview shell, component documentation, dashboard examples, theme customization, and a playground route instead of treating the library as a pile of isolated examples.',
       'I focused on component consistency, theme behavior, navigation structure, and the engineering discipline needed to make the preview experience feel coherent rather than like a disconnected storybook clone.',
