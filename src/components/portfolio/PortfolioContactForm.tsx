@@ -51,9 +51,7 @@ export default function PortfolioContactForm({
     message: 'Typical response window: within a couple of days.',
   });
 
-  const handleChange = (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
   };
@@ -122,11 +120,14 @@ export default function PortfolioContactForm({
     <div className="self-start border p-5 sm:p-6 md:p-8" style={surfaceStyle}>
       <div className="mb-6">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: accent }}>
+          <p
+            className="text-[11px] font-semibold uppercase tracking-[0.22em]"
+            style={{ color: accent }}
+          >
             Contact Form
           </p>
           <h3 className="mt-4 font-display text-[2rem] font-semibold leading-none sm:text-[2.35rem]">
-            Start the Conversation
+            Send a note
           </h3>
         </div>
       </div>
@@ -220,7 +221,7 @@ export default function PortfolioContactForm({
             type="submit"
             disabled={submitState.status === 'submitting'}
             className="inline-flex min-h-12 items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-slate-950 transition disabled:cursor-not-allowed disabled:opacity-70"
-            style={{ backgroundColor: accent }}
+            style={{ backgroundColor: accent, color: 'var(--portfolio-button-text, #020617)' }}
           >
             {submitState.status === 'submitting' ? (
               <LoaderCircle size={16} className="animate-spin" />
@@ -234,9 +235,15 @@ export default function PortfolioContactForm({
             className={`inline-flex items-start gap-2 text-sm leading-6 ${
               submitState.status === 'error' ? 'text-rose-300' : ''
             }`}
-            style={submitState.status === 'error' ? undefined : mutedTextStyle}
+            style={
+              submitState.status === 'error'
+                ? { color: 'var(--portfolio-error, #fda4af)' }
+                : mutedTextStyle
+            }
           >
-            {submitState.status === 'success' ? <CheckCircle2 size={16} style={{ color: accent }} /> : null}
+            {submitState.status === 'success' ? (
+              <CheckCircle2 size={16} style={{ color: accent }} />
+            ) : null}
             {submitState.status === 'error' ? <TriangleAlert size={16} /> : null}
             <span>{submitState.message}</span>
           </div>
