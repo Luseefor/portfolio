@@ -163,32 +163,81 @@ test('both modes fit phone, tablet, and desktop widths', async ({ page }) => {
   }
 });
 
-test('warm editorial and quiet monochrome persist across portfolio routes', async ({ page }) => {
+test('engineering paper modes persist across portfolio routes', async ({ page }) => {
   await page.goto('/');
   const shell = page.locator('[data-portfolio-theme]');
   const title = page.getByRole('heading', { level: 1 });
   await expect(shell).toHaveAttribute('data-portfolio-theme', 'light');
-  await expect(shell).toHaveCSS('background-color', 'rgb(246, 242, 233)');
+  await expect(shell).toHaveCSS('background-color', 'rgb(250, 248, 242)');
   expect(await title.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
     'Cormorant',
   );
 
   await page.getByRole('button', { name: 'Switch to dark mode' }).click();
   await expect(shell).toHaveAttribute('data-portfolio-theme', 'dark');
-  await expect(shell).toHaveCSS('background-color', 'rgb(17, 17, 17)');
+  await expect(shell).toHaveCSS('background-color', 'rgb(11, 16, 22)');
   expect(await title.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
-    'Manrope',
+    'Cormorant',
   );
   await page.getByRole('link', { name: 'Read project details' }).first().click();
   await expect(shell).toHaveAttribute('data-portfolio-theme', 'dark');
   await page.reload();
   await expect(shell).toHaveAttribute('data-portfolio-theme', 'dark');
   await page.getByRole('button', { name: 'Switch to light mode' }).click();
-  await expect(shell).toHaveCSS('background-color', 'rgb(246, 242, 233)');
+  await expect(shell).toHaveCSS('background-color', 'rgb(250, 248, 242)');
   expect(await title.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
     'Cormorant',
   );
   await page.goto(portfolioData.writing[0].href);
   await expect(shell).toHaveAttribute('data-portfolio-theme', 'light');
   await expect(page.getByText('Full post coming soon', { exact: true })).toBeVisible();
+});
+
+test('engineering paper keeps figures, metrics, and live-demo marks readable', async ({ page }) => {
+  await page.goto('/');
+  const shell = page.locator('[data-portfolio-theme]');
+  await expect(shell).toHaveCSS('background-size', '24px 24px, 24px 24px');
+  expect(await shell.evaluate((element) => getComputedStyle(element).backgroundImage)).toContain(
+    '0.06',
+  );
+  const figures = ['Selected systems', 'Writing', 'Background', 'Contact'];
+  for (const [index, label] of figures.entries()) {
+    await expect(page.getByRole('heading', { name: label, exact: true })).toHaveText(
+      `fig. ${String(index + 1).padStart(2, '0')} — ${label}`,
+    );
+  }
+  const todo = page.locator('[data-paper-todo]').first();
+  await expect(todo).toHaveText('TODO(metric):');
+  expect(await todo.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
+    'IBM Plex Mono',
+  );
+  const metric = page.locator('[data-paper-metric]').filter({ hasText: '70%' }).first();
+  expect(await metric.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
+    'IBM Plex Mono',
+  );
+  const curve = page.locator('svg[viewBox="0 0 360 160"]');
+  await expect(curve).toHaveCSS('opacity', '0.02');
+  await expect(curve).toHaveAttribute('aria-hidden', 'true');
+  const displayedProjects = portfolioData.projects.filter(
+    (project) =>
+      project.slug === portfolioData.featuredProject.slug ||
+      portfolioData.selectedProjectSlugs.some((slug) => slug === project.slug),
+  );
+  for (const project of displayedProjects) {
+    const card = page
+      .locator('#projects article')
+      .filter({ has: page.getByRole('heading', { name: project.title, exact: true }) });
+    await expect(card.getByRole('img', { name: 'Live demo link available' })).toHaveCount(
+      project.demoHref ? 1 : 0,
+    );
+    await expect(card.locator('svg')).toHaveCount(4);
+  }
+  await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+  await expect(shell).toHaveCSS('background-size', '24px 24px, 24px 24px');
+  expect(await shell.evaluate((element) => getComputedStyle(element).backgroundImage)).toContain(
+    'rgb(38, 50, 65)',
+  );
+  expect(await todo.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
+    'IBM Plex Mono',
+  );
 });
