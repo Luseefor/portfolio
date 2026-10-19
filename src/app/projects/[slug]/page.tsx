@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import PaperText from '@/components/portfolio/PaperText';
 import DetailShell from '@/components/portfolio/DetailShell';
 import ProjectActions from '@/components/portfolio/ProjectActions';
 import { getPortfolioProject, portfolioData } from '@/content/portfolio';
@@ -33,7 +34,9 @@ export default async function ProjectPage({ params }: Props) {
           {project.category}
         </p>
         <h1 className="mt-4 font-display text-5xl font-semibold sm:text-6xl">{project.title}</h1>
-        <p className="mt-5 text-lg leading-8 text-[var(--text-secondary)]">{project.summary}</p>
+        <p className="mt-5 text-lg leading-8 text-[var(--text-secondary)]">
+          <PaperText text={project.summary} />
+        </p>
       </header>
       <dl className="grid gap-6 border-y border-[var(--border-default)] py-6 sm:grid-cols-2">
         {[
@@ -46,7 +49,9 @@ export default async function ProjectPage({ params }: Props) {
             <dt className="font-terminal text-xs uppercase tracking-widest text-[var(--text-secondary)]">
               {label}
             </dt>
-            <dd className="mt-2 leading-7">{value}</dd>
+            <dd className="mt-2 leading-7">
+              <PaperText text={value} />
+            </dd>
           </div>
         ))}
       </dl>
@@ -54,7 +59,7 @@ export default async function ProjectPage({ params }: Props) {
         <section aria-label="Project approach" className="space-y-4 text-[var(--text-secondary)]">
           {project.body.map((paragraph) => (
             <p key={paragraph} className="leading-8">
-              {paragraph}
+              <PaperText text={paragraph} />
             </p>
           ))}
         </section>
@@ -65,7 +70,9 @@ export default async function ProjectPage({ params }: Props) {
       ].map(([label, value]) => (
         <section key={label}>
           <h2 className="font-display text-3xl font-semibold">{label}</h2>
-          <p className="mt-3 leading-8 text-[var(--text-secondary)]">{value}</p>
+          <p className="mt-3 leading-8 text-[var(--text-secondary)]">
+            <PaperText text={value} />
+          </p>
         </section>
       ))}
       <section>

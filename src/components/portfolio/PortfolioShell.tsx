@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Moon, Sun } from 'lucide-react';
 import { useStore } from '@/utils/store';
+import { getSurfacePalette, hexToRgba } from '@/utils/themes';
 import styles from './portfolio.module.css';
 
 const MODE_KEY = 'portfolio-reading-mode';
@@ -38,6 +39,11 @@ export default function PortfolioShell({
   resumeHref: string;
 }) {
   const mode = useSyncExternalStore(subscribe, getMode, getServerMode);
+  const palette = getSurfacePalette(mode === 'dark');
+  const paperStyle = {
+    '--paper': palette.base,
+    '--grid-line': mode === 'dark' ? palette.wash : hexToRgba(palette.wash, 0.06),
+  } as CSSProperties;
 
   // Keep the preserved assistant's existing light/dark behavior in sync.
   useEffect(() => {
@@ -56,7 +62,11 @@ export default function PortfolioShell({
   }
 
   return (
-    <div className={styles.site} data-portfolio-theme={mode}>
+    <div
+      className={`${styles.site} ${styles.paperGrid}`}
+      data-portfolio-theme={mode}
+      style={paperStyle}
+    >
       <div className={styles.container}>
         <a className={styles.skipLink} href="#content">
           Skip to content
@@ -77,7 +87,7 @@ export default function PortfolioShell({
             onClick={toggleMode}
             className={styles.themeToggle}
             aria-label={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-            title={mode === 'light' ? 'Quiet monochrome' : 'Warm editorial'}
+            title={mode === 'light' ? 'Dark engineering paper' : 'Light engineering paper'}
           >
             {mode === 'light' ? (
               <Moon size={17} aria-hidden="true" />

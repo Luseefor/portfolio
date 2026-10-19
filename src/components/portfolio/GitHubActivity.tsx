@@ -126,11 +126,20 @@ export default function GitHubActivity({
     <div className="min-w-0">
       <div className="grid gap-4 sm:grid-cols-2">
         {topMetrics.map((metric) => (
-          <article key={metric.label} className="border-t py-4" style={{ borderColor: subtleBorder }}>
-            <p className="font-terminal text-[10px] uppercase tracking-[0.18em]" style={{ color: accent }}>
+          <article
+            key={metric.label}
+            className="border-t py-4"
+            style={{ borderColor: subtleBorder }}
+          >
+            <p
+              className="font-terminal text-[10px] uppercase tracking-[0.18em]"
+              style={{ color: accent }}
+            >
               {metric.label}
             </p>
-            <p className="mt-2 text-[1.8rem] font-medium leading-tight">{metric.value}</p>
+            <p data-paper-metric className="mt-2 text-[1.8rem] font-medium leading-tight">
+              {metric.value}
+            </p>
           </article>
         ))}
       </div>
@@ -138,26 +147,47 @@ export default function GitHubActivity({
       <div className="mt-8 border-t pt-5" style={{ borderColor: subtleBorder }}>
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="border-t py-4" style={{ borderColor: subtleBorder }}>
-            <p className="font-terminal text-[10px] uppercase tracking-[0.18em]" style={{ color: accent }}>
+            <p
+              className="font-terminal text-[10px] uppercase tracking-[0.18em]"
+              style={{ color: accent }}
+            >
               Recent events
             </p>
-            <p className="mt-2 text-[1rem] leading-7" style={{ color: mutedText }}>
+            <p
+              data-paper-metric
+              className="mt-2 text-[1rem] leading-7"
+              style={{ color: mutedText }}
+            >
               {summary?.totalEvents ?? totalCadenceCount}
             </p>
           </div>
           <div className="border-t py-4" style={{ borderColor: subtleBorder }}>
-            <p className="font-terminal text-[10px] uppercase tracking-[0.18em]" style={{ color: accent }}>
+            <p
+              className="font-terminal text-[10px] uppercase tracking-[0.18em]"
+              style={{ color: accent }}
+            >
               Active days
             </p>
-            <p className="mt-2 text-[1rem] leading-7" style={{ color: mutedText }}>
+            <p
+              data-paper-metric
+              className="mt-2 text-[1rem] leading-7"
+              style={{ color: mutedText }}
+            >
               {activeDays14} in the last 14
             </p>
           </div>
           <div className="border-t py-4" style={{ borderColor: subtleBorder }}>
-            <p className="font-terminal text-[10px] uppercase tracking-[0.18em]" style={{ color: accent }}>
+            <p
+              className="font-terminal text-[10px] uppercase tracking-[0.18em]"
+              style={{ color: accent }}
+            >
               Most active repo
             </p>
-            <p className="mt-2 text-[1rem] leading-7 break-all" style={{ color: mutedText }}>
+            <p
+              data-paper-metric
+              className="mt-2 text-[1rem] leading-7 break-all"
+              style={{ color: mutedText }}
+            >
               {summary?.topRepo ?? 'Mixed repositories'}
             </p>
           </div>
@@ -165,7 +195,10 @@ export default function GitHubActivity({
 
         <div className="mt-6 border-t pt-5" style={{ borderColor: subtleBorder }}>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="font-terminal text-[10px] uppercase tracking-[0.18em]" style={{ color: accent }}>
+            <p
+              className="font-terminal text-[10px] uppercase tracking-[0.18em]"
+              style={{ color: accent }}
+            >
               14-day cadence
             </p>
             <p className="text-xs" style={{ color: metaText }}>
@@ -183,8 +216,15 @@ export default function GitHubActivity({
               const valueLabel = `${entry.count} contribution${entry.count === 1 ? '' : 's'}`;
 
               return (
-                <div key={entry.date} className="flex h-full min-w-0 flex-col items-center justify-end">
-                  <div className="mb-1 h-4 text-[11px] leading-none" style={{ color: metaText }}>
+                <div
+                  key={entry.date}
+                  className="flex h-full min-w-0 flex-col items-center justify-end"
+                >
+                  <div
+                    data-paper-metric
+                    className="mb-1 h-4 text-[11px] leading-none"
+                    style={{ color: metaText }}
+                  >
                     {isHovered ? entry.count : ''}
                   </div>
                   <button
@@ -199,10 +239,14 @@ export default function GitHubActivity({
                     aria-label={`${formatChartLabel(entry.date)}: ${valueLabel}`}
                     onMouseEnter={() => setHoveredDay(entry.date)}
                     onFocus={() => setHoveredDay(entry.date)}
-                    onMouseLeave={() => setHoveredDay((current) => (current === entry.date ? null : current))}
-                    onBlur={() => setHoveredDay((current) => (current === entry.date ? null : current))}
+                    onMouseLeave={() =>
+                      setHoveredDay((current) => (current === entry.date ? null : current))
+                    }
+                    onBlur={() =>
+                      setHoveredDay((current) => (current === entry.date ? null : current))
+                    }
                   />
-                  <span className="mt-2 text-[11px]" style={{ color: metaText }}>
+                  <span data-paper-metric className="mt-2 text-[11px]" style={{ color: metaText }}>
                     {formatChartLabel(entry.date)}
                   </span>
                 </div>
@@ -211,8 +255,14 @@ export default function GitHubActivity({
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-between gap-4 border-t pt-5" style={{ borderColor: subtleBorder }}>
-          <p className="font-terminal text-[10px] uppercase tracking-[0.18em]" style={{ color: accent }}>
+        <div
+          className="mt-6 flex items-center justify-between gap-4 border-t pt-5"
+          style={{ borderColor: subtleBorder }}
+        >
+          <p
+            className="font-terminal text-[10px] uppercase tracking-[0.18em]"
+            style={{ color: accent }}
+          >
             Recent GitHub activity
           </p>
           <a
@@ -238,14 +288,20 @@ export default function GitHubActivity({
                 style={{ borderColor: subtleBorder }}
               >
                 <div>
-                  <p className="text-xs uppercase tracking-[0.18em]" style={{ color: metaText }}>
+                  <p
+                    data-paper-metric
+                    className="text-xs uppercase tracking-[0.18em]"
+                    style={{ color: metaText }}
+                  >
                     {formatDateLabel(event.createdAt)}
                   </p>
                 </div>
                 <div>
                   <p className="text-base font-semibold">{event.title}</p>
                   <p className="mt-2 text-sm leading-7" style={{ color: mutedText }}>
-                    {event.repo ? `${event.kind} activity on ${event.repo}.` : `${event.kind} activity.`}
+                    {event.repo
+                      ? `${event.kind} activity on ${event.repo}.`
+                      : `${event.kind} activity.`}
                   </p>
                 </div>
               </article>

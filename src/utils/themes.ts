@@ -53,11 +53,11 @@ const DARK_SURFACE_PALETTE: SurfacePalette = {
   textMuted: '#718090',
   borderDefault: '#263241',
   borderStrong: '#324154',
-  wash: '#d9d3c7',
+  wash: '#263241',
 };
 
 const LIGHT_SURFACE_PALETTE: SurfacePalette = {
-  base: '#f3f5f8',
+  base: '#faf8f2',
   elevated: '#fbfcfd',
   panel: '#f7f9fb',
   soft: '#edf2f6',
@@ -66,7 +66,7 @@ const LIGHT_SURFACE_PALETTE: SurfacePalette = {
   textMuted: '#718090',
   borderDefault: '#d6dee8',
   borderStrong: '#c4d0dc',
-  wash: '#e8e2d7',
+  wash: '#25231f',
 };
 
 export const getThemeColor = (themeId: string, isDark: boolean) => {

@@ -1,5 +1,5 @@
 .site {
-  --paper: #f6f2e9;
+  --paper: #faf8f2;
   --ink: #25231f;
   --secondary: #625e56;
   --line: #d5cfc3;
@@ -8,13 +8,16 @@
   --button: #89522e;
   --button-text: #ffffff;
   --display: var(--font-display-ui), Georgia, serif;
+  --mono: var(--font-mono-ui), 'SFMono-Regular', monospace;
+  --margin-rule: #ac4b42;
+  --stamp-ink: #a14237;
   --text-primary: var(--ink);
   --text-secondary: var(--secondary);
   --text-muted: var(--secondary);
   --border-default: var(--line);
   --portfolio-error: #a32929;
   --portfolio-button-text: var(--button-text);
-  background: var(--paper);
+  background-color: var(--paper);
   color: var(--ink);
   min-height: 100vh;
   font-family: var(--font-sans-ui), Arial, sans-serif;
@@ -25,15 +28,16 @@
 }
 .site[data-portfolio-theme='dark'] {
   --portfolio-error: #f59a9a;
-  --paper: #111111;
-  --ink: #ededed;
-  --secondary: #a8a8a8;
-  --line: #303030;
-  --link: #dedede;
-  --surface: #191919;
+  --paper: #0b1016;
+  --ink: #e7edf3;
+  --secondary: #a2afbc;
+  --line: #263241;
+  --link: #d7e2f0;
+  --surface: #121922;
   --button: #ededed;
   --button-text: #111111;
-  --display: var(--font-sans-ui), Arial, sans-serif;
+  --margin-rule: #cf8277;
+  --stamp-ink: #e2a092;
   color-scheme: dark;
 }
 .site h1,
@@ -65,6 +69,7 @@
   background: var(--link);
 }
 .container {
+  position: relative;
   width: min(100% - 64px, 800px);
   margin: 0 auto;
 }
@@ -135,6 +140,7 @@
   text-transform: uppercase;
 }
 .hero h1 {
+  position: relative;
   font-size: clamp(48px, 6.5vw, 64px);
   font-weight: 500;
   letter-spacing: -0.045em;
@@ -223,10 +229,11 @@
   margin-bottom: 24px;
 }
 .section h2 {
-  font-size: 31px;
+  font-family: var(--mono);
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: -0.025em;
-  line-height: 1.3;
+  letter-spacing: 0;
+  line-height: 1.8;
 }
 .sectionHeading > span {
   color: var(--secondary);
@@ -272,12 +279,7 @@
   display: grid;
   grid-template-columns: 200px 1fr;
   gap: 32px;
-  padding: 24px 0;
-  border-bottom: 1px solid var(--line);
-}
-.projectRow:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
+  padding: 0;
 }
 .projectRow h3 {
   font-size: 25px;
@@ -287,7 +289,7 @@
 }
 .projectRow p {
   color: var(--secondary);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.9;
 }
 .stack {
@@ -338,7 +340,7 @@
   list-style: disc;
   padding-left: 17px;
   color: var(--secondary);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.9;
 }
 .technologies {
@@ -443,45 +445,12 @@
   color: var(--link);
 }
 .detail dt {
-  font-family: var(--font-sans-ui), Arial, sans-serif;
+  font-family: var(--mono);
   font-size: 11px;
   letter-spacing: 0.04em;
 }
 .detail dd {
   font-size: 14px;
-}
-.site[data-portfolio-theme='dark'] .hero h1 {
-  font-size: clamp(36px, 5vw, 46px);
-  font-weight: 600;
-  letter-spacing: -0.05em;
-  margin-bottom: 20px;
-}
-.site[data-portfolio-theme='dark'] .hero {
-  padding-top: 56px;
-}
-.site[data-portfolio-theme='dark'] .section h2 {
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-}
-.site[data-portfolio-theme='dark'] .featured h3 {
-  font-size: 25px;
-  font-weight: 600;
-}
-.site[data-portfolio-theme='dark'] :is(.projectRow, .writingRow, .timelineRow) h3 {
-  font-size: 17px;
-  font-weight: 600;
-}
-.site[data-portfolio-theme='dark'] .contactForm h3 {
-  font-size: 22px;
-}
-.site[data-portfolio-theme='dark'] .detail h1 {
-  font-size: 36px;
-  font-weight: 600;
-}
-.site[data-portfolio-theme='dark'] .detail h2 {
-  font-size: 20px;
-  font-weight: 600;
 }
 @media (max-width: 600px) {
   .container {
@@ -542,8 +511,7 @@
   }
   .projectRow {
     grid-template-columns: 1fr;
-    gap: 9px;
-    padding-block: 22px;
+    gap: 12px;
   }
   .projectRow h3 {
     margin-bottom: 2px;
@@ -579,5 +547,166 @@
 @media (prefers-reduced-motion: no-preference) {
   .themeToggle {
     transition: background-color 0.15s ease;
+  }
+}
+
+/* One grid utility; the shell supplies palette.base and palette.wash. */
+.paperGrid {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.container::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: -24px;
+  width: 1px;
+  background: var(--margin-rule);
+  opacity: 0.6;
+  pointer-events: none;
+}
+.site
+  :is(
+    .eyebrow,
+    .nav,
+    .pageNav,
+    .meta,
+    .stack,
+    .figureNumber,
+    .skillRow dt,
+    .actions,
+    .footer,
+    .contactForm label span,
+    .detail dt
+  ),
+.site :global(.font-terminal),
+.site [data-paper-metric],
+.site [data-paper-todo] {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.figureNumber {
+  color: var(--stamp-ink);
+}
+.metric {
+  letter-spacing: -0.025em;
+}
+.todo {
+  display: inline;
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--paper);
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+.namePlot {
+  position: relative;
+  isolation: isolate;
+}
+.heroCurve {
+  position: absolute;
+  z-index: -1;
+  width: min(100%, 360px);
+  height: 160px;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink);
+  opacity: 0.02;
+  pointer-events: none;
+}
+.projectCard {
+  position: relative;
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+}
+.projectCard:last-child {
+  margin-bottom: 0;
+}
+.cardHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 32px;
+  margin-bottom: 14px;
+}
+.cardHeading .meta {
+  font-size: 10px;
+  letter-spacing: 0.03em;
+}
+.cornerTicks {
+  position: absolute;
+  inset: -4px;
+  pointer-events: none;
+  color: var(--ink);
+  opacity: 0.5;
+}
+.cornerTicks svg {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+}
+.cornerTicks svg:nth-child(1) {
+  top: 0;
+  left: 0;
+}
+.cornerTicks svg:nth-child(2) {
+  top: 0;
+  right: 0;
+  transform: rotate(90deg);
+}
+.cornerTicks svg:nth-child(3) {
+  bottom: 0;
+  right: 0;
+  transform: rotate(180deg);
+}
+.cornerTicks svg:nth-child(4) {
+  bottom: 0;
+  left: 0;
+  transform: rotate(270deg);
+}
+.liveStamp {
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid currentColor;
+  color: var(--stamp-ink);
+  padding: 3px 5px 2px;
+  transform: rotate(-6deg);
+  font-family: 'Songti SC', 'Noto Serif CJK SC', ui-serif, serif;
+  font-size: 16px;
+  line-height: 1.1;
+}
+.stampCaption {
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: 0.16em;
+  margin-top: 2px;
+}
+@media (max-width: 600px) {
+  .container::before {
+    left: -12px;
+  }
+  .projectCard {
+    padding: 18px;
+  }
+  .section h2 {
+    font-size: 12px;
+  }
+  .nav {
+    font-size: 10px;
+    gap: 10px;
+  }
+  .heroCurve {
+    width: 260px;
+    height: 120px;
   }
 }
