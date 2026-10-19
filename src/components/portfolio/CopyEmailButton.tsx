@@ -7,8 +7,10 @@ export default function CopyEmailButton({ email }: { email: string }) {
   const [status, setStatus] = useState('');
   const [showFallback, setShowFallback] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const copyTotal = useRef(0);
 
   async function copyEmail() {
+    const hadFallback = showFallback;
     let copied = false;
     try {
       await navigator.clipboard.writeText(email);
@@ -31,7 +33,13 @@ export default function CopyEmailButton({ email }: { email: string }) {
       }
     }
     setShowFallback(!copied);
-    setStatus(copied ? 'Email copied' : 'Select the email below and copy it.');
+    if (copied) {
+      copyTotal.current += 1;
+      setStatus(copyTotal.current > 1 ? `Email copied (${copyTotal.current})` : 'Email copied');
+    } else {
+      setStatus('Select the email below and copy it.');
+    }
+    if (copied && hadFallback) buttonRef.current?.focus();
   }
 
   return (

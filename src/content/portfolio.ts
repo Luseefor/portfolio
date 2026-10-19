@@ -108,22 +108,20 @@ export const portfolioData = {
   ],
   hero: {
     name: 'Rijan Ghimire',
-    headline:
-      'Software engineer building mathematical software, developer tools, and web products.',
-    summary:
-      'I study Computer Engineering and Mathematics at Southern Miss and build across frontend systems, backend services, and native apps.',
+    headline: 'I build mathematical software, developer tools, and web apps.',
+    summary: 'I study Computer Engineering and Mathematics at Southern Miss.',
     status: 'Open to internships and early-career software engineering roles',
     roleLabel: 'Software Engineer',
-    quickRead: 'Developer tools, mathematical software, and products you can inspect.',
+    quickRead: 'Developer tools and products you can inspect.',
     quote: 'Choose tools for the problem. Design for reliability. Execute with discipline.',
   },
   about: {
     title: 'Engineering Approach',
     description:
-      'I build product-grade web experiences, backend systems, and interactive demos with an emphasis on clarity, performance, and maintainability.',
+      'I build web apps, backend systems, and interactive demos that stay clear and maintainable.',
     body: [
-      'I start from constraints first: interface clarity, runtime behavior, ownership boundaries, and the cost of making future changes. The stack follows those constraints, not the other way around.',
-      'The strongest pattern across my work is end-to-end execution. I am comfortable moving from UX decisions and frontend architecture to backend workflows, integration details, and operational reliability.',
+      'I start from constraints: interface clarity, runtime behavior, ownership boundaries, and the cost of future changes. The stack follows those constraints.',
+      'My work is end-to-end. I move from UX decisions and frontend architecture to backend workflows, integration details, and reliable operation.',
       'I do my best work where product engineering, applied AI, and systems thinking overlap. I choose tools based on tradeoffs, then optimize for correctness, maintainability, and a clean user experience.',
     ],
     stats: [
@@ -200,11 +198,11 @@ export const portfolioData = {
       domains: 'Developer tools · Frontend infrastructure',
       category: 'Design System / Component Library',
       summary:
-        'Built a polished UI system and preview environment with theming, component docs, dashboard demos, and a live playground for evaluating patterns in one place.',
+        'Built a UI system and preview environment with theming, component docs, dashboard demos, and a live playground for evaluating patterns.',
       ownership:
-        'Owned the component library architecture, preview shell, theme customization model, documentation structure, and the experience of turning a design system into something people can actually explore.',
+        'Owned the component library architecture, preview shell, theme model, and documentation structure. Built the preview so each component can be opened, themed, and reviewed.',
       result:
-        'Produced a usable design-system showcase that demonstrates component quality, theming control, and product-level frontend engineering beyond isolated component demos.',
+        'Produced a usable showcase with consistent components, working theming, and docs tied to live examples.',
       stack: ['React', 'TypeScript', 'Design Systems', 'Theming'],
       demoHref: 'https://synthex-ui.rijan.sh',
       codeHref: 'https://github.com/Luseefor/synthex-ui',
@@ -218,11 +216,11 @@ export const portfolioData = {
       domains: 'Product engineering · Systems design',
       category: 'Founder-led Product Build',
       summary:
-        'Building Aletiq collectively as a founder and engineer, with product direction and technical execution moving together instead of being split across separate roles.',
+        'Building Aletiq as founder and engineer, owning product direction and technical execution.',
       ownership:
         'Own product and engineering work across interface decisions, system implementation, and the technical direction needed to move an early product forward.',
       result:
-        'Turned a founder-led concept into an active build with real product shape, technical momentum, and a clearer execution path.',
+        'Turned the concept into an active build with working product areas under development.',
       stack: ['Product Engineering', 'Systems Design', 'Frontend', 'Backend'],
       demoComingSoon: true,
       hideRepository: true,
@@ -240,7 +238,7 @@ export const portfolioData = {
       ownership:
         'Owned the customer-facing Next.js experience, CMS tooling, Stripe integration, and the system wiring between storefront actions and internal updates.',
       result:
-        'Delivered a production-ready commerce stack that supported merchandising, checkout, and day-to-day content changes without relying on a generic template.',
+        'Delivered a commerce stack covering merchandising, checkout, and day-to-day content changes.',
       stack: ['Next.js', 'TypeScript', 'PostgreSQL', 'Stripe'],
       demoHref: 'https://www.libertygoldanddiamonds.com/',
     },
@@ -257,7 +255,7 @@ export const portfolioData = {
       ownership:
         'Implemented the scene structure, player controller, interaction flow, and the stabilization work needed to hold up across reloads and input edge cases.',
       result:
-        'Produced a technical showcase that feels distinctive while still proving systems thinking, rendering work, and frontend engineering under real constraints.',
+        'Produced a working demo covering scene setup, player controls, collision handling, and layered UI state.',
       stack: ['React Three Fiber', 'Three.js', 'Rapier', 'TypeScript'],
       demoHref: '/interactive',
       hideRepository: true,
@@ -273,7 +271,7 @@ export const portfolioData = {
       summary:
         'Built a data-driven reliability and safety testing framework for LLM systems and agent contracts with reproducible run snapshots, statistical diagnostics, and gated evaluation workflows.',
       ownership:
-        'Owned frontend-first configuration flows, managed runtime integration, benchmark execution design, scorecard logic, and the product surface for turning reliability checks into an operational workflow.',
+        'Owned configuration flows, runtime integration, benchmark execution design, and scorecard logic that turn reliability checks into a repeatable workflow.',
       result:
         'Turned AI safety and robustness evaluation into a usable framework with benchmark datasets, uncertainty-aware scoring, provider hardening, and report-generation workflows.',
       stack: ['LLM Evaluation', 'Agent Runtime', 'Statistical Diagnostics', 'shadcn/ui'],
@@ -285,12 +283,12 @@ export const portfolioData = {
     slug: 'synthex-ui',
     title: 'Synthex UI',
     subtitle:
-      'Component library, theme system, preview environment, and documentation experience in one product-grade frontend build.',
+      'Component library, theme system, preview environment, and documentation experience in one frontend build.',
     summary:
       'A cross-platform component library and theme system, paired with a framework-independent layout engine and a React DOM adapter for dockable workbenches.',
     body: [
-      'The project combines the UI system itself with a preview shell, component documentation, dashboard examples, theme customization, and a playground route instead of treating the library as a pile of isolated examples.',
-      'I focused on component consistency, theme behavior, navigation structure, and the engineering discipline needed to make the preview experience feel coherent rather than like a disconnected storybook clone.',
+      'The project combines the UI system with a preview shell, component documentation, dashboard examples, theme customization, and a playground route.',
+      'I focused on component consistency, theme behavior, and navigation structure so the preview stays coherent across routes.',
     ],
     status: 'Built and live',
     role: 'Frontend Systems Engineer',

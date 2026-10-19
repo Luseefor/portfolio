@@ -95,6 +95,8 @@ test('copy email writes to the clipboard', async ({ page, context }) => {
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
     portfolioData.contact.email,
   );
+  await page.getByRole('button', { name: 'Copy Email' }).click();
+  await expect(page.getByRole('status')).toHaveText('Email copied (2)');
 });
 
 test('copy email uses legacy copying when clipboard API is unavailable', async ({
@@ -109,6 +111,8 @@ test('copy email uses legacy copying when clipboard API is unavailable', async (
   await page.getByRole('button', { name: 'Copy Email' }).click();
   await expect(page.getByRole('status')).toHaveText('Email copied');
   await expect(page.getByRole('button', { name: 'Copy Email' })).toBeFocused();
+  await page.getByRole('button', { name: 'Copy Email' }).click();
+  await expect(page.getByRole('status')).toHaveText('Email copied (2)');
   // A fresh document restores the native clipboard API so its contents can be checked.
   const reader = await context.newPage();
   await reader.goto('/projects/synthex-ui');
