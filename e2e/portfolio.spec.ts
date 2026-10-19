@@ -14,7 +14,7 @@ test('homepage is readable without JavaScript and resume resolves to PDF', async
   await expect(page.getByRole('link', { name: 'View Projects', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Download Resume' }).first()).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Vinculum', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Engineering notes.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Writing', exact: true })).toBeVisible();
   const sectionIds = await page
     .locator('main section[id]')
     .evaluateAll((sections) => sections.map((section) => section.id));
@@ -38,7 +38,7 @@ test('homepage exposes SEO and loads no interactive scene assets', async ({ page
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Copy Email' })).toBeVisible();
-  await page.getByRole('heading', { name: 'Engineering notes.' }).scrollIntoViewIfNeeded();
+  await page.getByRole('heading', { name: 'Writing', exact: true }).scrollIntoViewIfNeeded();
   await expect(page).toHaveTitle(portfolioData.seo.title);
   await expect(page.locator('meta[name="author"]')).toHaveAttribute(
     'content',
@@ -138,24 +138,57 @@ test('copy email offers a selected address when both copy methods fail', async (
   await expect(page.getByRole('status')).toContainText('Select the email');
 });
 
-test('homepage fits phone, tablet, and desktop widths', async ({ page }) => {
+test('both modes fit phone, tablet, and desktop widths', async ({ page }) => {
   await page.goto('/');
-  for (const width of [390, 768, 1024, 1440]) {
-    await page.setViewportSize({ width, height: 900 });
-    await expect(page.getByRole('button', { name: 'Copy Email' })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
-      width,
-    );
-    const overflowing = await page
-      .locator('main a, main button, main h1, main h2, main h3')
-      .evaluateAll((elements) =>
-        elements
-          .filter((element) => {
-            const box = element.getBoundingClientRect();
-            return box.width > 0 && (box.right > window.innerWidth + 1 || box.left < -1);
-          })
-          .map((element) => element.textContent),
+  for (const mode of ['light', 'dark']) {
+    if (mode === 'dark') await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+    for (const width of [360, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(page.getByRole('button', { name: 'Copy Email' })).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+        width,
       );
-    expect(overflowing, `viewport ${width}`).toEqual([]);
+      const overflowing = await page
+        .locator('main a, main button, main h1, main h2, main h3')
+        .evaluateAll((elements) =>
+          elements
+            .filter((element) => {
+              const box = element.getBoundingClientRect();
+              return box.width > 0 && (box.right > window.innerWidth + 1 || box.left < -1);
+            })
+            .map((element) => element.textContent),
+        );
+      expect(overflowing, `mode ${mode}, viewport ${width}`).toEqual([]);
+    }
   }
+});
+
+test('warm editorial and quiet monochrome persist across portfolio routes', async ({ page }) => {
+  await page.goto('/');
+  const shell = page.locator('[data-portfolio-theme]');
+  const title = page.getByRole('heading', { level: 1 });
+  await expect(shell).toHaveAttribute('data-portfolio-theme', 'light');
+  await expect(shell).toHaveCSS('background-color', 'rgb(246, 242, 233)');
+  expect(await title.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
+    'Cormorant',
+  );
+
+  await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+  await expect(shell).toHaveAttribute('data-portfolio-theme', 'dark');
+  await expect(shell).toHaveCSS('background-color', 'rgb(17, 17, 17)');
+  expect(await title.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
+    'Manrope',
+  );
+  await page.getByRole('link', { name: 'Read project details' }).first().click();
+  await expect(shell).toHaveAttribute('data-portfolio-theme', 'dark');
+  await page.reload();
+  await expect(shell).toHaveAttribute('data-portfolio-theme', 'dark');
+  await page.getByRole('button', { name: 'Switch to light mode' }).click();
+  await expect(shell).toHaveCSS('background-color', 'rgb(246, 242, 233)');
+  expect(await title.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
+    'Cormorant',
+  );
+  await page.goto(portfolioData.writing[0].href);
+  await expect(shell).toHaveAttribute('data-portfolio-theme', 'light');
+  await expect(page.getByText('Full post coming soon', { exact: true })).toBeVisible();
 });
