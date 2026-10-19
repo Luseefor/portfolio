@@ -129,7 +129,7 @@
   padding: 12px;
 }
 .hero {
-  padding: 64px 0 44px;
+  padding: 40px 0 32px;
   max-width: 680px;
 }
 .eyebrow {
@@ -145,7 +145,7 @@
   font-weight: 500;
   letter-spacing: -0.045em;
   line-height: 1.08;
-  margin: 14px 0 22px;
+  margin: 10px 0 16px;
 }
 .lead {
   max-width: 620px;
@@ -156,7 +156,7 @@
 .intro {
   color: var(--secondary);
   max-width: 610px;
-  margin-top: 16px;
+  margin-top: 12px;
   line-height: 1.9;
 }
 .availability {
@@ -165,7 +165,7 @@
   gap: 8px;
   color: var(--secondary);
   font-size: 12px;
-  margin-top: 20px;
+  margin-top: 14px;
 }
 .availability::before {
   content: '';
@@ -181,7 +181,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px 24px;
-  margin-top: 27px;
+  margin-top: 20px;
   color: var(--link);
   font-size: 13px;
   font-weight: 600;
@@ -206,7 +206,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px 28px;
-  padding: 14px 0;
+  padding: 10px 0;
   border-block: 1px solid var(--line);
   color: var(--secondary);
   font-size: 12px;
@@ -217,7 +217,7 @@
   min-height: 28px;
 }
 .section {
-  padding: 44px 0 48px;
+  padding: 36px 0 48px;
   border-bottom: 1px solid var(--line);
   scroll-margin-top: 24px;
 }
@@ -226,18 +226,18 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 .section h2 {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0;
+  letter-spacing: 0.04em;
   line-height: 1.8;
 }
 .sectionHeading > span {
   color: var(--secondary);
-  font-size: 11px;
+  font-size: 12px;
 }
 .featured {
   padding: 22px 26px;
@@ -246,7 +246,7 @@
   margin-bottom: 10px;
 }
 .meta {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--secondary);
   line-height: 1.6;
 }
@@ -294,7 +294,7 @@
 }
 .stack {
   color: var(--secondary);
-  font-size: 11px;
+  font-size: 12px;
   margin-top: 10px;
   line-height: 1.7;
 }
@@ -472,8 +472,8 @@
     min-height: 36px;
   }
   .hero {
-    padding-top: 43px;
-    padding-bottom: 34px;
+    padding-top: 32px;
+    padding-bottom: 28px;
   }
   .hero h1 {
     font-size: 48px;
@@ -485,11 +485,15 @@
     font-size: 11px;
   }
   .actions {
-    gap: 10px 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 10px 12px;
     font-size: 12px;
   }
-  .actions > div {
-    flex-basis: 100%;
+  .actions .primary {
+    grid-column: 1 / -1;
+    justify-content: center;
   }
   .actions button {
     font-size: 12px;
@@ -498,10 +502,10 @@
     gap: 8px 23px;
   }
   .section {
-    padding: 32px 0 36px;
+    padding: 28px 0 36px;
   }
   .sectionHeading {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
   .sectionHeading > span {
     display: none;
@@ -623,7 +627,7 @@
   padding: 24px;
   margin-bottom: 20px;
   border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
 }
 .projectCard:last-child {
   margin-bottom: 0;
@@ -637,7 +641,7 @@
   margin-bottom: 14px;
 }
 .cardHeading .meta {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.03em;
 }
 .cornerTicks {
@@ -687,7 +691,7 @@
 }
 .stampCaption {
   font-family: var(--mono);
-  font-size: 7px;
+  font-size: 8px;
   letter-spacing: 0.16em;
   margin-top: 2px;
 }
@@ -699,10 +703,10 @@
     padding: 18px;
   }
   .section h2 {
-    font-size: 12px;
+    font-size: 13px;
   }
   .nav {
-    font-size: 10px;
+    font-size: 11px;
     gap: 10px;
   }
   .heroCurve {
