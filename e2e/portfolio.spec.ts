@@ -30,10 +30,13 @@ test('homepage is readable without JavaScript and resume resolves to PDF', async
 
 test('homepage exposes SEO and loads no interactive scene assets', async ({ page }) => {
   const sceneRequests: string[] = [];
+  const optionalRequests: string[] = [];
   const errors: string[] = [];
   page.on('request', (request) => {
     if (/\/interactive(?:\?|$)|\.(?:glb|gltf|wasm)(?:\?|$)|\/models\//.test(request.url()))
       sceneRequests.push(request.url());
+    if (/\/api\/github-activity|\/2d\.png(?:\?|$)/.test(request.url()))
+      optionalRequests.push(request.url());
   });
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
@@ -53,6 +56,8 @@ test('homepage exposes SEO and loads no interactive scene assets', async ({ page
   await expect(page.getByText('Live demo coming soon', { exact: true })).toHaveCount(0);
   await expect(page.locator('canvas')).toHaveCount(0);
   expect(sceneRequests).toEqual([]);
+  expect(optionalRequests).toEqual([]);
+  await expect(page.getByRole('button', { name: 'Open portfolio assistant' })).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -197,7 +202,24 @@ test('engineering paper modes persist across portfolio routes', async ({ page })
   await expect(page.getByText('Full post coming soon', { exact: true })).toBeVisible();
 });
 
-test('engineering paper keeps figures, metrics, and live-demo marks readable', async ({ page }) => {
+test('portfolio mode does not overwrite dungeon preferences', async ({ page }) => {
+  const preferences = JSON.stringify({
+    state: { currentTheme: 'bronze', isDark: false },
+    version: 0,
+  });
+  await page.addInitScript((saved) => {
+    localStorage.setItem('portfolio-ui-state', saved);
+  }, preferences);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+  await expect(page.locator('[data-portfolio-theme]')).toHaveAttribute(
+    'data-portfolio-theme',
+    'dark',
+  );
+  expect(await page.evaluate(() => localStorage.getItem('portfolio-ui-state'))).toBe(preferences);
+});
+
+test('engineering paper keeps figures, metrics, and project actions readable', async ({ page }) => {
   await page.goto('/');
   const shell = page.locator('[data-portfolio-theme]');
   await expect(shell).toHaveCSS('background-size', '24px 24px, 24px 24px');
@@ -219,9 +241,6 @@ test('engineering paper keeps figures, metrics, and live-demo marks readable', a
   expect(await metric.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
     'IBM Plex Mono',
   );
-  const curve = page.locator('svg[viewBox="0 0 360 160"]');
-  await expect(curve).toHaveCSS('opacity', '0.02');
-  await expect(curve).toHaveAttribute('aria-hidden', 'true');
   const displayedProjects = portfolioData.projects.filter(
     (project) =>
       project.slug === portfolioData.featuredProject.slug ||
@@ -231,15 +250,14 @@ test('engineering paper keeps figures, metrics, and live-demo marks readable', a
     const card = page
       .locator('#projects article')
       .filter({ has: page.getByRole('heading', { name: project.title, exact: true }) });
-    await expect(card.getByRole('img', { name: 'Live demo link available' })).toHaveCount(
-      project.demoHref ? 1 : 0,
-    );
-    await expect(card.locator('svg')).toHaveCount(4);
+    const demo = card.getByRole('link', { name: 'Open live demo', exact: true });
+    if (project.demoHref) await expect(demo).toHaveAttribute('href', project.demoHref);
+    else await expect(demo).toHaveCount(0);
   }
   await page.getByRole('button', { name: 'Switch to dark mode' }).click();
   await expect(shell).toHaveCSS('background-size', '24px 24px, 24px 24px');
   expect(await shell.evaluate((element) => getComputedStyle(element).backgroundImage)).toContain(
-    'rgb(38, 50, 65)',
+    'rgba(38, 50, 65, 0.45)',
   );
   expect(await todo.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
     'IBM Plex Mono',

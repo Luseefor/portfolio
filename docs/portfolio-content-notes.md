@@ -32,18 +32,19 @@ There are 11 placeholders across Experience (9) and Timeline (2). Timeline repea
 
 - `npm run lint` and `npm run build`: passed. Homepage and all eight project / two writing detail pages are prerendered.
 - `CI=1 npm test`: all 38 existing tests passed. The Vitest worker configuration disables Node's native Web Storage only on runtimes that support the flag, allowing JSDOM to provide browser storage. No dungeon source or tests were edited.
-- `e2e/portfolio.spec.ts`: all 10 tests passed against the production build using installed Chrome with a temporary Playwright config (`channel: 'chrome'`). The default Chromium launch initially could not run because its browser binary was missing.
-- Browser checks cover no-JavaScript reading, SEO, no scene asset requests, PDF content and status, all project routes, writing stubs, unknown-slug 404s, all three clipboard paths, mode persistence across reloads and detail pages, resolved heading fonts, and both modes at widths 360 / 390 / 768 / 1024 / 1440. The last clipboard path initially failed selection; the focus handler was fixed and all checks reran successfully.
+- `e2e/portfolio.spec.ts`: all 11 tests passed against the production build using installed Chrome with a temporary Playwright config (`channel: 'chrome'`). The default Chromium launch initially could not run because its browser binary was missing.
+- Browser checks cover no-JavaScript reading, SEO, no scene asset requests, PDF content and status, all project routes, writing stubs, unknown-slug 404s, all three clipboard paths, repeat-copy feedback, mode persistence across reloads and detail pages, resolved heading fonts, and both modes at widths 360 / 390 / 768 / 1024 / 1440. Homepage checks also cover the absence of assistant-avatar and activity-feed requests.
 - Existing test warnings about mocked Three.js DOM elements and Node build warnings remain nonfatal.
 - Protected paths (`/interactive`, interactive components, store, contact API, and PersonalAssistantBlob) have no diff from `d08c60b`. No dependency files changed.
 
 ## Visual direction
 
-- Engineering paper in both modes: light base `#FAF8F2`; dark base `#0B1016`. A single CSS utility draws the 24px grid. Light strokes use ink at 6% opacity; dark strokes use `#263241`. The left margin rule scales its gutter for mobile.
+- Engineering paper in both modes: light base `#FAF8F2`; dark base `#0B1016`. A single CSS utility draws the 24px grid. Light strokes use ink at 6% opacity; dark strokes use `#263241` at 45% opacity to reduce contrast. The left margin rule scales its gutter for mobile.
 - Cormorant Garamond remains the display face in both modes. IBM Plex Mono is used for figure labels, metadata, numeric metrics, dates, and TODO tags. These fonts were already bundled.
 - Homepage section labels read `fig. 01 — Selected systems` through `fig. 04 — Contact`. Figure prefixes and decorative SVGs are hidden from the accessibility tree; semantic heading names remain readable.
-- Project cards have four slightly irregular SVG corner ticks. The `证明` stamp appears only when a project has a demo URL; its accessible description is “Live demo link available,” not an uptime or quality certification.
-- A static plotted curve behind the name uses 2% opacity. No canvas, animation, image dependency, or WebGL was added.
+- Project cards use plain borders and opaque paper backgrounds. Corner ticks, rotated stamps, and the decorative hero plot were removed in the simplification pass. Live demo availability is conveyed by the actual project links.
+- The duplicate section navigation and collapsed GitHub dashboard were removed. The footer still links directly to GitHub and LinkedIn.
 - Shared `base` / `wash` palette tokens in `src/utils/themes.ts` were updated at the user's explicit request. Interactive route and dungeon source remain untouched; the shared light base also updates surfaces that consume that token.
-- The selected mode remains stored in `portfolio-reading-mode` across portfolio, project, and writing routes. The preserved assistant continues using its existing store API.
-- Production browser checks cover both modes at 360 / 390 / 768 / 1024 / 1440, mode persistence, mono typography, grid spacing, curve opacity, live-demo-only stamps, readable content without JavaScript, and the existing resume / email / detail-route flows. The grid assertion was corrected to expect Chrome's two-layer computed CSS value; all 10 tests passed on rerun.
+- The selected mode remains stored in `portfolio-reading-mode` across portfolio, project, and writing routes. Portfolio colors are declared in CSS, without an inline palette calculation or synchronization into the dungeon store.
+- The floating assistant is no longer mounted on the homepage. `PersonalAssistantBlob`, its API, the activity component and API, and dungeon implementation remain unchanged.
+- Production browser checks cover both modes at 360 / 390 / 768 / 1024 / 1440, mode persistence, mono typography, grid spacing, project demo links, readable content without JavaScript, and the existing resume / email / detail-route flows.

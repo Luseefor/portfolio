@@ -1,12 +1,9 @@
 import Link from 'next/link';
 import { Download } from 'lucide-react';
-import PersonalAssistantBlob from '@/components/assistant/PersonalAssistantBlob';
 import CopyEmailButton from '@/components/portfolio/CopyEmailButton';
-import GitHubActivity from '@/components/portfolio/GitHubActivity';
 import PortfolioContactForm from '@/components/portfolio/PortfolioContactForm';
 import PortfolioShell from '@/components/portfolio/PortfolioShell';
 import PaperText from '@/components/portfolio/PaperText';
-import { ProjectCornerTicks, LiveDemoStamp } from '@/components/portfolio/ProjectPaperMarks';
 import ProjectActions from '@/components/portfolio/ProjectActions';
 import styles from '@/components/portfolio/portfolio.module.css';
 import { portfolioData } from '@/content/portfolio';
@@ -48,23 +45,7 @@ export default function Home() {
       <main id="content">
         <section className={styles.hero} aria-labelledby="name">
           <p className={styles.eyebrow}>{portfolioData.hero.roleLabel}</p>
-          <div className={styles.namePlot}>
-            <svg
-              className={styles.heroCurve}
-              viewBox="0 0 360 160"
-              fill="none"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <path d="M12 80H348M180 12V148" stroke="currentColor" strokeWidth="1" />
-              <path
-                d="M12 80C40 80 40 24 68 24S96 136 124 136 152 24 180 24 208 136 236 136 264 24 292 24 320 80 348 80"
-                stroke="currentColor"
-                strokeWidth="2"
-              />
-            </svg>
-            <h1 id="name">{portfolioData.hero.name}</h1>
-          </div>
+          <h1 id="name">{portfolioData.hero.name}</h1>
           <p className={styles.lead}>{portfolioData.hero.headline}</p>
           <p className={styles.intro}>{portfolioData.hero.summary}</p>
           <p className={styles.availability}>{portfolioData.hero.status}</p>
@@ -79,13 +60,6 @@ export default function Home() {
           </div>
         </section>
 
-        <nav aria-label="On this page" className={styles.pageNav}>
-          <a href="#projects">Projects</a>
-          <a href="#writing">Writing</a>
-          <a href="#experience">Background</a>
-          <a href="#contact">Contact</a>
-        </nav>
-
         <section id="projects" className={styles.section} aria-labelledby="projects-title">
           <SectionLabel
             number="01"
@@ -94,11 +68,7 @@ export default function Home() {
             caption="Tools, products, and systems"
           />
           <article className={`${styles.featured} ${styles.projectCard}`}>
-            <ProjectCornerTicks />
-            <div className={styles.cardHeading}>
-              <p className={styles.meta}>Featured project · {featured.status}</p>
-              <LiveDemoStamp href={featured.demoHref} />
-            </div>
+            <p className={styles.meta}>Featured project · {featured.status}</p>
             <h3>{featured.title}</h3>
             <p>
               <PaperText text={portfolioData.featuredProject.summary} />
@@ -110,11 +80,7 @@ export default function Home() {
           </article>
           {projects.map((project) => (
             <article key={project.slug} className={styles.projectCard}>
-              <ProjectCornerTicks />
-              <div className={styles.cardHeading}>
-                <p className={styles.meta}>{project.category}</p>
-                <LiveDemoStamp href={project.demoHref} />
-              </div>
+              <p className={styles.meta}>{project.category}</p>
               <div className={styles.projectRow}>
                 <div>
                   <h3>{project.title}</h3>
@@ -180,16 +146,6 @@ export default function Home() {
               ))}
             </dl>
           </div>
-          <details className={styles.details}>
-            <summary>Recent GitHub activity</summary>
-            <GitHubActivity
-              accent="var(--link)"
-              subtleBorder="var(--line)"
-              mutedText="var(--secondary)"
-              metaText="var(--secondary)"
-              githubUrl={portfolioData.contact.github}
-            />
-          </details>
         </section>
 
         <section id="contact" className={styles.section} aria-labelledby="contact-title">
@@ -230,7 +186,6 @@ export default function Home() {
           </Link>
         </nav>
       </footer>
-      <PersonalAssistantBlob />
     </PortfolioShell>
   );
 }

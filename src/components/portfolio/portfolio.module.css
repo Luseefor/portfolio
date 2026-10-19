@@ -1,5 +1,6 @@
 .site {
   --paper: #faf8f2;
+  --grid-line: rgba(37, 35, 31, 0.06);
   --ink: #25231f;
   --secondary: #625e56;
   --line: #d5cfc3;
@@ -10,7 +11,7 @@
   --display: var(--font-display-ui), Georgia, serif;
   --mono: var(--font-mono-ui), 'SFMono-Regular', monospace;
   --margin-rule: #ac4b42;
-  --stamp-ink: #a14237;
+  --figure-ink: #a14237;
   --text-primary: var(--ink);
   --text-secondary: var(--secondary);
   --text-muted: var(--secondary);
@@ -29,6 +30,7 @@
 .site[data-portfolio-theme='dark'] {
   --portfolio-error: #f59a9a;
   --paper: #0b1016;
+  --grid-line: rgba(38, 50, 65, 0.45);
   --ink: #e7edf3;
   --secondary: #a2afbc;
   --line: #263241;
@@ -37,7 +39,7 @@
   --button: #ededed;
   --button-text: #111111;
   --margin-rule: #cf8277;
-  --stamp-ink: #e2a092;
+  --figure-ink: #e2a092;
   color-scheme: dark;
 }
 .site h1,
@@ -202,20 +204,6 @@
   text-decoration: none;
   filter: brightness(0.93);
 }
-.pageNav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 28px;
-  padding: 10px 0;
-  border-block: 1px solid var(--line);
-  color: var(--secondary);
-  font-size: 12px;
-}
-.pageNav a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-}
 .section {
   padding: 36px 0 48px;
   border-bottom: 1px solid var(--line);
@@ -238,12 +226,6 @@
 .sectionHeading > span {
   color: var(--secondary);
   font-size: 12px;
-}
-.featured {
-  padding: 22px 26px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  margin-bottom: 10px;
 }
 .meta {
   font-size: 12px;
@@ -452,9 +434,76 @@
 .detail dd {
   font-size: 14px;
 }
+.paperGrid {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.container::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: -24px;
+  width: 1px;
+  background: var(--margin-rule);
+  opacity: 0.6;
+  pointer-events: none;
+}
+.site
+  :is(
+    .eyebrow,
+    .nav,
+    .meta,
+    .stack,
+    .figureNumber,
+    .skillRow dt,
+    .actions,
+    .footer,
+    .contactForm label span,
+    .detail dt
+  ),
+.site :global(.font-terminal),
+.site [data-paper-metric],
+.site [data-paper-todo] {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.figureNumber {
+  color: var(--figure-ink);
+}
+.metric {
+  letter-spacing: -0.025em;
+}
+.todo {
+  display: inline;
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--paper);
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+.projectCard {
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+.projectCard:last-child {
+  margin-bottom: 0;
+}
+.projectCard > .meta {
+  margin-bottom: 14px;
+  letter-spacing: 0.03em;
+}
+
 @media (max-width: 600px) {
   .container {
     width: calc(100% - 40px);
+  }
+  .container::before {
+    left: -12px;
   }
   .topbar {
     min-height: 80px;
@@ -465,7 +514,7 @@
   }
   .nav {
     font-size: 11px;
-    gap: 12px;
+    gap: 10px;
   }
   .themeToggle {
     min-width: 36px;
@@ -498,11 +547,11 @@
   .actions button {
     font-size: 12px;
   }
-  .pageNav {
-    gap: 8px 23px;
-  }
   .section {
     padding: 28px 0 36px;
+  }
+  .section h2 {
+    font-size: 13px;
   }
   .sectionHeading {
     margin-bottom: 16px;
@@ -510,7 +559,7 @@
   .sectionHeading > span {
     display: none;
   }
-  .featured {
+  .projectCard {
     padding: 18px;
   }
   .projectRow {
@@ -551,166 +600,5 @@
 @media (prefers-reduced-motion: no-preference) {
   .themeToggle {
     transition: background-color 0.15s ease;
-  }
-}
-
-/* One grid utility; the shell supplies palette.base and palette.wash. */
-.paperGrid {
-  background-image:
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-.container::before {
-  content: '';
-  position: absolute;
-  inset-block: 0;
-  left: -24px;
-  width: 1px;
-  background: var(--margin-rule);
-  opacity: 0.6;
-  pointer-events: none;
-}
-.site
-  :is(
-    .eyebrow,
-    .nav,
-    .pageNav,
-    .meta,
-    .stack,
-    .figureNumber,
-    .skillRow dt,
-    .actions,
-    .footer,
-    .contactForm label span,
-    .detail dt
-  ),
-.site :global(.font-terminal),
-.site [data-paper-metric],
-.site [data-paper-todo] {
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-}
-.figureNumber {
-  color: var(--stamp-ink);
-}
-.metric {
-  letter-spacing: -0.025em;
-}
-.todo {
-  display: inline;
-  padding: 1px 4px;
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  background: var(--paper);
-  font-size: 0.9em;
-  white-space: nowrap;
-}
-.namePlot {
-  position: relative;
-  isolation: isolate;
-}
-.heroCurve {
-  position: absolute;
-  z-index: -1;
-  width: min(100%, 360px);
-  height: 160px;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--ink);
-  opacity: 0.02;
-  pointer-events: none;
-}
-.projectCard {
-  position: relative;
-  padding: 24px;
-  margin-bottom: 20px;
-  border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--paper) 94%, transparent);
-}
-.projectCard:last-child {
-  margin-bottom: 0;
-}
-.cardHeading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 32px;
-  margin-bottom: 14px;
-}
-.cardHeading .meta {
-  font-size: 12px;
-  letter-spacing: 0.03em;
-}
-.cornerTicks {
-  position: absolute;
-  inset: -4px;
-  pointer-events: none;
-  color: var(--ink);
-  opacity: 0.5;
-}
-.cornerTicks svg {
-  position: absolute;
-  width: 18px;
-  height: 18px;
-}
-.cornerTicks svg:nth-child(1) {
-  top: 0;
-  left: 0;
-}
-.cornerTicks svg:nth-child(2) {
-  top: 0;
-  right: 0;
-  transform: rotate(90deg);
-}
-.cornerTicks svg:nth-child(3) {
-  bottom: 0;
-  right: 0;
-  transform: rotate(180deg);
-}
-.cornerTicks svg:nth-child(4) {
-  bottom: 0;
-  left: 0;
-  transform: rotate(270deg);
-}
-.liveStamp {
-  display: inline-flex;
-  flex: 0 0 auto;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid currentColor;
-  color: var(--stamp-ink);
-  padding: 3px 5px 2px;
-  transform: rotate(-6deg);
-  font-family: 'Songti SC', 'Noto Serif CJK SC', ui-serif, serif;
-  font-size: 16px;
-  line-height: 1.1;
-}
-.stampCaption {
-  font-family: var(--mono);
-  font-size: 8px;
-  letter-spacing: 0.16em;
-  margin-top: 2px;
-}
-@media (max-width: 600px) {
-  .container::before {
-    left: -12px;
-  }
-  .projectCard {
-    padding: 18px;
-  }
-  .section h2 {
-    font-size: 13px;
-  }
-  .nav {
-    font-size: 11px;
-    gap: 10px;
-  }
-  .heroCurve {
-    width: 260px;
-    height: 120px;
   }
 }
