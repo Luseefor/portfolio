@@ -32,9 +32,11 @@ const getServerMode = () => 'light' as const;
 export default function PortfolioShell({
   children,
   resumeHref,
+  wide = false,
 }: {
   children: ReactNode;
   resumeHref: string;
+  wide?: boolean;
 }) {
   const mode = useSyncExternalStore(subscribe, getMode, getServerMode);
 
@@ -50,8 +52,8 @@ export default function PortfolioShell({
   }
 
   return (
-    <div className={`${styles.site} ${styles.paperGrid}`} data-portfolio-theme={mode}>
-      <div className={styles.container}>
+    <div className={`${styles.site} ${wide ? '' : styles.paperGrid}`} data-portfolio-theme={mode}>
+      <div className={`${styles.container} ${wide ? styles.wideContainer : ''}`}>
         <a className={styles.skipLink} href="#content">
           Skip to content
         </a>

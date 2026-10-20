@@ -568,9 +568,9 @@ export const portfolioData = {
       },
       {
         id: 'event-3',
-        title: 'Interactive engineering paper',
+        title: 'Fieldwork mathematical workbench',
         description:
-          'Explore numerical approximation through adjustable step sizes, linked paths, and computed error comparisons.',
+          'Build mathematical surfaces in a 3D field, adjust their parameters, and run frequency sweeps.',
         dateLabel: 'Current',
       },
     ] satisfies ActivityEvent[],

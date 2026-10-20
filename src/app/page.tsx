@@ -226,7 +226,7 @@ export default function Home() {
             LinkedIn ↗
           </a>
           <Link href="/interactive" prefetch={false}>
-            Interactive paper ↗
+            Open workbench ↗
           </Link>
         </nav>
       </footer>

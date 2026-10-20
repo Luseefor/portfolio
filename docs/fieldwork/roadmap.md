@@ -109,3 +109,7 @@ Only these need the owner rather than implementation work: preference among the 
 - [Three.js optimization](https://threejs.org/manual/pages/optimize-lots-of-objects.html): geometry batching and draw-call costs.
 - [Three.js instancing](https://threejs.org/docs/pages/InstancedMesh.html): shared geometry/material rendering.
 - [Blender glTF export](https://docs.blender.org/manual/en/5.0/addons/import_export/scene_gltf2.html): model, material, and animation transfer.
+
+## Checkpoint 01
+
+The first wave-table journey is implemented and locally verified. See [actual gameplay screenshots, measurements, and validation](checkpoint-01/README.md). This is the first playable milestone. The full visual kit, physical-device performance validation, remaining research areas, and combined automation challenge remain on the roadmap.

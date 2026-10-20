@@ -16,14 +16,23 @@ With installed Google Chrome, use `PLAYWRIGHT_CHROME_CHANNEL=chrome npm run test
 
 Check home, project, writing, and 404 recovery with JavaScript disabled. Check the exact resume PDF URL, clipboard and manual-copy paths, keyboard navigation, and reading-mode persistence. Homepage requests must exclude experiment code and optional assistant/activity requests.
 
-## Engineering paper
+## First playable research area
 
-- Read `/interactive` without JavaScript. Both SVG figures, the explanation, and comparison table remain present; disabled controls are explained by the fallback note.
-- Change steps from 16 to 128. Paths and errors update; more steps reduce the final errors for this model. Explicit midpoint remains approximate.
-- Use keyboard controls to scrub from zero to a complete revolution. Replay, pause, reset, and toggle paths. Change step count during playback and confirm the state stays in range.
-- Check 360, 390, 768, and 1440 widths in both modes. Print retains the explanation and figures. Reduced-motion reading starts still; playback is optional.
-- Compare the numeric table with the model tests. Error is distance from the exact position at the same time, not maximum trajectory error.
-- Confirm removed project and asset URLs return 404. No canvas, model, sound, or physics runtime should load.
+- Drive to the wave table and inspect it with E. Reject an incorrect profile, then match the reference and verify it. Escape closes the instrument even after verification disables its button.
+- Confirm the field note saves, restores after reload, and resets through replay. Corrupt or invalid completion data must not grant a completed note.
+- Verify keyboard release, blur, click-to-move, camera reset, touch controls, and idle rendering. The game skill's deterministic stepping hook uses the same movement code as normal play.
+- Complete the same mathematical challenge through accessible controls with WebGL disabled. Check the explanation and reference SVG without JavaScript.
+- Check 360/390/768/1440 widths and both modes. Inspect actual rendered screenshots in addition to automated Axe checks. Physical-device FPS remains a separate measurement.
+
+## Mathematical sandbox
+
+- Read `/interactive/sandbox` without JavaScript. The initial equation, SVG preview, sampled extrema, and fallback note remain present. Enhanced controls are disabled.
+- Add each object type, change parameters with the keyboard, and remove objects. Nine is the field limit. Saddle frequency controls stay disabled because frequency is absent from its equation.
+- Sweep the Gaussian frequency through six values. Compare the results with the pure model tests and export the CSV. Changing selection clears the previous experiment log.
+- Save a world, reload, load it, and export JSON. Invalid saved data must leave the current world intact.
+- Review a mocked AI plan before execution. Invalid and unavailable responses must leave manual tools working. An update must retain its original target when selection changes during the request.
+- Verify the actual WebGL render loop through movement, focus loss, reset, orbit and zoom. Check touch movement, 360/390/768/1440 widths, both reading modes, and reduced-motion initial state. Waves start paused.
+- Confirm removed game URLs return 404 and no retired assets load. The homepage must not load the world renderer.
 
 ## API and accessibility boundaries
 

@@ -708,3 +708,14 @@
     min-height: calc(100vh - 80px);
   }
 }
+
+.wideContainer {
+  width: 100%;
+  max-width: 1800px;
+  padding-inline: 24px;
+}
+@media (max-width: 600px) {
+  .wideContainer {
+    padding-inline: 14px;
+  }
+}

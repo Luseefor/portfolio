@@ -1,6 +1,6 @@
 # Rijan Ghimire Portfolio
 
-This repository contains a streamlined Next.js portfolio focused on hiring-facing clarity with one secondary interactive engineering paper.
+This repository contains a streamlined Next.js portfolio focused on hiring-facing clarity with a separate mathematical workbench.
 
 ## Routes
 
@@ -9,7 +9,8 @@ This repository contains a streamlined Next.js portfolio focused on hiring-facin
 - `/writing`: editorial archive with Markdown article pages
 - `/writing/feed.xml`: RSS summaries and article links
 - Unknown pages: custom 404 with recovery links and both reading modes
-- `/interactive`: living engineering paper on numerical integration around a circle, comparing Euler with the explicit midpoint method
+- `/interactive`: Fieldwork research grounds and a playable wave-table calibration challenge
+- `/interactive/sandbox`: mathematical object editing, parameter sweeps, exports, and AI plans
 - `/api/contact`: contact form submission endpoint
 
 ## Stack
@@ -18,7 +19,7 @@ This repository contains a streamlined Next.js portfolio focused on hiring-facin
 - React 19
 - Tailwind CSS 4
 - Framer Motion
-- SVG diagrams and a deterministic TypeScript integration model for the interactive paper; no WebGL or physics dependency
+- Three.js and React Three Fiber on the interactive route only, with deterministic TypeScript equations and a Gemini planning endpoint
 
 ## Development
 
@@ -56,8 +57,18 @@ For new articles, follow [the authoring guide](docs/writing-authoring.md). The [
 ## Notes
 
 - Theme preference is persisted in local storage.
-- The interactive route is intentionally secondary and presents a focused engineering paper rather than the main portfolio identity.
+- The interactive route loads its renderer separately. The homepage links to it without prefetching the world.
 - Portfolio content lives in `src/content/portfolio.ts` and is shared by the homepage and writing sections.
+
+## Fieldwork
+
+At `/interactive`, use WASD or arrows to drive, click clear ground to move, and press E near the blue wave table to inspect it. Match its reference profile, verify the result, and record the completed field note. Progress saves locally; the notebook offers replay. Drag to orbit, scroll or pinch to zoom, and use touch driving buttons on narrow screens. Accessible controls offer the same challenge without driving or WebGL.
+
+The separate `/interactive/sandbox` retains wave, saddle, and Gaussian surfaces, parameter editing, six-point frequency sweeps, local saves, JSON, and CSV exports.
+
+The AI operator needs `GEMINI_API_KEY` and a supported `GEMINI_MODEL`, or `WORKBENCH_AI_MODEL` as an override. It proposes a bounded plan for review. The mathematical engine computes all results. Manual controls work without a configured provider.
+
+External tool automations are a later phase. This version acts only on mathematical objects inside the world. See [workbench notes](docs/workbench.md) for equations and limits.
 
 ## SMTP Setup (Contact Form)
 

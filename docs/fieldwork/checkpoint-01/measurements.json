@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-20",
+  "preview": "local production build",
+  "browser": "155.0.8059.85",
+  "desktopViewport": {
+    "width": 1440,
+    "height": 1000,
+    "dpr": 1
+  },
+  "phoneViewport": {
+    "width": 390,
+    "height": 900,
+    "dpr": 1,
+    "emulated": true
+  },
+  "initialTransferBytes": 2045765,
+  "scene": {
+    "calls": 40,
+    "triangles": 6620,
+    "geometries": 27,
+    "textures": 3,
+    "frames": 112
+  },
+  "verifiedFrequency": 1.65,
+  "verifiedError": 0,
+  "completed": 1,
+  "browserErrors": [],
+  "limits": "No physical-phone frame-time or live provider test performed."
+}
