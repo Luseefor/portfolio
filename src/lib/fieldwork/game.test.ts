@@ -26,7 +26,7 @@ describe('wave-table research challenge', () => {
     expect(isCalibrated(1.7)).toBe(false);
     expect(isCalibrated(NaN)).toBe(false);
   });
-  it('normalizes diagonal movement and remains bounded during repeated input', () => {
+  it('normalizes diagonal movement and continues beyond the former courtyard', () => {
     const straight = moveRover(SPAWN, { x: 1, z: 0 }, 1 / 60);
     const diagonal = moveRover(SPAWN, { x: 1, z: 1 }, 1 / 60);
     expect(Math.hypot(straight.x - SPAWN.x, straight.z - SPAWN.z)).toBeCloseTo(
@@ -35,8 +35,11 @@ describe('wave-table research challenge', () => {
     let p = { ...SPAWN };
     for (let i = 0; i < 10000; i++) p = moveRover(p, { x: 1, z: 1 }, 1 / 60);
     expect(canStand(p)).toBe(true);
-    expect(p.x).toBeLessThanOrEqual(17.5);
-    expect(p.z).toBeLessThanOrEqual(13.5);
+    expect(p.x).toBeCloseTo(SPAWN.x + 1000 / Math.SQRT2, 7);
+    expect(p.z).toBeCloseTo(SPAWN.z + 1000 / Math.SQRT2, 7);
+    expect(canStand({ x: -10000, z: 10000 })).toBe(true);
+    expect(canStand({ x: Infinity, z: 0 })).toBe(false);
+    expect(canStand({ x: 0, z: NaN })).toBe(false);
   });
   it('blocks the instrument footprint and allows sliding along its front', () => {
     const p = moveRover({ x: -8, z: 0.7 }, { x: 1, z: -1 }, 0.1);

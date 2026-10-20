@@ -92,6 +92,31 @@ test('movement releases on blur, camera resets, and idle rendering stops', async
   expect((await state(page)).render.triangles).toBeLessThan(150000);
 });
 
+test('open ground supports long travel, camera follow, reset and return to the lab', async ({
+  page,
+}) => {
+  await ready(page);
+  const field = page.getByRole('group', { name: /Research grounds/ });
+  await field.focus();
+  await page.keyboard.down('d');
+  await page.evaluate(() => {
+    for (let i = 0; i < 4; i++) window.advanceTime?.(10000);
+  });
+  await page.keyboard.up('d');
+  const explored = await state(page);
+  expect(explored.rover.x).toBeGreaterThan(100);
+  expect(explored.rover.z).toBeLessThan(-80);
+  expect(explored.camera.target.x - explored.rover.x).toBeCloseTo(-4, 5);
+  expect(explored.camera.target.z - explored.rover.z).toBeCloseTo(-10, 5);
+  expect(explored.render.geometries).toBeLessThan(40);
+  await page.getByRole('button', { name: 'Reset view' }).click();
+  expect((await state(page)).rover).toEqual(explored.rover);
+  await page.getByRole('button', { name: 'Return to lab' }).click();
+  await expect.poll(async () => (await state(page)).rover).toEqual({ x: 3, z: 9 });
+  await page.getByRole('button', { name: 'Approach table' }).click();
+  await expect.poll(async () => (await state(page)).instrument.near, { timeout: 10000 }).toBe(true);
+});
+
 test('accessible controls complete the same challenge when WebGL is unavailable', async ({
   page,
 }) => {

@@ -13,6 +13,7 @@ export type GameBridge = {
   wake?: () => void;
   advance?: (ms: number) => void;
   resetView?: () => void;
+  view?: { camera: Point; target: Point };
   manual: boolean;
   metrics: SceneMetrics;
 };

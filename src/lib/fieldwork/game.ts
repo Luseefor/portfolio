@@ -20,8 +20,8 @@ export const OBSTACLES = [
 ];
 export function canStand(point: Point) {
   return (
-    Math.abs(point.x) <= 17.5 &&
-    Math.abs(point.z) <= 13.5 &&
+    Number.isFinite(point.x) &&
+    Number.isFinite(point.z) &&
     !OBSTACLES.some(
       (box) => point.x > box.minX && point.x < box.maxX && point.z > box.minZ && point.z < box.maxZ,
     )

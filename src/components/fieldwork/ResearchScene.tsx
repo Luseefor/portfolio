@@ -14,6 +14,7 @@ import {
   BufferGeometry,
   Float32BufferAttribute,
   Group,
+  GridHelper,
   OrthographicCamera,
   PlaneGeometry,
   Vector3,
@@ -44,21 +45,15 @@ function mergedBoxes(blocks: Block[]) {
 function Architecture({ dark }: { dark: boolean }) {
   const geometry = useMemo(() => {
     const stone: Block[] = [
-      [38, 0.6, 30, 0, -0.3, 0],
-      [38, 0.3, 0.4, 0, 0.15, -14.7],
-      [0.4, 0.3, 30, -18.7, 0.15, 0],
       [11, 0.9, 7, TABLE.x, 0.45, TABLE.z],
       [11.5, 0.3, 7.5, TABLE.x, 1.05, TABLE.z],
       [9.4, 0.3, 0.25, TABLE.x, 1.8, -7.1],
       [9.4, 0.3, 0.25, TABLE.x, 1.8, -0.9],
       [0.25, 0.3, 6.3, -12.7, 1.8, TABLE.z],
       [0.25, 0.3, 6.3, -3.3, 1.8, TABLE.z],
-      [11, 0.3, 8, 8.5, 0.15, -8],
-      [7, 0.5, 1, 8.5, 0.8, -10],
-      [7, 0.25, 1.4, 8.5, 1.15, -10],
+      [7, 0.8, 1, 8.5, 0.4, -10],
+      [7, 0.25, 1.4, 8.5, 0.925, -10],
     ];
-    for (const x of [-17, 0, 17]) stone.push([0.7, 2, 0.7, x, 1, -13.5]);
-    for (const x of [-17, 17]) stone.push([0.7, 2, 0.7, x, 1, 12.5]);
     const graphite: Block[] = [
       [0.35, 4.8, 0.35, 4, 2.4, -11],
       [0.35, 4.8, 0.35, 13, 2.4, -11],
@@ -71,13 +66,8 @@ function Architecture({ dark }: { dark: boolean }) {
       [0.055, 0.015, 26, 0, 0.012, 0],
       [34, 0.015, 0.055, 0, 0.012, 5],
       [0.06, 0.015, 7, -8, 0.012, 4.1],
-      [17, 0.1, 0.12, -8.5, 1.35, -13.5],
-      [17, 0.1, 0.12, 8.5, 1.35, -13.5],
-      [0.6, 0.02, 0.15, -17, 2.02, -13.5],
-      [0.6, 0.02, 0.15, 17, 2.02, -13.5],
     ];
     for (let i = 0; i < 13; i++) rust.push([0.45, 0.2, 7.2, 3.8 + i * 0.78, 5.05, -8]);
-    for (let i = 0; i < 5; i++) stone.push([0.7, 0.24, 3, 2 + i * 2.6, 0.12, 10.5]);
     return [mergedBoxes(stone), mergedBoxes(graphite), mergedBoxes(rust)];
   }, []);
   useEffect(() => () => geometry.forEach((g) => g.dispose()), [geometry]);
@@ -101,14 +91,63 @@ function Architecture({ dark }: { dark: boolean }) {
           />
         </mesh>
       ))}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.61, 0]} receiveShadow>
-        <planeGeometry args={[250, 250]} />
-        <meshBasicMaterial color={dark ? '#080808' : '#faf8f2'} toneMapped={false} />
-      </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 5]}>
         <ringGeometry args={[0.7, 0.74, 48]} />
         <meshBasicMaterial color={dark ? '#a8755e' : '#ac6b4d'} />
       </mesh>
+    </group>
+  );
+}
+
+// A constant-size ground patch follows the rover; geometry never accumulates as you travel.
+function OpenGround({ bridge, dark }: Pick<Props, 'bridge' | 'dark'>) {
+  const ground = useRef<Group>(null);
+  const grid = useRef<GridHelper>(null);
+  const down = useRef<{ x: number; y: number } | null>(null);
+  useFrame(() => {
+    if (ground.current) {
+      const { x, z } = bridge.current.position;
+      ground.current.position.set(Math.floor(x / 4) * 4, 0, Math.floor(z / 4) * 4);
+    }
+  });
+  return (
+    <group ref={ground}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, -0.02, 0]}
+        receiveShadow
+        onPointerDown={(event) => {
+          down.current = { x: event.nativeEvent.clientX, y: event.nativeEvent.clientY };
+        }}
+        onPointerUp={(event) => {
+          if (
+            down.current &&
+            Math.hypot(
+              event.nativeEvent.clientX - down.current.x,
+              event.nativeEvent.clientY - down.current.y,
+            ) < 5
+          ) {
+            const point = { x: event.point.x, z: event.point.z };
+            if (canStand(point)) {
+              bridge.current.destination = point;
+              bridge.current.manual = false;
+              bridge.current.wake?.();
+            }
+          }
+          down.current = null;
+        }}
+      >
+        <planeGeometry args={[2048, 2048]} />
+        <meshStandardMaterial color={dark ? '#252525' : '#eee4d1'} roughness={1} />
+      </mesh>
+      <gridHelper ref={grid} args={[512, 128]} position={[0, -0.015, 0]} raycast={() => {}}>
+        <lineBasicMaterial
+          color={dark ? '#777777' : '#8a7e6c'}
+          transparent
+          opacity={dark ? 0.1 : 0.13}
+          depthWrite={false}
+        />
+      </gridHelper>
     </group>
   );
 }
@@ -273,13 +312,18 @@ function Controller({ bridge, onMove, onBlocked }: Pick<Props, 'bridge' | 'onMov
     const changed = () => invalidate();
     orbit.addEventListener('change', changed);
     const reset = () => {
-      camera.position.set(30, 32, 34);
-      orbit.target.set(-1, 0, -1);
+      const position = state.position;
+      camera.position.set(position.x + 27, 32, position.z + 25);
+      orbit.target.set(position.x - 4, 0, position.z - 10);
       if (camera instanceof OrthographicCamera) {
         camera.zoom = Math.min(size.width / (size.width < 600 ? 31 : 48), size.height / 32);
         camera.updateProjectionMatrix();
       }
       orbit.update();
+      state.view = {
+        camera: { x: camera.position.x, z: camera.position.z },
+        target: { x: orbit.target.x, z: orbit.target.z },
+      };
       invalidate();
     };
     reset();
@@ -327,9 +371,9 @@ function Controller({ bridge, onMove, onBlocked }: Pick<Props, 'bridge' | 'onMov
       if (rover.current)
         rover.current.rotation.y = Math.atan2(-(next.x - previous.x), -(next.z - previous.z));
       const orbit = controls.current;
-      if (orbit && Math.hypot(next.x - orbit.target.x, next.z - orbit.target.z) > 13) {
-        const dx = (next.x - orbit.target.x) * 0.025,
-          dz = (next.z - orbit.target.z) * 0.025;
+      if (orbit) {
+        const dx = next.x - previous.x,
+          dz = next.z - previous.z;
         orbit.target.x += dx;
         orbit.target.z += dz;
         camera.position.x += dx;
@@ -341,6 +385,10 @@ function Controller({ bridge, onMove, onBlocked }: Pick<Props, 'bridge' | 'onMov
     }
     if (rover.current) rover.current.position.set(state.position.x, 0, state.position.z);
     controls.current?.update();
+    state.view = {
+      camera: { x: camera.position.x, z: camera.position.z },
+      target: { x: controls.current?.target.x ?? 0, z: controls.current?.target.z ?? 0 },
+    };
     report.current += seconds;
     if (
       (report.current >= 0.1 || (!state.destination && !up && !across)) &&
@@ -397,7 +445,6 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
   }
 }
 export default function ResearchScene(props: Props) {
-  const down = useRef<{ x: number; y: number } | null>(null);
   return (
     <SceneBoundary>
       <Canvas
@@ -408,12 +455,13 @@ export default function ResearchScene(props: Props) {
         camera={{ position: [30, 32, 34], zoom: 20, near: 0.1, far: 180 }}
         gl={{ antialias: true, powerPreference: 'low-power' }}
         role="img"
-        aria-label="Research courtyard with a survey rover and an interactive blue wave table"
+        aria-label="Open mathematical landscape with a survey rover and an interactive blue wave table"
         fallback={
           <p>The 3D view needs WebGL. The accessible instrument controls remain available below.</p>
         }
       >
         <color attach="background" args={[props.dark ? '#080808' : '#faf8f2']} />
+        <fog attach="fog" args={[props.dark ? '#080808' : '#faf8f2', 85, 170]} />
         <ambientLight intensity={props.dark ? 1.1 : 1.7} />
         <directionalLight
           position={[-12, 28, 16]}
@@ -429,34 +477,8 @@ export default function ResearchScene(props: Props) {
           shadow-normalBias={0.06}
           shadow-bias={-0.0002}
         />
+        <OpenGround bridge={props.bridge} dark={props.dark} />
         <Architecture dark={props.dark} />
-        <mesh
-          rotation={[-Math.PI / 2, 0, 0]}
-          position={[0, 0.005, 0]}
-          onPointerDown={(event) => {
-            down.current = { x: event.nativeEvent.clientX, y: event.nativeEvent.clientY };
-          }}
-          onPointerUp={(event) => {
-            if (
-              down.current &&
-              Math.hypot(
-                event.nativeEvent.clientX - down.current.x,
-                event.nativeEvent.clientY - down.current.y,
-              ) < 5
-            ) {
-              const next = { x: event.point.x, z: event.point.z };
-              if (canStand(next)) {
-                props.bridge.current.destination = next;
-                props.bridge.current.manual = false;
-                props.bridge.current.wake?.();
-              }
-            }
-            down.current = null;
-          }}
-        >
-          <planeGeometry args={[36, 28]} />
-          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-        </mesh>
         <WaveTable
           frequency={props.frequency}
           calibrated={props.calibrated}

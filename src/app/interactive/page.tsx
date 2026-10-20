@@ -4,7 +4,7 @@ import FieldworkGame from '@/components/fieldwork/FieldworkGame';
 import { portfolioData } from '@/content/portfolio';
 const title = 'Fieldwork | Open mathematical workbench';
 const description =
-  'Drive a survey rover through a mathematical research courtyard, calibrate a wave table, and record a verified experiment.';
+  'Explore an open mathematical landscape with a survey rover, calibrate a wave table, and record a verified experiment.';
 export const metadata: Metadata = {
   title,
   description,

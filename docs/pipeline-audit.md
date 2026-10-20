@@ -5,7 +5,7 @@ Updated for the first playable Fieldwork area on 2026-10-20. The numerical-integ
 ## Current architecture
 
 - `/` remains the server-readable hiring portfolio. It links to `/interactive` without prefetching its renderer.
-- `/interactive` is the research courtyard and first wave-table challenge. The scene loads as a client-only chunk. Its initial challenge text and accessible profile remain available without JavaScript.
+- `/interactive` is the open research landscape and first wave-table challenge. The scene loads as a client-only chunk. Its initial challenge text and accessible profile remain available without JavaScript.
 - `/interactive/sandbox` preserves editable mathematical objects, parameter sweeps, exports, local world saves, and bounded AI plans. It has a separate renderer and does not mount alongside the courtyard.
 - `src/lib/fieldwork/game.ts` owns movement bounds, simple collision footprints, profile error, challenge tolerance, and saved-note validation. `src/lib/workbench/model.ts` owns sandbox equations and plan validation.
 - Contact, assistant, their shared store/themes, and the assistant avatar are preserved.

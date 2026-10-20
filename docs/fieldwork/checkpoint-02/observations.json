@@ -1,0 +1,181 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 1000,
+    "dpr": 1
+  },
+  "observations": [
+    {
+      "mode": "light",
+      "travelled": {
+        "coordinates": "+x east, +z south, y up; movement relative to the camera",
+        "mode": "explore",
+        "rover": {
+          "x": 182.66116324155323,
+          "z": -150.12845887109935
+        },
+        "destination": null,
+        "camera": {
+          "camera": {
+            "x": 209.66116324155738,
+            "z": -125.12845887110052
+          },
+          "target": {
+            "x": 178.66116324155362,
+            "z": -160.12845887110035
+          }
+        },
+        "instrument": {
+          "position": {
+            "x": -8,
+            "z": 2.6
+          },
+          "near": false,
+          "frequency": 0.85,
+          "error": 0.9921083614406501,
+          "tolerance": 0.04
+        },
+        "notebook": {
+          "completed": 0,
+          "available": 1,
+          "saved": false
+        },
+        "render": {
+          "calls": 23,
+          "triangles": 3138,
+          "geometries": 27,
+          "textures": 3,
+          "frames": 3
+        }
+      },
+      "returned": {
+        "coordinates": "+x east, +z south, y up; movement relative to the camera",
+        "mode": "explore",
+        "rover": {
+          "x": -6.765580389084899,
+          "z": 3.3182077736233317
+        },
+        "destination": null,
+        "camera": {
+          "camera": {
+            "x": 20.23441961091511,
+            "z": 28.318207773623364
+          },
+          "target": {
+            "x": -10.7655803890849,
+            "z": -6.68179222637667
+          }
+        },
+        "instrument": {
+          "position": {
+            "x": -8,
+            "z": 2.6
+          },
+          "near": true,
+          "frequency": 0.85,
+          "error": 0.9921083614406501,
+          "tolerance": 0.04
+        },
+        "notebook": {
+          "completed": 0,
+          "available": 1,
+          "saved": false
+        },
+        "render": {
+          "calls": 40,
+          "triangles": 6186,
+          "geometries": 27,
+          "textures": 3,
+          "frames": 117
+        }
+      },
+      "errors": []
+    },
+    {
+      "mode": "dark",
+      "travelled": {
+        "coordinates": "+x east, +z south, y up; movement relative to the camera",
+        "mode": "explore",
+        "rover": {
+          "x": 182.66116324155323,
+          "z": -150.12845887109935
+        },
+        "destination": null,
+        "camera": {
+          "camera": {
+            "x": 209.66116324155738,
+            "z": -125.12845887110052
+          },
+          "target": {
+            "x": 178.66116324155362,
+            "z": -160.12845887110035
+          }
+        },
+        "instrument": {
+          "position": {
+            "x": -8,
+            "z": 2.6
+          },
+          "near": false,
+          "frequency": 0.85,
+          "error": 0.9921083614406501,
+          "tolerance": 0.04
+        },
+        "notebook": {
+          "completed": 0,
+          "available": 1,
+          "saved": false
+        },
+        "render": {
+          "calls": 23,
+          "triangles": 3138,
+          "geometries": 27,
+          "textures": 3,
+          "frames": 4
+        }
+      },
+      "returned": {
+        "coordinates": "+x east, +z south, y up; movement relative to the camera",
+        "mode": "explore",
+        "rover": {
+          "x": -6.679837034007314,
+          "z": 3.368094816577562
+        },
+        "destination": null,
+        "camera": {
+          "camera": {
+            "x": 20.32016296599269,
+            "z": 28.36809481657756
+          },
+          "target": {
+            "x": -10.679837034007313,
+            "z": -6.631905183422438
+          }
+        },
+        "instrument": {
+          "position": {
+            "x": -8,
+            "z": 2.6
+          },
+          "near": true,
+          "frequency": 0.85,
+          "error": 0.9921083614406501,
+          "tolerance": 0.04
+        },
+        "notebook": {
+          "completed": 0,
+          "available": 1,
+          "saved": false
+        },
+        "render": {
+          "calls": 40,
+          "triangles": 6186,
+          "geometries": 27,
+          "textures": 3,
+          "frames": 119
+        }
+      },
+      "errors": []
+    }
+  ]
+}

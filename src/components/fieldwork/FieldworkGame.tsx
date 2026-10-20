@@ -144,6 +144,7 @@ export default function FieldworkGame() {
     metrics: { calls: 0, triangles: 0, geometries: 0, textures: 0, frames: 0 },
   });
   const near = nearTable(position);
+  const distanceFromLab = Math.hypot(position.x - APPROACH.x, position.z - APPROACH.z);
   useEffect(() => {
     const shell = document.querySelector('[data-portfolio-theme]');
     if (!shell) return;
@@ -198,6 +199,7 @@ export default function FieldworkGame() {
         mode: inspecting ? 'instrument' : 'explore',
         rover: bridge.current.position,
         destination: bridge.current.destination,
+        camera: bridge.current.view,
         instrument: {
           position: APPROACH,
           near: nearTable(bridge.current.position),
@@ -254,6 +256,14 @@ export default function FieldworkGame() {
     bridge.current.wake?.();
     stage.current?.focus({ preventScroll: true });
     setNotice('Driving to the wave table. Use movement keys to take over.');
+  }
+  function returnToLab() {
+    clearInput();
+    bridge.current.position = { ...SPAWN };
+    setPosition({ ...SPAWN });
+    bridge.current.resetView?.();
+    stage.current?.focus({ preventScroll: true });
+    setNotice('Returned to the wave-table station. Your field notes are unchanged.');
   }
   function save(nextFrequency = frequency, nextCalibrated = calibrated) {
     try {
@@ -404,6 +414,7 @@ export default function FieldworkGame() {
             </div>
           </div>
           <div className={styles.worldTools}>
+            {distanceFromLab > 40 && <button onClick={returnToLab}>Return to lab</button>}
             <details>
               <summary>Controls</summary>
               <p>
