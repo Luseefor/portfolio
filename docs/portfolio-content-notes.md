@@ -41,6 +41,7 @@ There are 11 placeholders across Experience (9) and Timeline (2). Timeline repea
 ## Visual direction
 
 - Engineering paper in both modes: light base `#FAF8F2`; dark base `#0B1016`. A single CSS utility draws the 24px grid. Light strokes use ink at 6% opacity; dark strokes use `#263241` at 45% opacity to reduce contrast. The left margin rule scales its gutter for mobile.
+- The content column has an opaque paper background. The grid stays in the outer gutters and never runs behind the text. At phone widths, the paper column fills the viewport. The hero uses a smaller serif name, a restrained sans headline, and a quiet role label.
 - Cormorant Garamond remains the display face in both modes. IBM Plex Mono is used for figure labels, metadata, numeric metrics, dates, and TODO tags. These fonts were already bundled.
 - Homepage section labels read `fig. 01 — Selected systems` through `fig. 04 — Contact`. Figure prefixes and decorative SVGs are hidden from the accessibility tree; semantic heading names remain readable.
 - Project cards use plain borders and opaque paper backgrounds. Corner ticks, rotated stamps, and the decorative hero plot were removed in the simplification pass. Live demo availability is conveyed by the actual project links.
