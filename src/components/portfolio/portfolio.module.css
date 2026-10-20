@@ -28,18 +28,18 @@
   color-scheme: light;
 }
 .site[data-portfolio-theme='dark'] {
-  --portfolio-error: #f59a9a;
-  --paper: #0b1016;
-  --grid-line: rgba(38, 50, 65, 0.45);
-  --ink: #e7edf3;
-  --secondary: #a2afbc;
-  --line: #263241;
-  --link: #d7e2f0;
-  --surface: #121922;
+  --portfolio-error: #d4d4d4;
+  --paper: #000000;
+  --grid-line: rgba(255, 255, 255, 0.055);
+  --ink: #ededed;
+  --secondary: #a8a8a8;
+  --line: #303030;
+  --link: #d6d6d6;
+  --surface: #101010;
   --button: #ededed;
   --button-text: #111111;
-  --margin-rule: #cf8277;
-  --figure-ink: #e2a092;
+  --margin-rule: #484848;
+  --figure-ink: #c4c4c4;
   color-scheme: dark;
 }
 .site h1,

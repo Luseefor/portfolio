@@ -279,7 +279,7 @@ test('engineering paper modes persist across portfolio routes', async ({ page })
 
   await page.getByRole('button', { name: 'Switch to dark mode' }).click();
   await expect(shell).toHaveAttribute('data-portfolio-theme', 'dark');
-  await expect(shell).toHaveCSS('background-color', 'rgb(11, 16, 22)');
+  await expect(shell).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   expect(await title.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
     'Cormorant',
   );
@@ -352,7 +352,7 @@ test('engineering paper keeps figures, metrics, and project actions readable', a
   await page.getByRole('button', { name: 'Switch to dark mode' }).click();
   await expect(shell).toHaveCSS('background-size', '24px 24px, 24px 24px');
   expect(await shell.evaluate((element) => getComputedStyle(element).backgroundImage)).toContain(
-    'rgba(38, 50, 65, 0.45)',
+    'rgba(255, 255, 255, 0.055)',
   );
   expect(await todo.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
     'IBM Plex Mono',
