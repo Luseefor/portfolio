@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
 
 type ContactPayload = {
   name?: unknown;
@@ -45,7 +46,7 @@ function parseSmtpConfig() {
   return { host, user, pass, to, from, fromName, port, secure };
 }
 
-let transporterPromise: Promise<nodemailer.Transporter> | null = null;
+let transporterPromise: Promise<Transporter> | null = null;
 
 async function getTransporter() {
   if (transporterPromise) return transporterPromise;

@@ -7,21 +7,33 @@ type AssistantMessage = {
   content: string;
 };
 
-type AssistantRequest = {
-  message?: string;
-  history?: AssistantMessage[];
-};
+function isAssistantMessage(value: unknown): value is AssistantMessage {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'role' in value &&
+    (value.role === 'user' || value.role === 'assistant') &&
+    'content' in value &&
+    typeof value.content === 'string'
+  );
+}
 
 function fallbackReply(message: string) {
   const lower = message.toLowerCase();
 
   if (lower.includes('project')) {
-    const topProjects = portfolioData.projects.slice(0, 3).map((project) => project.title).join(', ');
+    const topProjects = portfolioData.projects
+      .slice(0, 3)
+      .map((project) => project.title)
+      .join(', ');
     return `Top projects: ${topProjects}. Ask me for details on any one.`;
   }
 
   if (lower.includes('skill') || lower.includes('stack')) {
-    const topSkills = portfolioData.skills.flatMap((group) => group.items).slice(0, 8).join(', ');
+    const topSkills = portfolioData.skills
+      .flatMap((group) => group.items)
+      .slice(0, 8)
+      .join(', ');
     return `Core stack: ${topSkills}.`;
   }
 
@@ -77,12 +89,37 @@ ${experienceSummary}
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as AssistantRequest;
-    const message = body.message?.trim();
-    const history = Array.isArray(body.history) ? body.history.slice(-8) : [];
+    const raw = await request.text();
+    if (raw.length > 128_000) {
+      return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
+    }
+    let body: unknown;
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      return NextResponse.json({ error: 'Enter a valid JSON request.' }, { status: 400 });
+    }
+    if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+      return NextResponse.json({ error: 'Enter a message.' }, { status: 400 });
+    }
+    const message =
+      'message' in body && typeof body.message === 'string' ? body.message.trim() : '';
+    if ('history' in body && !Array.isArray(body.history)) {
+      return NextResponse.json({ error: 'History must be a list of messages.' }, { status: 400 });
+    }
+    const history = 'history' in body && Array.isArray(body.history) ? body.history.slice(-8) : [];
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required.' }, { status: 400 });
+    }
+    if (!history.every(isAssistantMessage)) {
+      return NextResponse.json({ error: 'History contains an invalid message.' }, { status: 400 });
+    }
+    if (message.length > 4_000 || history.some((entry) => entry.content.length > 4_000)) {
+      return NextResponse.json(
+        { error: 'Messages must be 4000 characters or fewer.' },
+        { status: 413 },
+      );
     }
 
     const apiKey = process.env.GEMINI_API_KEY?.trim();
@@ -95,7 +132,10 @@ export async function POST(request: Request) {
 
     const modelName = process.env.GEMINI_MODEL?.trim() || 'gemini-2.0-flash';
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: modelName });
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: { maxOutputTokens: 512 },
+    });
 
     const historyText = history
       .map((entry) => `${entry.role === 'user' ? 'User' : 'Assistant'}: ${entry.content}`)

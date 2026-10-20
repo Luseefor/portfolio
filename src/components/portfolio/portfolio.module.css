@@ -677,3 +677,34 @@
     display: none;
   }
 }
+
+.missingPage {
+  min-height: calc(100vh - 96px);
+  padding: 88px 0;
+}
+.missingPage h1 {
+  margin: 16px 0 24px;
+  font-size: clamp(40px, 7vw, 64px);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+.missingPage > p:last-of-type {
+  max-width: 45ch;
+  color: var(--secondary);
+  font-size: 16px;
+}
+.missingPage .actions {
+  margin-top: 32px;
+}
+@media (max-width: 640px) {
+  .missingPage {
+    padding-top: 56px;
+  }
+}
+
+@media (max-width: 600px) {
+  .missingPage {
+    min-height: calc(100vh - 80px);
+  }
+}

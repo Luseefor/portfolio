@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { readFileSync } from 'node:fs';
 import { renderMarkdown } from '../src/lib/markdown';
 import { portfolioData } from '../src/content/portfolio';
@@ -430,3 +431,80 @@ test('contact form exposes validation and delivery status without sending email'
   await expect(form.getByLabel('Message', { exact: true })).toHaveValue('');
   expect(attempts).toBe(2);
 });
+
+test('custom 404 returns an error status and offers recovery without JavaScript', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  for (const path of ['/missing-page', '/projects/no-such-project', '/writing/no-such-post']) {
+    const response = await page.goto(path);
+    expect(response?.status(), path).toBe(404);
+    await expect(page.getByRole('heading', { level: 1 }), path).toHaveText('Page not found');
+    await expect(page).toHaveTitle('Page not found | Rijan Ghimire');
+    await expect(page.locator('meta[name="robots"][content*="noindex"]').first()).toBeAttached();
+    await expect(page.getByRole('link', { name: 'Back to home' })).toHaveAttribute('href', '/');
+    await expect(page.getByRole('link', { name: 'View projects', exact: true })).toHaveAttribute(
+      'href',
+      '/#projects',
+    );
+    await page.getByRole('link', { name: 'Browse writing' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Writing');
+  }
+  await context.close();
+});
+
+test('custom 404 preserves reading mode, fits phones, and supports keyboard recovery', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+  await page.goto('/missing-page');
+  const shell = page.locator('[data-portfolio-theme]');
+  await expect(shell).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+  for (const width of [360, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+  }
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toBeFocused();
+  await page.getByRole('link', { name: 'Back to home' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(portfolioData.hero.name);
+  await expect(shell).toHaveAttribute('data-portfolio-theme', 'dark');
+});
+
+for (const mode of ['light', 'dark']) {
+  test(`automated accessibility checks cover the hiring and reading journey in ${mode}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const path of [
+      '/',
+      '/projects/vinculum',
+      '/writing',
+      portfolioData.writing[0].href,
+      '/missing-page',
+    ]) {
+      await page.goto(path);
+      const toggle = page.getByRole('button', { name: `Switch to ${mode} mode` });
+      if (await toggle.count()) await toggle.click();
+      if (path === '/')
+        await page.getByText('Prefer a form? Send a note.', { exact: true }).click();
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+        .analyze();
+      expect(
+        results.violations.map((v) => ({
+          id: v.id,
+          impact: v.impact,
+          nodes: v.nodes.map((n) => n.target),
+        })),
+        `${path} ${mode}`,
+      ).toEqual([]);
+    }
+  });
+}

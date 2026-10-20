@@ -4,6 +4,8 @@ import { socialImage } from '@/lib/social-image';
 export const alt = 'Engineering notes by Rijan Ghimire';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return getWritingPosts().map(({ slug }) => ({ slug }));
 }

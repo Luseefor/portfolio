@@ -8,9 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write .",
-    "test": "vitest",
+    "test": "vitest run",
+    "test:unit": "vitest run",
     "test:watch": "vitest --watch",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:portfolio": "playwright test e2e/portfolio.spec.ts",
+    "test:e2e:dungeon": "playwright test e2e/dungeon.spec.ts"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.19.3",
@@ -25,8 +28,8 @@
     "lucide-react": "^0.562.0",
     "markdown-it": "^15.0.3",
     "markdown-it-footnote": "^4.0.0",
-    "next": "^16.1.6",
-    "nodemailer": "^7.0.12",
+    "next": "^16.4.2",
+    "nodemailer": "^10.1.7",
     "postprocessing": "^6.38.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -34,6 +37,7 @@
     "zustand": "^5.0.10"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.52.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
@@ -42,19 +46,18 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/markdown-it": "^14.2.0",
     "@types/markdown-it-footnote": "^3.0.4",
-    "@types/node": "^20",
-    "@types/nodemailer": "^7.0.5",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.182.0",
     "@vitejs/plugin-react": "^5.0.2",
     "eslint": "^9",
-    "eslint-config-next": "16.1.4",
+    "eslint-config-next": "16.4.2",
     "eslint-config-prettier": "^10.1.8",
     "jsdom": "^26.1.0",
     "prettier": "^3.8.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^5.0.5"
   }
 }

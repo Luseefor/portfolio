@@ -5,6 +5,10 @@ This repository contains a streamlined Next.js portfolio focused on hiring-facin
 ## Routes
 
 - `/`: primary portfolio with projects, experience, skills, contact, and resume CTA
+- `/projects/[slug]`: project decisions, source links, and limits
+- `/writing`: editorial archive with Markdown article pages
+- `/writing/feed.xml`: RSS summaries and article links
+- Unknown pages: custom 404 with recovery links and both reading modes
 - `/interactive`: technical showcase for the WebGL dungeon demo
 - `/api/contact`: contact form submission endpoint
 
@@ -19,7 +23,8 @@ This repository contains a streamlined Next.js portfolio focused on hiring-facin
 ## Development
 
 ```bash
-npm install
+nvm use
+npm ci
 cp .env.example .env.local
 npm run dev
 ```
@@ -30,9 +35,23 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ```bash
 npm run lint
-npm run build
 npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e:portfolio
 ```
+
+Node 24 matches CI and the configured Vercel project. `npm test` exits after one run; use `npm run test:watch` for watch mode. Browser checks start the production build on port 3100 and refuse to reuse a running server. Set `PLAYWRIGHT_PORT` to another free port if needed.
+
+On a Mac with Google Chrome already installed, the browser check can use it directly:
+
+```bash
+PLAYWRIGHT_CHROME_CHANNEL=chrome npm run test:e2e:portfolio
+```
+
+GitHub Actions runs lint, all unit tests, a production build, and the portfolio browser suite on pushes and pull requests. It installs its own Chromium and uploads failure reports. The legacy dungeon smoke test is separate: `npm run test:e2e:dungeon` requires working WebGL and pointer lock. Dungeon source remains outside this pass.
+
+For new articles, follow [the authoring guide](docs/writing-authoring.md). The [pipeline audit](docs/pipeline-audit.md) and [portfolio comparison](docs/portfolio-benchmark.md) record validation and remaining inputs.
 
 ## Notes
 

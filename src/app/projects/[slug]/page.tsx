@@ -8,6 +8,8 @@ import { getPortfolioProject, portfolioData } from '@/content/portfolio';
 
 type Props = { params: Promise<{ slug: string }> };
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return portfolioData.projects.map(({ slug }) => ({ slug }));
 }
