@@ -9,7 +9,7 @@ This repository contains a streamlined Next.js portfolio focused on hiring-facin
 - `/writing`: editorial archive with Markdown article pages
 - `/writing/feed.xml`: RSS summaries and article links
 - Unknown pages: custom 404 with recovery links and both reading modes
-- `/interactive`: Fieldwork open research landscape and a playable wave-table calibration challenge
+- `/interactive`: full-screen Fieldwork playground with five mathematical stations and repeating survey scenery
 - `/interactive/sandbox`: mathematical object editing, parameter sweeps, exports, and AI plans
 - `/api/contact`: contact form submission endpoint
 
@@ -50,7 +50,7 @@ On a Mac with Google Chrome already installed, the browser check can use it dire
 PLAYWRIGHT_CHROME_CHANNEL=chrome npm run test:e2e:portfolio
 ```
 
-GitHub Actions runs lint, all unit tests, a production build, and both browser suites on pushes and pull requests. It installs Chromium and uploads failure reports. `test:e2e:portfolio` and `test:e2e:interactive` run either suite separately. `npm run test:e2e` runs both.
+GitHub Actions runs lint, all unit tests, a production build, and all three browser suites on pushes and pull requests. It installs Chromium and uploads failure reports. `test:e2e:portfolio` and `test:e2e:interactive` run either suite separately. `npm run test:e2e` runs all three files, including `e2e/game.spec.ts`.
 
 For new articles, follow [the authoring guide](docs/writing-authoring.md). The [pipeline audit](docs/pipeline-audit.md) and [portfolio comparison](docs/portfolio-benchmark.md) record validation and remaining inputs.
 
@@ -62,7 +62,9 @@ For new articles, follow [the authoring guide](docs/writing-authoring.md). The [
 
 ## Fieldwork
 
-At `/interactive`, use WASD or arrows to drive, click clear ground to move, and press E near the blue wave table to inspect it. Match its reference profile, verify the result, and record the completed field note. Progress saves locally; the notebook offers replay. The ground extends as you travel, and the camera follows the rover. Use Return to lab after exploring far away. Drag to orbit, scroll or pinch to zoom, and use touch driving buttons on narrow screens. Accessible controls offer the same challenge without driving or WebGL.
+At `/interactive`, the playground fills the viewport. Only the `rijan.sh` home link stays above the scene. WASD or arrows drive the rover; click clear ground to travel and drag to orbit. Click an instrument to approach, then press E to open it. The wave table has a calibration challenge with a saved field note. The pendulum court, descent garden, signal grove, and knot pavilion have interactive mathematical models and reset controls.
+
+Click the in-world Field Guide sign or press Escape for the notebook, navigation shortcuts, theme switch, optional touch driving buttons, and accessible controls. F toggles browser fullscreen. The ground, roads, trees, rocks, and survey arches repeat through a fixed 7 × 7 render window without accumulating geometry. The five named research stations are fixed destinations. Return to lab and Reset view are in the guide. Accessible controls work without driving or WebGL; equations remain readable without JavaScript. Only the wave-table note is persisted; the other instruments reset on reload.
 
 The separate `/interactive/sandbox` retains wave, saddle, and Gaussian surfaces, parameter editing, six-point frequency sweeps, local saves, JSON, and CSV exports.
 

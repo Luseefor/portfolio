@@ -1,3 +1,4 @@
+import { worldBlocked } from './world';
 import { heightAt } from '@/lib/workbench/model';
 
 export type Point = { x: number; z: number };
@@ -22,6 +23,7 @@ export function canStand(point: Point) {
   return (
     Number.isFinite(point.x) &&
     Number.isFinite(point.z) &&
+    !worldBlocked(point) &&
     !OBSTACLES.some(
       (box) => point.x > box.minX && point.x < box.maxX && point.z > box.minZ && point.z < box.maxZ,
     )

@@ -1,0 +1,782 @@
+{
+  "browser": "Installed Google Chrome",
+  "dpr": 1,
+  "observations": [
+    {
+      "name": "light",
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "initialTransferBytes": 2048272,
+      "initial": {
+        "coordinates": "+x east, +z south, y up; movement relative to the camera",
+        "mode": "explore",
+        "study": null,
+        "survey": {
+          "cell": {
+            "x": 0,
+            "z": 0
+          },
+          "props": [
+            {
+              "x": 15.7804145058617,
+              "z": 50.14143457746832,
+              "kind": "tree",
+              "scale": 0.9715719322979567,
+              "turn": 2.729959657728795
+            },
+            {
+              "x": 23.4963905159384,
+              "z": 53.093190653075,
+              "kind": "rock",
+              "scale": 0.9858940572103165,
+              "turn": 3.0181336082135717
+            }
+          ]
+        },
+        "experiments": {
+          "length": 3.5,
+          "time": 0,
+          "descent": {
+            "x": 3,
+            "z": 2
+          },
+          "harmonics": 1,
+          "knot": 0
+        },
+        "landmarks": [
+          {
+            "id": "wave",
+            "position": {
+              "x": -8,
+              "z": 2.6
+            },
+            "near": false
+          },
+          {
+            "id": "motion",
+            "position": {
+              "x": 26,
+              "z": 5
+            },
+            "near": false
+          },
+          {
+            "id": "optimization",
+            "position": {
+              "x": -27,
+              "z": 34
+            },
+            "near": false
+          },
+          {
+            "id": "signal",
+            "position": {
+              "x": 5,
+              "z": -26
+            },
+            "near": false
+          },
+          {
+            "id": "topology",
+            "position": {
+              "x": -31,
+              "z": -19
+            },
+            "near": false
+          }
+        ],
+        "rover": {
+          "x": 3,
+          "z": 9
+        },
+        "destination": null,
+        "camera": {
+          "camera": {
+            "x": 30.610926539997813,
+            "y": 32.63063384773967,
+            "z": 34.68975577096527,
+            "zoom": 20
+          },
+          "target": {
+            "x": -1,
+            "z": -1
+          }
+        },
+        "instrument": {
+          "position": {
+            "x": -8,
+            "z": 2.6
+          },
+          "near": false,
+          "frequency": 0.85,
+          "error": 0.9921083614406501,
+          "tolerance": 0.04
+        },
+        "notebook": {
+          "completed": 0,
+          "available": 1,
+          "saved": false
+        },
+        "render": {
+          "calls": 95,
+          "triangles": 52478,
+          "geometries": 62,
+          "textures": 9,
+          "frames": 3
+        }
+      },
+      "final": {
+        "coordinates": "+x east, +z south, y up; movement relative to the camera",
+        "mode": "explore",
+        "study": null,
+        "survey": {
+          "cell": {
+            "x": 2,
+            "z": -3
+          },
+          "props": [
+            {
+              "x": 168.9599567829864,
+              "z": -145.17677899927367,
+              "kind": "tree",
+              "scale": 1.1379472687865928,
+              "turn": 2.445098102270353
+            },
+            {
+              "x": 139.34643754342687,
+              "z": -141.02937881008256,
+              "kind": "tree",
+              "scale": 1.0972876367457503,
+              "turn": 1.0749281554609067
+            },
+            {
+              "x": 176.86357508861693,
+              "z": -138.90348996056127,
+              "kind": "tree",
+              "scale": 1.4875694336060405,
+              "turn": 1.845363715605871
+            },
+            {
+              "x": 157.01666688674595,
+              "z": -145.36409700859804,
+              "kind": "tree",
+              "scale": 0.9946231966190681,
+              "turn": 1.1857402694016703
+            },
+            {
+              "x": 171.37076474374044,
+              "z": -137.38635485223494,
+              "kind": "tree",
+              "scale": 0.9193082261786913,
+              "turn": 2.249108975879414
+            },
+            {
+              "x": 157.5930983510916,
+              "z": -141.8562407962454,
+              "kind": "rock",
+              "scale": 1.1082888736011227,
+              "turn": 2.2536520805008142
+            },
+            {
+              "x": 143.69850800966378,
+              "z": -146.87882492574863,
+              "kind": "rock",
+              "scale": 0.8416933222160878,
+              "turn": 0.490304039839865
+            }
+          ]
+        },
+        "experiments": {
+          "length": 3.5,
+          "time": 0.25,
+          "descent": {
+            "x": 3,
+            "z": 2
+          },
+          "harmonics": 1,
+          "knot": 0
+        },
+        "landmarks": [
+          {
+            "id": "wave",
+            "position": {
+              "x": -8,
+              "z": 2.6
+            },
+            "near": false
+          },
+          {
+            "id": "motion",
+            "position": {
+              "x": 26,
+              "z": 5
+            },
+            "near": false
+          },
+          {
+            "id": "optimization",
+            "position": {
+              "x": -27,
+              "z": 34
+            },
+            "near": false
+          },
+          {
+            "id": "signal",
+            "position": {
+              "x": 5,
+              "z": -26
+            },
+            "near": false
+          },
+          {
+            "id": "topology",
+            "position": {
+              "x": -31,
+              "z": -19
+            },
+            "near": false
+          }
+        ],
+        "rover": {
+          "x": 177.42104598034192,
+          "z": -150.12845887109935
+        },
+        "destination": null,
+        "camera": {
+          "camera": {
+            "x": 205.03197252034474,
+            "y": 32.63063384774005,
+            "z": -124.43870310013395,
+            "zoom": 20
+          },
+          "target": {
+            "x": 173.4210459803424,
+            "z": -160.1284588710996
+          }
+        },
+        "instrument": {
+          "position": {
+            "x": -8,
+            "z": 2.6
+          },
+          "near": false,
+          "frequency": 0.85,
+          "error": 0.9921083614406501,
+          "tolerance": 0.04
+        },
+        "notebook": {
+          "completed": 0,
+          "available": 1,
+          "saved": false
+        },
+        "render": {
+          "calls": 49,
+          "triangles": 45298,
+          "geometries": 62,
+          "textures": 9,
+          "frames": 9
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "dark",
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "initialTransferBytes": 2048272,
+      "initial": {
+        "coordinates": "+x east, +z south, y up; movement relative to the camera",
+        "mode": "explore",
+        "study": null,
+        "survey": {
+          "cell": {
+            "x": 0,
+            "z": 0
+          },
+          "props": [
+            {
+              "x": 15.7804145058617,
+              "z": 50.14143457746832,
+              "kind": "tree",
+              "scale": 0.9715719322979567,
+              "turn": 2.729959657728795
+            },
+            {
+              "x": 23.4963905159384,
+              "z": 53.093190653075,
+              "kind": "rock",
+              "scale": 0.9858940572103165,
+              "turn": 3.0181336082135717
+            }
+          ]
+        },
+        "experiments": {
+          "length": 3.5,
+          "time": 0,
+          "descent": {
+            "x": 3,
+            "z": 2
+          },
+          "harmonics": 1,
+          "knot": 0
+        },
+        "landmarks": [
+          {
+            "id": "wave",
+            "position": {
+              "x": -8,
+              "z": 2.6
+            },
+            "near": false
+          },
+          {
+            "id": "motion",
+            "position": {
+              "x": 26,
+              "z": 5
+            },
+            "near": false
+          },
+          {
+            "id": "optimization",
+            "position": {
+              "x": -27,
+              "z": 34
+            },
+            "near": false
+          },
+          {
+            "id": "signal",
+            "position": {
+              "x": 5,
+              "z": -26
+            },
+            "near": false
+          },
+          {
+            "id": "topology",
+            "position": {
+              "x": -31,
+              "z": -19
+            },
+            "near": false
+          }
+        ],
+        "rover": {
+          "x": 3,
+          "z": 9
+        },
+        "destination": null,
+        "camera": {
+          "camera": {
+            "x": 30.610926539997813,
+            "y": 32.63063384773967,
+            "z": 34.68975577096527,
+            "zoom": 20
+          },
+          "target": {
+            "x": -1,
+            "z": -1
+          }
+        },
+        "instrument": {
+          "position": {
+            "x": -8,
+            "z": 2.6
+          },
+          "near": false,
+          "frequency": 0.85,
+          "error": 0.9921083614406501,
+          "tolerance": 0.04
+        },
+        "notebook": {
+          "completed": 0,
+          "available": 1,
+          "saved": false
+        },
+        "render": {
+          "calls": 95,
+          "triangles": 52478,
+          "geometries": 62,
+          "textures": 9,
+          "frames": 4
+        }
+      },
+      "final": {
+        "coordinates": "+x east, +z south, y up; movement relative to the camera",
+        "mode": "explore",
+        "study": null,
+        "survey": {
+          "cell": {
+            "x": 0,
+            "z": 0
+          },
+          "props": [
+            {
+              "x": 15.7804145058617,
+              "z": 50.14143457746832,
+              "kind": "tree",
+              "scale": 0.9715719322979567,
+              "turn": 2.729959657728795
+            },
+            {
+              "x": 23.4963905159384,
+              "z": 53.093190653075,
+              "kind": "rock",
+              "scale": 0.9858940572103165,
+              "turn": 3.0181336082135717
+            }
+          ]
+        },
+        "experiments": {
+          "length": 3.5,
+          "time": 0,
+          "descent": {
+            "x": 3,
+            "z": 2
+          },
+          "harmonics": 1,
+          "knot": 0
+        },
+        "landmarks": [
+          {
+            "id": "wave",
+            "position": {
+              "x": -8,
+              "z": 2.6
+            },
+            "near": false
+          },
+          {
+            "id": "motion",
+            "position": {
+              "x": 26,
+              "z": 5
+            },
+            "near": false
+          },
+          {
+            "id": "optimization",
+            "position": {
+              "x": -27,
+              "z": 34
+            },
+            "near": false
+          },
+          {
+            "id": "signal",
+            "position": {
+              "x": 5,
+              "z": -26
+            },
+            "near": false
+          },
+          {
+            "id": "topology",
+            "position": {
+              "x": -31,
+              "z": -19
+            },
+            "near": false
+          }
+        ],
+        "rover": {
+          "x": 3,
+          "z": 9
+        },
+        "destination": null,
+        "camera": {
+          "camera": {
+            "x": 30.610926539997813,
+            "y": 32.63063384773967,
+            "z": 34.68975577096527,
+            "zoom": 20
+          },
+          "target": {
+            "x": -1,
+            "z": -1
+          }
+        },
+        "instrument": {
+          "position": {
+            "x": -8,
+            "z": 2.6
+          },
+          "near": false,
+          "frequency": 0.85,
+          "error": 0.9921083614406501,
+          "tolerance": 0.04
+        },
+        "notebook": {
+          "completed": 0,
+          "available": 1,
+          "saved": false
+        },
+        "render": {
+          "calls": 95,
+          "triangles": 52478,
+          "geometries": 62,
+          "textures": 9,
+          "frames": 4
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "phone",
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 900
+      },
+      "initialTransferBytes": 2048272,
+      "initial": {
+        "coordinates": "+x east, +z south, y up; movement relative to the camera",
+        "mode": "explore",
+        "study": null,
+        "survey": {
+          "cell": {
+            "x": 0,
+            "z": 0
+          },
+          "props": [
+            {
+              "x": 15.7804145058617,
+              "z": 50.14143457746832,
+              "kind": "tree",
+              "scale": 0.9715719322979567,
+              "turn": 2.729959657728795
+            },
+            {
+              "x": 23.4963905159384,
+              "z": 53.093190653075,
+              "kind": "rock",
+              "scale": 0.9858940572103165,
+              "turn": 3.0181336082135717
+            }
+          ]
+        },
+        "experiments": {
+          "length": 3.5,
+          "time": 0,
+          "descent": {
+            "x": 3,
+            "z": 2
+          },
+          "harmonics": 1,
+          "knot": 0
+        },
+        "landmarks": [
+          {
+            "id": "wave",
+            "position": {
+              "x": -8,
+              "z": 2.6
+            },
+            "near": false
+          },
+          {
+            "id": "motion",
+            "position": {
+              "x": 26,
+              "z": 5
+            },
+            "near": false
+          },
+          {
+            "id": "optimization",
+            "position": {
+              "x": -27,
+              "z": 34
+            },
+            "near": false
+          },
+          {
+            "id": "signal",
+            "position": {
+              "x": 5,
+              "z": -26
+            },
+            "near": false
+          },
+          {
+            "id": "topology",
+            "position": {
+              "x": -31,
+              "z": -19
+            },
+            "near": false
+          }
+        ],
+        "rover": {
+          "x": 3,
+          "z": 9
+        },
+        "destination": null,
+        "camera": {
+          "camera": {
+            "x": 45.67724039322692,
+            "y": 48.1829578252665,
+            "z": 51.70011012138523,
+            "zoom": 10.263157894736842
+          },
+          "target": {
+            "x": -1,
+            "z": -1
+          }
+        },
+        "instrument": {
+          "position": {
+            "x": -8,
+            "z": 2.6
+          },
+          "near": false,
+          "frequency": 0.85,
+          "error": 0.9921083614406501,
+          "tolerance": 0.04
+        },
+        "notebook": {
+          "completed": 0,
+          "available": 1,
+          "saved": false
+        },
+        "render": {
+          "calls": 52,
+          "triangles": 24790,
+          "geometries": 52,
+          "textures": 7,
+          "frames": 3
+        }
+      },
+      "final": {
+        "coordinates": "+x east, +z south, y up; movement relative to the camera",
+        "mode": "explore",
+        "study": null,
+        "survey": {
+          "cell": {
+            "x": 0,
+            "z": 0
+          },
+          "props": [
+            {
+              "x": 15.7804145058617,
+              "z": 50.14143457746832,
+              "kind": "tree",
+              "scale": 0.9715719322979567,
+              "turn": 2.729959657728795
+            },
+            {
+              "x": 23.4963905159384,
+              "z": 53.093190653075,
+              "kind": "rock",
+              "scale": 0.9858940572103165,
+              "turn": 3.0181336082135717
+            }
+          ]
+        },
+        "experiments": {
+          "length": 3.5,
+          "time": 0,
+          "descent": {
+            "x": 3,
+            "z": 2
+          },
+          "harmonics": 1,
+          "knot": 0
+        },
+        "landmarks": [
+          {
+            "id": "wave",
+            "position": {
+              "x": -8,
+              "z": 2.6
+            },
+            "near": false
+          },
+          {
+            "id": "motion",
+            "position": {
+              "x": 26,
+              "z": 5
+            },
+            "near": false
+          },
+          {
+            "id": "optimization",
+            "position": {
+              "x": -27,
+              "z": 34
+            },
+            "near": false
+          },
+          {
+            "id": "signal",
+            "position": {
+              "x": 5,
+              "z": -26
+            },
+            "near": false
+          },
+          {
+            "id": "topology",
+            "position": {
+              "x": -31,
+              "z": -19
+            },
+            "near": false
+          }
+        ],
+        "rover": {
+          "x": 3,
+          "z": 9
+        },
+        "destination": null,
+        "camera": {
+          "camera": {
+            "x": 45.67724039322692,
+            "y": 48.1829578252665,
+            "z": 51.70011012138523,
+            "zoom": 10.263157894736842
+          },
+          "target": {
+            "x": -1,
+            "z": -1
+          }
+        },
+        "instrument": {
+          "position": {
+            "x": -8,
+            "z": 2.6
+          },
+          "near": false,
+          "frequency": 0.85,
+          "error": 0.9921083614406501,
+          "tolerance": 0.04
+        },
+        "notebook": {
+          "completed": 0,
+          "available": 1,
+          "saved": false
+        },
+        "render": {
+          "calls": 52,
+          "triangles": 24790,
+          "geometries": 52,
+          "textures": 7,
+          "frames": 3
+        }
+      },
+      "errors": []
+    }
+  ]
+}

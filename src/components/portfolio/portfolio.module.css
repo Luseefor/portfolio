@@ -719,3 +719,21 @@
     padding-inline: 14px;
   }
 }
+
+.playground {
+  position: fixed;
+  inset: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.playgroundHome {
+  position: absolute;
+  z-index: 10;
+  top: max(18px, env(safe-area-inset-top));
+  left: max(24px, env(safe-area-inset-left));
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.055em;
+  padding: 6px 0;
+  color: var(--ink);
+}

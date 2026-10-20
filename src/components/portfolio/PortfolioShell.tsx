@@ -29,15 +29,7 @@ let temporaryMode: 'light' | 'dark' | undefined;
 const getMode = () => temporaryMode ?? readMode();
 const getServerMode = () => 'light' as const;
 
-export default function PortfolioShell({
-  children,
-  resumeHref,
-  wide = false,
-}: {
-  children: ReactNode;
-  resumeHref: string;
-  wide?: boolean;
-}) {
+export function usePortfolioMode() {
   const mode = useSyncExternalStore(subscribe, getMode, getServerMode);
 
   function toggleMode() {
@@ -51,6 +43,33 @@ export default function PortfolioShell({
     window.dispatchEvent(new Event(MODE_EVENT));
   }
 
+  return { mode, toggleMode };
+}
+
+export default function PortfolioShell({
+  children,
+  resumeHref,
+  wide = false,
+  immersive = false,
+}: {
+  children: ReactNode;
+  resumeHref: string;
+  wide?: boolean;
+  immersive?: boolean;
+}) {
+  const { mode, toggleMode } = usePortfolioMode();
+  if (immersive)
+    return (
+      <div className={`${styles.site} ${styles.playground}`} data-portfolio-theme={mode}>
+        <a className={styles.skipLink} href="#content">
+          Skip to playground
+        </a>
+        <Link href="/" className={styles.playgroundHome}>
+          rijan.sh
+        </Link>
+        {children}
+      </div>
+    );
   return (
     <div className={`${styles.site} ${wide ? '' : styles.paperGrid}`} data-portfolio-theme={mode}>
       <div className={`${styles.container} ${wide ? styles.wideContainer : ''}`}>

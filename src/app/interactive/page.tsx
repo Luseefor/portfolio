@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 export default function InteractivePage() {
   return (
-    <PortfolioShell resumeHref={portfolioData.contact.resumeHref} wide>
+    <PortfolioShell resumeHref={portfolioData.contact.resumeHref} immersive>
       <FieldworkGame />
     </PortfolioShell>
   );

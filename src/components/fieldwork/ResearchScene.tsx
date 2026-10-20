@@ -6,6 +6,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useSyncExternalStore,
   type MutableRefObject,
   type ReactNode,
 } from 'react';
@@ -13,8 +14,8 @@ import {
   BoxGeometry,
   BufferGeometry,
   Float32BufferAttribute,
+  Fog,
   Group,
-  GridHelper,
   OrthographicCamera,
   PlaneGeometry,
   Vector3,
@@ -24,6 +25,17 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { APPROACH, canStand, moveRover, nearTable, TABLE, type Point } from '@/lib/fieldwork/game';
 import { heightAt } from '@/lib/workbench/model';
 import type { GameBridge } from './types';
+import WorldScenery, { type StudyValues } from './WorldScenery';
+import type { LandmarkId } from '@/lib/fieldwork/world';
+import styles from './game.module.css';
+
+const smallScreen = () => window.matchMedia('(max-width: 600px)').matches;
+const largeScreen = () => false;
+const watchScreen = (notify: () => void) => {
+  const media = window.matchMedia('(max-width: 600px)');
+  media.addEventListener('change', notify);
+  return () => media.removeEventListener('change', notify);
+};
 
 type Props = {
   bridge: MutableRefObject<GameBridge>;
@@ -33,6 +45,9 @@ type Props = {
   onMove: (point: Point) => void;
   onInspect: () => void;
   onBlocked: () => void;
+  values: StudyValues;
+  onSelect: (id: LandmarkId) => void;
+  onGuide: () => void;
 };
 type Block = [number, number, number, number, number, number];
 function mergedBoxes(blocks: Block[]) {
@@ -102,7 +117,6 @@ function Architecture({ dark }: { dark: boolean }) {
 // A constant-size ground patch follows the rover; geometry never accumulates as you travel.
 function OpenGround({ bridge, dark }: Pick<Props, 'bridge' | 'dark'>) {
   const ground = useRef<Group>(null);
-  const grid = useRef<GridHelper>(null);
   const down = useRef<{ x: number; y: number } | null>(null);
   useFrame(() => {
     if (ground.current) {
@@ -140,7 +154,7 @@ function OpenGround({ bridge, dark }: Pick<Props, 'bridge' | 'dark'>) {
         <planeGeometry args={[2048, 2048]} />
         <meshStandardMaterial color={dark ? '#252525' : '#eee4d1'} roughness={1} />
       </mesh>
-      <gridHelper ref={grid} args={[512, 128]} position={[0, -0.015, 0]} raycast={() => {}}>
+      <gridHelper args={[512, 128]} position={[0, -0.015, 0]} raycast={() => {}}>
         <lineBasicMaterial
           color={dark ? '#777777' : '#8a7e6c'}
           transparent
@@ -309,19 +323,43 @@ function Controller({ bridge, onMove, onBlocked }: Pick<Props, 'bridge' | 'onMov
     orbit.minZoom = 7;
     orbit.maxZoom = 55;
     controls.current = orbit;
-    const changed = () => invalidate();
+    const offset = new Vector3();
+    const changed = () => {
+      if (camera instanceof OrthographicCamera) {
+        // Retreat along the view ray so tall or zoomed-out views keep ground in front of the near plane.
+        const minimumHeight =
+          ((camera.top - camera.bottom) / camera.zoom / 2) * Math.sin(orbit.getPolarAngle()) + 12;
+        offset.copy(camera.position).sub(orbit.target);
+        if (offset.y < minimumHeight) {
+          offset.multiplyScalar(minimumHeight / Math.max(offset.y, 0.01));
+          camera.position.copy(orbit.target).add(offset);
+        }
+        camera.far = Math.max(180, offset.length() + 230);
+        camera.updateProjectionMatrix();
+        if (scene.fog instanceof Fog) {
+          scene.fog.near = offset.length() + 90;
+          scene.fog.far = offset.length() + 190;
+        }
+      }
+      invalidate();
+    };
     orbit.addEventListener('change', changed);
     const reset = () => {
       const position = state.position;
       camera.position.set(position.x + 27, 32, position.z + 25);
       orbit.target.set(position.x - 4, 0, position.z - 10);
       if (camera instanceof OrthographicCamera) {
-        camera.zoom = Math.min(size.width / (size.width < 600 ? 31 : 48), size.height / 32);
+        camera.zoom = Math.min(size.width / (size.width < 600 ? 38 : 72), size.height / 48);
         camera.updateProjectionMatrix();
       }
       orbit.update();
       state.view = {
-        camera: { x: camera.position.x, z: camera.position.z },
+        camera: {
+          x: camera.position.x,
+          y: camera.position.y,
+          z: camera.position.z,
+          zoom: camera instanceof OrthographicCamera ? camera.zoom : 1,
+        },
         target: { x: orbit.target.x, z: orbit.target.z },
       };
       invalidate();
@@ -335,7 +373,7 @@ function Controller({ bridge, onMove, onBlocked }: Pick<Props, 'bridge' | 'onMov
       delete state.resetView;
       delete state.wake;
     };
-  }, [camera, gl, invalidate, bridge, size.width, size.height]);
+  }, [camera, gl, scene, invalidate, bridge, size.width, size.height]);
   function step(seconds: number) {
     const state = bridge.current;
     const held = state.keys;
@@ -386,7 +424,12 @@ function Controller({ bridge, onMove, onBlocked }: Pick<Props, 'bridge' | 'onMov
     if (rover.current) rover.current.position.set(state.position.x, 0, state.position.z);
     controls.current?.update();
     state.view = {
-      camera: { x: camera.position.x, z: camera.position.z },
+      camera: {
+        x: camera.position.x,
+        y: camera.position.y,
+        z: camera.position.z,
+        zoom: camera instanceof OrthographicCamera ? camera.zoom : 1,
+      },
       target: { x: controls.current?.target.x ?? 0, z: controls.current?.target.z ?? 0 },
     };
     report.current += seconds;
@@ -428,16 +471,19 @@ function Controller({ bridge, onMove, onBlocked }: Pick<Props, 'bridge' | 'onMov
   return <Rover rover={rover} />;
 }
 
-class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+class SceneBoundary extends Component<
+  { children: ReactNode; onGuide: () => void },
+  { failed: boolean }
+> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
   }
   render() {
     return this.state.failed ? (
-      <div style={{ padding: 32 }}>
-        The 3D view could not start. Use the accessible instrument controls below to complete the
-        experiment.
+      <div className={styles.loading}>
+        <p>The 3D playground could not start.</p>
+        <button onClick={this.props.onGuide}>Open field guide</button>
       </div>
     ) : (
       this.props.children
@@ -445,19 +491,23 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
   }
 }
 export default function ResearchScene(props: Props) {
+  const mobile = useSyncExternalStore(watchScreen, smallScreen, largeScreen);
   return (
-    <SceneBoundary>
+    <SceneBoundary onGuide={props.onGuide}>
       <Canvas
         orthographic
         frameloop="demand"
-        shadows
-        dpr={[1, 1.5]}
+        shadows={!mobile}
+        dpr={mobile ? 1 : [1, 1.5]}
         camera={{ position: [30, 32, 34], zoom: 20, near: 0.1, far: 180 }}
         gl={{ antialias: true, powerPreference: 'low-power' }}
-        role="img"
+        role="group"
         aria-label="Open mathematical landscape with a survey rover and an interactive blue wave table"
         fallback={
-          <p>The 3D view needs WebGL. The accessible instrument controls remain available below.</p>
+          <div className={styles.loading}>
+            <p>The 3D playground needs WebGL.</p>
+            <button onClick={props.onGuide}>Open field guide</button>
+          </div>
         }
       >
         <color attach="background" args={[props.dark ? '#080808' : '#faf8f2']} />
@@ -466,19 +516,26 @@ export default function ResearchScene(props: Props) {
         <directionalLight
           position={[-12, 28, 16]}
           intensity={props.dark ? 2.4 : 3.1}
-          castShadow
-          shadow-mapSize={[1024, 1024]}
-          shadow-camera-left={-25}
-          shadow-camera-right={25}
-          shadow-camera-top={24}
-          shadow-camera-bottom={-24}
+          castShadow={!mobile}
+          shadow-mapSize={[2048, 2048]}
+          shadow-camera-left={-60}
+          shadow-camera-right={60}
+          shadow-camera-top={65}
+          shadow-camera-bottom={-65}
           shadow-camera-near={1}
-          shadow-camera-far={80}
+          shadow-camera-far={150}
           shadow-normalBias={0.06}
           shadow-bias={-0.0002}
         />
         <OpenGround bridge={props.bridge} dark={props.dark} />
         <Architecture dark={props.dark} />
+        <WorldScenery
+          bridge={props.bridge}
+          dark={props.dark}
+          values={props.values}
+          onSelect={props.onSelect}
+          onGuide={props.onGuide}
+        />
         <WaveTable
           frequency={props.frequency}
           calibrated={props.calibrated}

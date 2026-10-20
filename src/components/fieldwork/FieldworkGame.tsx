@@ -17,6 +17,16 @@ import {
 } from '@/lib/fieldwork/game';
 import type { GameBridge } from './types';
 import styles from './game.module.css';
+import { usePortfolioMode } from '@/components/portfolio/PortfolioShell';
+import {
+  LANDMARKS,
+  nearestLandmark,
+  surveyCell,
+  CELL_SIZE,
+  type LandmarkId,
+} from '@/lib/fieldwork/world';
+import type { StudyValues } from './WorldScenery';
+import StudyInstrument from './StudyInstrument';
 
 const ResearchScene = dynamic(() => import('./ResearchScene'), {
   ssr: false,
@@ -130,7 +140,18 @@ export default function FieldworkGame() {
   const [calibrated, setCalibrated] = useState(false);
   const [position, setPosition] = useState<Point>(SPAWN);
   const [inspecting, setInspecting] = useState(false);
-  const [dark, setDark] = useState(false);
+  const { mode, toggleMode } = usePortfolioMode();
+  const dark = mode === 'dark';
+  const [study, setStudy] = useState<Exclude<LandmarkId, 'wave'> | null>(null);
+  const [values, setValues] = useState<StudyValues>({
+    length: 3.5,
+    time: 0,
+    descent: { x: 3, z: 2 },
+    harmonics: 1,
+    knot: 0,
+  });
+  const [touchDriving, setTouchDriving] = useState(false);
+  const guide = useRef<HTMLDetailsElement>(null);
   const [notice, setNotice] = useState('Drive to the blue wave table, or select Approach table.');
   const [saved, setSaved] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
@@ -143,17 +164,6 @@ export default function FieldworkGame() {
     manual: false,
     metrics: { calls: 0, triangles: 0, geometries: 0, textures: 0, frames: 0 },
   });
-  const near = nearTable(position);
-  const distanceFromLab = Math.hypot(position.x - APPROACH.x, position.z - APPROACH.z);
-  useEffect(() => {
-    const shell = document.querySelector('[data-portfolio-theme]');
-    if (!shell) return;
-    const sync = () => setDark(shell.getAttribute('data-portfolio-theme') === 'dark');
-    sync();
-    const observer = new MutationObserver(sync);
-    observer.observe(shell, { attributes: true, attributeFilter: ['data-portfolio-theme'] });
-    return () => observer.disconnect();
-  }, []);
   useEffect(() => {
     try {
       const note = readNote(localStorage.getItem(SAVE_KEY));
@@ -196,7 +206,28 @@ export default function FieldworkGame() {
     window.render_game_to_text = () =>
       JSON.stringify({
         coordinates: '+x east, +z south, y up; movement relative to the camera',
-        mode: inspecting ? 'instrument' : 'explore',
+        mode: inspecting || study ? 'instrument' : 'explore',
+        study,
+        survey: {
+          cell: {
+            x: Math.floor(bridge.current.position.x / CELL_SIZE),
+            z: Math.floor(bridge.current.position.z / CELL_SIZE),
+          },
+          props: surveyCell(
+            Math.floor(bridge.current.position.x / CELL_SIZE),
+            Math.floor(bridge.current.position.z / CELL_SIZE),
+          ),
+        },
+        experiments: values,
+        landmarks: LANDMARKS.map((l) => ({
+          id: l.id,
+          position: l.approach,
+          near:
+            Math.hypot(
+              l.approach.x - bridge.current.position.x,
+              l.approach.z - bridge.current.position.z,
+            ) < 5.5,
+        })),
         rover: bridge.current.position,
         destination: bridge.current.destination,
         camera: bridge.current.view,
@@ -215,22 +246,36 @@ export default function FieldworkGame() {
       delete window.render_game_to_text;
       delete window.advanceTime;
     };
-  }, [frequency, calibrated, inspecting, saved]);
+  }, [frequency, calibrated, inspecting, saved, study, values]);
   useEffect(() => {
     if (inspecting) instrument.current?.focus({ preventScroll: true });
   }, [inspecting]);
   useEffect(() => {
-    if (!inspecting) return;
+    if (study) instrument.current?.focus({ preventScroll: true });
+  }, [study]);
+  useEffect(() => {
     const escape = (event: KeyboardEvent) => {
-      if (event.code === 'Escape' && !notebook.current?.open) {
-        event.preventDefault();
+      if (event.code !== 'Escape' || notebook.current?.open) return;
+      event.preventDefault();
+      if (inspecting || study) {
         setInspecting(false);
+        setStudy(null);
         stage.current?.focus({ preventScroll: true });
+      } else if (guide.current?.open) {
+        guide.current.open = false;
+        stage.current?.focus({ preventScroll: true });
+      } else {
+        bridge.current.keys.clear();
+        bridge.current.destination = null;
+        if (guide.current) {
+          guide.current.open = true;
+          guide.current.querySelector('summary')?.focus();
+        }
       }
     };
     window.addEventListener('keydown', escape);
     return () => window.removeEventListener('keydown', escape);
-  }, [inspecting]);
+  }, [inspecting, study]);
   const onMove = useCallback(
     (point: Point) =>
       setPosition((previous) =>
@@ -254,11 +299,13 @@ export default function FieldworkGame() {
     bridge.current.destination = { ...APPROACH };
     bridge.current.manual = false;
     bridge.current.wake?.();
+    if (guide.current) guide.current.open = false;
     stage.current?.focus({ preventScroll: true });
     setNotice('Driving to the wave table. Use movement keys to take over.');
   }
   function returnToLab() {
     clearInput();
+    bridge.current.manual = false;
     bridge.current.position = { ...SPAWN };
     setPosition({ ...SPAWN });
     bridge.current.resetView?.();
@@ -299,14 +346,57 @@ export default function FieldworkGame() {
   }
   function closeInstrument() {
     setInspecting(false);
+    setStudy(null);
     stage.current?.focus({ preventScroll: true });
   }
   function clearInput() {
     bridge.current.keys.clear();
     bridge.current.destination = null;
   }
+  function openGuide() {
+    clearInput();
+    if (guide.current) {
+      guide.current.open = true;
+      guide.current.querySelector('summary')?.focus();
+    }
+  }
+  function selectLandmark(id: LandmarkId) {
+    const landmark = LANDMARKS.find((l) => l.id === id)!;
+    if (
+      Math.hypot(
+        bridge.current.position.x - landmark.approach.x,
+        bridge.current.position.z - landmark.approach.z,
+      ) >= 5.5
+    ) {
+      clearInput();
+      bridge.current.destination = { ...landmark.approach };
+      bridge.current.manual = false;
+      bridge.current.wake?.();
+      stage.current?.focus({ preventScroll: true });
+      setNotice(`Driving to ${landmark.name}.`);
+      return;
+    }
+    clearInput();
+    if (id === 'wave') inspect();
+    else {
+      setInspecting(false);
+      setStudy(id);
+    }
+  }
+  function jumpTo(id: LandmarkId) {
+    const landmark = LANDMARKS.find((l) => l.id === id)!;
+    clearInput();
+    bridge.current.position = { ...landmark.approach };
+    setPosition({ ...landmark.approach });
+    bridge.current.manual = false;
+    bridge.current.resetView?.();
+    if (guide.current) guide.current.open = false;
+    stage.current?.focus({ preventScroll: true });
+  }
+  const nearby = nearestLandmark(position);
   return (
-    <main id="content" className={styles.game} tabIndex={-1}>
+    <main id="content" className={styles.game} tabIndex={-1} data-ready={ready}>
+      <h1 className={styles.srOnly}>Fieldwork</h1>
       <div
         className={styles.world}
         ref={stage}
@@ -322,11 +412,6 @@ export default function FieldworkGame() {
             stage.current?.focus({ preventScroll: true });
         }}
         onKeyDown={(event) => {
-          if (event.code === 'Escape' && inspecting) {
-            event.preventDefault();
-            closeInstrument();
-            return;
-          }
           if (event.target !== event.currentTarget) return;
           if (MOVEMENT.has(event.code)) {
             event.preventDefault();
@@ -336,13 +421,14 @@ export default function FieldworkGame() {
           }
           if (event.code === 'KeyE') {
             event.preventDefault();
-            inspect();
+            const landmark = nearestLandmark(bridge.current.position);
+            if (landmark) selectLandmark(landmark.id);
           }
           if (event.code === 'KeyF') {
             event.preventDefault();
             const attempt = document.fullscreenElement
               ? document.exitFullscreen()
-              : stage.current?.requestFullscreen();
+              : stage.current?.closest<HTMLElement>('[data-portfolio-theme]')?.requestFullscreen();
             attempt?.catch(() =>
               setNotice('Fullscreen is unavailable. You can continue in this view.'),
             );
@@ -358,75 +444,25 @@ export default function FieldworkGame() {
             onMove={onMove}
             onInspect={inspect}
             onBlocked={blocked}
+            values={values}
+            onSelect={selectLandmark}
+            onGuide={openGuide}
           />
         ) : (
           <div className={styles.loading}>
-            The 3D research grounds load with JavaScript. Read the experiment and reference profile
-            below.
+            The playground needs JavaScript. Open the field guide for equations and accessible
+            controls.
           </div>
         )}
-        <header className={styles.hudTop}>
-          <div className={styles.brand}>
-            <h1>Fieldwork</h1>
-            <span>
-              Research
-              <br />
-              grounds
-            </span>
-          </div>
+        {nearby && !inspecting && !study && (
           <button
-            className={styles.notebookButton}
-            onClick={() => {
-              clearInput();
-              notebook.current?.showModal();
-            }}
-            disabled={!ready}
+            className={styles.proximity}
+            id="inspect-table"
+            onClick={() => selectLandmark(nearby.id)}
           >
-            Field notes <span>{calibrated ? '1' : '0'}/1</span>
+            E / {nearby.id === 'wave' ? 'Inspect table' : nearby.name}
           </button>
-        </header>
-        <div className={styles.hudBottom}>
-          <div className={styles.objective}>
-            <span className={styles.kicker}>Study 01 / waves</span>
-            <h2>
-              {calibrated
-                ? 'A match, recorded.'
-                : near
-                  ? 'The wave table is within reach.'
-                  : 'Calibrate the wave table.'}
-            </h2>
-            <p>
-              {calibrated
-                ? 'Continue exploring, or replay the experiment.'
-                : near
-                  ? 'Inspect the instrument to compare two wave profiles.'
-                  : 'Drive to the blue instrument and find its matching frequency.'}
-            </p>
-            <div className={styles.actions}>
-              {!near && (
-                <button id="approach-table" onClick={approach} disabled={!ready}>
-                  Approach table ↗
-                </button>
-              )}
-              <button id="inspect-table" onClick={inspect} disabled={!ready || !near}>
-                E / Inspect table
-              </button>
-            </div>
-          </div>
-          <div className={styles.worldTools}>
-            {distanceFromLab > 40 && <button onClick={returnToLab}>Return to lab</button>}
-            <details>
-              <summary>Controls</summary>
-              <p>
-                WASD or arrows to drive. Click clear ground to move there. Drag to orbit; scroll or
-                pinch to zoom. E inspects a nearby table. F toggles fullscreen; Esc exits it.
-              </p>
-            </details>
-            <button onClick={() => bridge.current.resetView?.()} disabled={!ready}>
-              Reset view
-            </button>
-          </div>
-        </div>
+        )}
         {inspecting && (
           <section
             ref={instrument}
@@ -451,6 +487,7 @@ export default function FieldworkGame() {
               check={check}
               ready={ready}
             />
+            <p className={styles.feedback}>{notice}</p>
             {calibrated && (
               <button className={styles.replay} onClick={replay}>
                 Replay challenge
@@ -461,11 +498,31 @@ export default function FieldworkGame() {
             </button>
           </section>
         )}
+        {study && (
+          <section
+            ref={instrument}
+            className={styles.instrument}
+            aria-label={`${LANDMARKS.find((l) => l.id === study)!.name} instrument`}
+            tabIndex={-1}
+          >
+            <button
+              className={styles.close}
+              onClick={closeInstrument}
+              aria-label="Close instrument"
+            >
+              ×
+            </button>
+            <StudyInstrument study={study} values={values} setValues={setValues} ready={ready} />
+            <button className={styles.resume} onClick={closeInstrument}>
+              Resume exploring ↗
+            </button>
+          </section>
+        )}
       </div>
-      <div className={styles.belowWorld}>
-        <p role="status" className={styles.notice}>
-          {notice}
-        </p>
+      <p role="status" className={styles.srOnly}>
+        {notice}
+      </p>
+      {touchDriving && (
         <div className={styles.movement} aria-label="Touch driving controls">
           {(['KeyW', 'KeyA', 'KeyS', 'KeyD'] as const).map((key, i) => (
             <button
@@ -496,43 +553,128 @@ export default function FieldworkGame() {
             </button>
           ))}
         </div>
-        <div className={styles.footer}>
-          <span data-testid="game-rover-position">
+      )}
+      <details
+        ref={guide}
+        data-testid="field-guide"
+        className={styles.guide}
+        onToggle={(event) => {
+          if (event.currentTarget.open) clearInput();
+        }}
+      >
+        <summary aria-label="Field guide">
+          Field guide <span aria-hidden="true">×</span>
+        </summary>
+        <div className={styles.guideBody}>
+          <p>
+            WASD or arrows to drive. Click clear ground to travel. Drag to orbit; scroll or pinch to
+            zoom. Click a sculpture to approach, then press E to explore. Escape opens this guide. F
+            toggles fullscreen.
+          </p>
+          <div className={styles.guideActions}>
+            <button id="approach-table" onClick={approach} disabled={!ready}>
+              Approach table ↗
+            </button>
+            <button
+              className={styles.notebookButton}
+              onClick={() => {
+                clearInput();
+                notebook.current?.showModal();
+              }}
+              disabled={!ready}
+            >
+              Field notes <span>{calibrated ? '1' : '0'}/1</span>
+            </button>
+            <button
+              onClick={() => {
+                bridge.current.resetView?.();
+                if (guide.current) guide.current.open = false;
+                stage.current?.focus({ preventScroll: true });
+              }}
+              disabled={!ready}
+            >
+              Reset view
+            </button>
+            <button
+              onClick={() => {
+                returnToLab();
+                if (guide.current) guide.current.open = false;
+              }}
+              disabled={!ready}
+            >
+              Return to lab
+            </button>
+            <button
+              onClick={toggleMode}
+              aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            </button>
+          </div>
+          <label className={styles.touchOption}>
+            <input
+              type="checkbox"
+              checked={touchDriving}
+              onChange={(e) => setTouchDriving(e.target.checked)}
+            />
+            Touch driving buttons
+          </label>
+          <h2>Research grounds</h2>
+          <div className={styles.destinations}>
+            {LANDMARKS.map((l) => (
+              <button key={l.id} onClick={() => jumpTo(l.id)} disabled={!ready}>
+                Jump to {l.name} ↗
+              </button>
+            ))}
+          </div>
+          <p className={styles.coordinates} data-testid="game-rover-position">
             Rover / x {position.x.toFixed(1)} · z {position.z.toFixed(1)}
-          </span>
+          </p>
           <Link href="/interactive/sandbox" prefetch={false}>
             Open mathematical sandbox ↗
           </Link>
+          <details className={styles.accessible}>
+            <summary>Accessible experiment controls</summary>
+            <p>
+              Complete the calibration without driving or WebGL. The equation and profile remain
+              readable without JavaScript.
+            </p>
+            <Instrument
+              frequency={frequency}
+              setFrequency={(n) => {
+                setFrequency(n);
+                setSaved(false);
+              }}
+              calibrated={calibrated}
+              check={check}
+              ready={ready}
+            />
+            <p className={styles.feedback}>{notice}</p>
+            {calibrated && (
+              <button className={styles.replay} onClick={replay}>
+                Replay challenge
+              </button>
+            )}
+            {LANDMARKS.filter((l) => l.id !== 'wave').map((l) => (
+              <details key={l.id} className={styles.accessible}>
+                <summary>{l.name}</summary>
+                <StudyInstrument
+                  study={l.id as Exclude<LandmarkId, 'wave'>}
+                  values={values}
+                  setValues={setValues}
+                  ready={ready}
+                />
+              </details>
+            ))}
+          </details>
+          <noscript>
+            <p>
+              Enable JavaScript to drive and verify matches. Open the accessible experiment controls
+              to read the equations.
+            </p>
+          </noscript>
         </div>
-        <details className={styles.accessible}>
-          <summary>Accessible experiment controls</summary>
-          <p>
-            Complete the same calibration without driving or using WebGL. The equation and profile
-            remain readable without JavaScript.
-          </p>
-          <Instrument
-            frequency={frequency}
-            setFrequency={(n) => {
-              setFrequency(n);
-              setSaved(false);
-            }}
-            calibrated={calibrated}
-            check={check}
-            ready={ready}
-          />
-          {calibrated && (
-            <button className={styles.replay} onClick={replay}>
-              Replay challenge
-            </button>
-          )}
-        </details>
-        <noscript>
-          <p>
-            Enable JavaScript to drive and verify matches. Open the accessible experiment controls
-            above to read the initial equation and reference profile.
-          </p>
-        </noscript>
-      </div>
+      </details>
       <dialog ref={notebook} className={styles.notebook} aria-labelledby="notebook-title">
         <button
           className={styles.close}
