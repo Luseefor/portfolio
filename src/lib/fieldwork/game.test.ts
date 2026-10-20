@@ -5,6 +5,7 @@ import {
   isCalibrated,
   matchError,
   moveRover,
+  moveToward,
   nearTable,
   readNote,
   SPAWN,
@@ -40,6 +41,16 @@ describe('wave-table research challenge', () => {
     expect(canStand({ x: -10000, z: 10000 })).toBe(true);
     expect(canStand({ x: Infinity, z: 0 })).toBe(false);
     expect(canStand({ x: 0, z: NaN })).toBe(false);
+  });
+  it('keeps driving speed across coarse frames and stops at nearby destinations', () => {
+    for (const fps of [10, 30, 60]) {
+      let point = { x: 1000, z: 9 };
+      for (let n = 0; n < fps; n++) point = moveRover(point, { x: 1, z: 0 }, 1 / fps);
+      expect(point.x).toBeCloseTo(1006, 8);
+    }
+    const target = { x: 3.3, z: 9 };
+    expect(moveToward(SPAWN, target, 0.1)).toEqual(target);
+    expect(moveToward(target, target, 0.1)).toEqual(target);
   });
   it('blocks the instrument footprint and allows sliding along its front', () => {
     const p = moveRover({ x: -8, z: 0.7 }, { x: 1, z: -1 }, 0.1);

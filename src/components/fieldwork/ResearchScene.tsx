@@ -22,7 +22,15 @@ import {
 } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { APPROACH, canStand, moveRover, nearTable, TABLE, type Point } from '@/lib/fieldwork/game';
+import {
+  APPROACH,
+  canStand,
+  moveRover,
+  moveToward,
+  nearTable,
+  TABLE,
+  type Point,
+} from '@/lib/fieldwork/game';
 import { heightAt } from '@/lib/workbench/model';
 import type { GameBridge } from './types';
 import WorldScenery, { type StudyValues } from './WorldScenery';
@@ -402,7 +410,9 @@ function Controller({ bridge, onMove, onBlocked }: Pick<Props, 'bridge' | 'onMov
       }
     }
     const previous = state.position;
-    const next = moveRover(previous, direction, seconds);
+    const next = state.destination
+      ? moveToward(previous, state.destination, seconds)
+      : moveRover(previous, direction, seconds);
     const travelled = Math.hypot(next.x - previous.x, next.z - previous.z);
     if (travelled > 0) {
       state.position = next;
@@ -459,7 +469,7 @@ function Controller({ bridge, onMove, onBlocked }: Pick<Props, 'bridge' | 'onMov
   });
   useFrame((_, delta) => {
     const state = bridge.current;
-    if (!state.manual && step(Math.min(delta, 1 / 30))) invalidate();
+    if (!state.manual && step(Math.min(delta, 0.1))) invalidate();
     state.metrics = {
       calls: gl.info.render.calls,
       triangles: gl.info.render.triangles,

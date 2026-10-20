@@ -42,3 +42,9 @@ Lint, 52 unit tests, production build, and all 40 browser tests passed. Coverage
 The unchanged installed web-game client completed a 1,200-step right-arrow exploration burst. Its screenshot and text state showed the rover at approximately x=88, z=-71 among the generated trees, roads, and arches, with no emitted error file. A subsequent short burst verified the final camera-framing build. Both screenshots and state were inspected. Temporary artifacts are in `/tmp/fieldwork-playground-final/` and `/tmp/fieldwork-playground-framing/`.
 
 Next work is rover handling, deliberate challenge progression for the new instruments, and a custom art pass after active performance profiling. Original essays and portfolio metrics remain separate owner inputs.
+
+## CI follow-up
+
+The scene captures, transfer measurements, and first validation above belong to `7bb6206`. Its CI run passed after retrying one approach timeout. The trace showed 40 frames and a live destination during the timeout. New deterministic 10 FPS and 5 FPS browser cases reproduced the slowdown before the fix.
+
+The follow-up consumes elapsed time up to 100 ms per frame, preserves collision substeps, and limits each automatic step to the remaining distance. It also aligns the wave prompt with the actual 3.7-unit inspection reach. Both new browser cases and the interaction-reach regression passed after the change. Final local validation passed lint, 54 unit tests, build, and all 42 browser tests. The installed game client screenshot/state were rechecked without errors. The art and initial composition are unchanged.

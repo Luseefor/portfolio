@@ -40,3 +40,11 @@ Use the installed develop-web-game client, inspect rendered images and text stat
 - Passed lint, all 52 unit tests, production build, and all 40 isolated browser tests after the final camera fix. Added coverage for the immersive route, four model interactions/reset flows, and instrument Axe scans. Homepage experiment isolation still passes.
 - Ran the unchanged installed game client for 1,200 right-arrow steps, inspected its generated-world screenshot/state at approximately x=88, z=-71, and confirmed no error log. Reran a short burst after camera framing changed. Inspected light/dark/phone/instrument captures, actual 3D guide-sign clicks, fullscreen, and minimum phone zoom.
 - Durable evidence is in `docs/fieldwork/checkpoint-03/`. Next: active frame-time profiling, stronger rover handling, challenge progression for the new instruments, and a custom art pass. The outer world repeats scenery; it does not invent new mathematical experiments.
+
+### CI follow-up — slow frames and interaction reach
+
+- The first checkpoint-03 CI run succeeded after one retry of Approach table. Its trace showed 40 rendered frames across the timeout, a live destination, and continued movement. The per-frame 1/30-second clamp discarded elapsed time on slow renderers.
+- Added deterministic 10 FPS and 5 FPS browser cases before changing the implementation. Both reproduced the approach timeout. A separate unit case caught the wave prompt appearing at 4 units when inspection requires 3.7.
+- Real-time movement now consumes elapsed time up to 100 ms, retaining the model's 0.15-unit collision substeps. Added target-limited movement so coarse frames cannot oscillate past a close destination. Wave prompts and inspection share the same reach constant.
+- Both slow-frame cases passed after the fix. Final local validation: lint, 54 unit tests, build, and all 42 browser tests passed. The unchanged installed game client also completed a short movement burst; its screenshot/state were inspected and it emitted no error file.
+- Visual captures and transfer measurements in checkpoint-03 belong to `7bb6206`. This follow-up changes movement timing and prompt reach, not the scene art or initial composition. Synthetic throttling is regression coverage, not a measured hardware FPS result.

@@ -362,6 +362,11 @@ export default function FieldworkGame() {
   }
   function selectLandmark(id: LandmarkId) {
     const landmark = LANDMARKS.find((l) => l.id === id)!;
+    if (id === 'wave') {
+      if (nearTable(bridge.current.position)) inspect();
+      else approach();
+      return;
+    }
     if (
       Math.hypot(
         bridge.current.position.x - landmark.approach.x,
@@ -377,11 +382,8 @@ export default function FieldworkGame() {
       return;
     }
     clearInput();
-    if (id === 'wave') inspect();
-    else {
-      setInspecting(false);
-      setStudy(id);
-    }
+    setInspecting(false);
+    setStudy(id);
   }
   function jumpTo(id: LandmarkId) {
     const landmark = LANDMARKS.find((l) => l.id === id)!;

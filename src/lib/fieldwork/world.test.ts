@@ -3,6 +3,7 @@ import { canStand } from './game';
 import {
   descentStep,
   LANDMARKS,
+  nearestLandmark,
   pendulumPeriod,
   signalHeight,
   surveyCell,
@@ -15,6 +16,11 @@ describe('open research world', () => {
       expect(canStand(l.approach), l.name).toBe(true);
       expect(canStand({ x: l.x, z: l.z }), l.name).toBe(false);
     }
+  });
+  it('shows the wave prompt only inside its actual interaction reach', () => {
+    const wave = LANDMARKS[0];
+    expect(nearestLandmark({ x: wave.approach.x + 3.6, z: wave.approach.z })?.id).toBe('wave');
+    expect(nearestLandmark({ x: wave.approach.x + 4, z: wave.approach.z })).toBeUndefined();
   });
   it('reconstructs distant scenery deterministically without closing survey lanes', () => {
     const first = surveyCell(100, -75);

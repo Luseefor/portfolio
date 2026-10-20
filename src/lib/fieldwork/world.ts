@@ -22,8 +22,13 @@ export const LANDMARKS = [
   },
 ] as const;
 export type LandmarkId = (typeof LANDMARKS)[number]['id'];
+export const WAVE_REACH = 3.7;
 export const nearestLandmark = (point: Point) =>
-  LANDMARKS.find((l) => Math.hypot(point.x - l.approach.x, point.z - l.approach.z) < 5.5);
+  LANDMARKS.find(
+    (l) =>
+      Math.hypot(point.x - l.approach.x, point.z - l.approach.z) <=
+      (l.id === 'wave' ? WAVE_REACH : 5.5),
+  );
 export const CELL_SIZE = 64;
 export type SurveyProp = Point & { kind: 'tree' | 'rock' | 'arch'; scale: number; turn: number };
 // Stable scenery with a fixed 7×7 render window; no growing world cache.

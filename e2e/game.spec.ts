@@ -258,3 +258,27 @@ test('four world instruments change their mathematical models and reset', async 
   }
   expect(errors).toEqual([]);
 });
+
+for (const fps of [10, 5]) {
+  test(`automatic approach remains usable with ${fps} rendered frames per second`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.addInitScript((rate) => {
+      window.requestAnimationFrame = (callback) =>
+        window.setTimeout(() => callback(performance.now()), 1000 / rate);
+      window.cancelAnimationFrame = (id) => window.clearTimeout(id);
+    }, fps);
+    await ready(page);
+    await openGuide(page);
+    await page.getByRole('button', { name: 'Approach table' }).click();
+    await expect
+      .poll(async () => (await state(page)).instrument.near, { timeout: fps === 10 ? 3500 : 6000 })
+      .toBe(true);
+    await expect.poll(async () => (await state(page)).destination, { timeout: 4000 }).toBeNull();
+    const rover = (await state(page)).rover;
+    expect(Math.hypot(rover.x + 8, rover.z - 2.6)).toBeLessThan(0.15);
+    await page.keyboard.press('e');
+    await expect(page.getByRole('region', { name: 'Wave-table instrument' })).toBeVisible();
+  });
+}

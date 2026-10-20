@@ -1,7 +1,8 @@
-import { worldBlocked } from './world';
+import { worldBlocked, WAVE_REACH } from './world';
 import { heightAt } from '@/lib/workbench/model';
 
 export type Point = { x: number; z: number };
+export const ROVER_SPEED = 6;
 export const SPAWN: Point = { x: 3, z: 9 };
 export const TABLE = { x: -8, z: -4 };
 export const APPROACH: Point = { x: -8, z: 2.6 };
@@ -34,7 +35,7 @@ export function moveRover(position: Point, direction: Point, seconds: number): P
   if (!length || !Number.isFinite(length) || !Number.isFinite(seconds) || seconds <= 0)
     return position;
   // Short substeps prevent crossing the instrument at a low frame rate.
-  const distance = Math.min(seconds, 0.1) * 6;
+  const distance = Math.min(seconds, 0.1) * ROVER_SPEED;
   const count = Math.max(1, Math.ceil(distance / 0.15));
   let next = { ...position };
   for (let n = 0; n < count; n++) {
@@ -45,8 +46,13 @@ export function moveRover(position: Point, direction: Point, seconds: number): P
   }
   return next;
 }
+export function moveToward(position: Point, target: Point, seconds: number): Point {
+  const direction = { x: target.x - position.x, z: target.z - position.z };
+  const remaining = Math.hypot(direction.x, direction.z);
+  return moveRover(position, direction, Math.min(seconds, remaining / ROVER_SPEED));
+}
 export const nearTable = (point: Point) =>
-  Math.hypot(point.x - APPROACH.x, point.z - APPROACH.z) <= 3.7;
+  Math.hypot(point.x - APPROACH.x, point.z - APPROACH.z) <= WAVE_REACH;
 export function matchError(frequency: number): number {
   let squared = 0;
   const samples = 49;
