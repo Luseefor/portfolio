@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { renderMarkdown } from '../src/lib/markdown';
 import { portfolioData } from '../src/content/portfolio';
 
 test('homepage is readable without JavaScript and resume resolves to PDF', async ({
@@ -77,32 +79,57 @@ test('project links reach deep dives and missing slugs return 404', async ({ pag
   expect((await request.get('/projects/no-such-project')).status()).toBe(404);
 });
 
-test('writing cards lead to sourced notes or honest stubs and missing posts return 404', async ({
-  page,
+test('writing archive and article contents work without JavaScript', async ({
+  browser,
   request,
 }) => {
-  await page.goto('/');
-  for (const post of portfolioData.writing) {
-    await page.getByRole('link', { name: post.title, exact: true }).click();
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto('/writing');
+  await expect(page.getByRole('heading', { level: 1, name: 'Writing' })).toBeVisible();
+  for (const post of portfolioData.writing.filter((entry) => !entry.draft)) {
+    await page.getByRole('link', { name: post.title, exact: true }).first().click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(post.title);
-    if (post.body?.length) {
-      await expect(page.getByText('Full post coming soon', { exact: true })).toHaveCount(0);
-      for (const paragraph of post.body) {
-        await expect(page.getByText(paragraph, { exact: true })).toBeVisible();
-      }
-      for (const source of post.sources ?? []) {
-        await expect(page.getByRole('link', { name: `${source.label} ↗` })).toHaveAttribute(
-          'href',
-          source.href,
-        );
-      }
-    } else {
-      await expect(page.getByText('Full post coming soon', { exact: true })).toBeVisible();
-    }
     await expect(page.getByText(post.summary, { exact: true })).toBeVisible();
-    await page.getByRole('link', { name: /Portfolio/ }).click();
+    const source = readFileSync(`src/content/writing/${post.slug}.md`, 'utf8');
+    const { contents } = renderMarkdown(source);
+    for (const heading of contents) {
+      await expect(
+        page.getByRole('heading', { level: heading.level, name: heading.title, exact: true }),
+      ).toHaveAttribute('id', heading.id);
+      await expect(
+        page
+          .getByRole('navigation', { name: 'Article contents' })
+          .getByRole('link', { name: heading.title, exact: true }),
+      ).toHaveAttribute('href', `#${heading.id}`);
+    }
+    for (const source of post.sources ?? []) {
+      await expect(page.getByRole('link', { name: `${source.label} ↗` })).toHaveAttribute(
+        'href',
+        source.href,
+      );
+    }
+    await page.getByRole('link', { name: 'All writing' }).first().click();
   }
   expect((await request.get('/writing/no-such-post')).status()).toBe(404);
+  await context.close();
+});
+
+test('writing discovery and social images resolve', async ({ request }) => {
+  const feed = await request.get('/writing/feed.xml');
+  expect(feed.headers()['content-type']).toContain('application/rss+xml');
+  const xml = await feed.text();
+  const sitemap = await (await request.get('/sitemap.xml')).text();
+  for (const post of portfolioData.writing.filter((entry) => !entry.draft)) {
+    expect(xml).toContain(`https://www.rijan.sh${post.href}`);
+    expect(sitemap).toContain(`https://www.rijan.sh${post.href}`);
+    const image = await request.get(`${post.href}/opengraph-image`);
+    expect(image.status()).toBe(200);
+    expect(image.headers()['content-type']).toContain('image/png');
+    const bytes = await image.body();
+    expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([1200, 630]);
+  }
+  expect((await request.get('/robots.txt')).status()).toBe(200);
 });
 
 test('homepage curates selected projects and keeps other work reachable', async ({ page }) => {
@@ -325,4 +352,43 @@ test('engineering paper keeps figures, metrics, and project actions readable', a
   expect(await todo.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
     'IBM Plex Mono',
   );
+});
+
+test('long articles keep wide code and tables contained in both modes', async ({ page }) => {
+  await page.goto(portfolioData.writing[0].href);
+  const longSource =
+    Array.from({ length: 12 }, (_, i) =>
+      `## Section ${i + 1}\n\nA substantial paragraph about a computation boundary and its explicit limits. `.repeat(
+        3,
+      ),
+    ).join('\n\n') +
+    '\n\n```ts\nconst extremelyLongLine = "' +
+    'x'.repeat(200) +
+    '";\n```\n\n| Input | Output | Limit |\n| --- | --- | --- |\n| ' +
+    'Long content '.repeat(30) +
+    ' | Result | Bound |';
+  const { html } = renderMarkdown(longSource);
+  await page
+    .locator('main article [class*="prose"] > div')
+    .first()
+    .evaluate((node, html) => {
+      node.innerHTML = html;
+    }, html);
+  for (const width of [360, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const mode of ['light', 'dark']) {
+      const toggle = page.getByRole('button', { name: `Switch to ${mode} mode` });
+      if (await toggle.count()) await toggle.click();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        `${mode} ${width}`,
+      ).toBe(true);
+      expect(await page.locator('pre').evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(
+        true,
+      );
+    }
+  }
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.getByRole('navigation', { name: 'Primary' })).toBeHidden();
+  await expect(page.locator('main article').getByRole('heading', { level: 1 })).toBeVisible();
 });

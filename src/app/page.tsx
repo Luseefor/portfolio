@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Download } from 'lucide-react';
 import CopyEmailButton from '@/components/portfolio/CopyEmailButton';
 import PortfolioContactForm from '@/components/portfolio/PortfolioContactForm';
 import PortfolioShell from '@/components/portfolio/PortfolioShell';
 import PaperText from '@/components/portfolio/PaperText';
 import ProjectActions from '@/components/portfolio/ProjectActions';
+import ProjectFigure from '@/components/portfolio/ProjectFigure';
 import styles from '@/components/portfolio/portfolio.module.css';
 import { portfolioData } from '@/content/portfolio';
 
@@ -47,8 +49,20 @@ export default function Home() {
     <PortfolioShell resumeHref={portfolioData.contact.resumeHref}>
       <main id="content">
         <section className={styles.hero} aria-labelledby="name">
-          <p className={styles.eyebrow}>{portfolioData.hero.roleLabel}</p>
-          <h1 id="name">{portfolioData.hero.name}</h1>
+          <div className={styles.heroHeading}>
+            <div>
+              <p className={styles.eyebrow}>{portfolioData.hero.roleLabel}</p>
+              <h1 id="name">{portfolioData.hero.name}</h1>
+            </div>
+            <Image
+              className={styles.portrait}
+              src="/images/profile/rijan-ghimire.png"
+              alt="Rijan Ghimire"
+              width={88}
+              height={88}
+              sizes="88px"
+            />
+          </div>
           <p className={styles.lead}>{portfolioData.hero.headline}</p>
           <p className={styles.intro}>{portfolioData.hero.summary}</p>
           <p className={styles.availability}>{portfolioData.hero.status}</p>
@@ -73,9 +87,12 @@ export default function Home() {
           <article className={`${styles.featured} ${styles.projectCard}`}>
             <p className={styles.meta}>Featured project · {featured.status}</p>
             <h3>{featured.title}</h3>
-            <p>
-              <PaperText text={portfolioData.featuredProject.summary} />
-            </p>
+            <div className={styles.featuredBody}>
+              <p>
+                <PaperText text={portfolioData.featuredProject.summary} />
+              </p>
+              <ProjectFigure slug={featured.slug} compact />
+            </div>
             <div className={styles.stack}>{featured.stack.join(' · ')}</div>
             <div className={styles.projectActions}>
               <ProjectActions project={featured} />
@@ -88,6 +105,7 @@ export default function Home() {
                 <div>
                   <h3>{project.title}</h3>
                   <div className={styles.stack}>{project.stack.join(' · ')}</div>
+                  <ProjectFigure slug={project.slug} compact />
                 </div>
                 <div>
                   <p>
@@ -122,17 +140,23 @@ export default function Home() {
             id="writing-title"
             caption="Notes from building"
           />
-          {portfolioData.writing.slice(0, 3).map((post) => (
-            <article key={post.slug} className={styles.writingRow}>
-              <span className={styles.meta}>{post.dateLabel}</span>
-              <div>
-                <h3>
-                  <Link href={post.href}>{post.title}</Link>
-                </h3>
-                <p>{post.summary}</p>
-              </div>
-            </article>
-          ))}
+          {portfolioData.writing
+            .filter((post) => !post.draft)
+            .slice(0, 3)
+            .map((post) => (
+              <article key={post.slug} className={styles.writingRow}>
+                <span className={styles.meta}>{post.dateLabel}</span>
+                <div>
+                  <h3>
+                    <Link href={post.href}>{post.title}</Link>
+                  </h3>
+                  <p>{post.summary}</p>
+                </div>
+              </article>
+            ))}
+          <Link href="/writing" className={styles.archiveLink}>
+            Browse all writing →
+          </Link>
         </section>
 
         <section id="experience" className={styles.section} aria-labelledby="background-title">

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import ProjectFigure from '@/components/portfolio/ProjectFigure';
 import PaperText from '@/components/portfolio/PaperText';
 import DetailShell from '@/components/portfolio/DetailShell';
 import ProjectActions from '@/components/portfolio/ProjectActions';
@@ -18,6 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description: project.summary,
+    alternates: { canonical: `/projects/${project.slug}` },
     openGraph: { title, description: project.summary, type: 'article' },
     twitter: { card: 'summary', title, description: project.summary },
   };
@@ -38,6 +40,7 @@ export default async function ProjectPage({ params }: Props) {
           <PaperText text={project.summary} />
         </p>
       </header>
+      <ProjectFigure slug={project.slug} />
       <dl className="grid grid-cols-2 gap-6 border-y border-[var(--border-default)] py-6">
         {[
           ['Status', project.status],

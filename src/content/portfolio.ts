@@ -31,7 +31,8 @@ export type WritingPost = {
   summary: string;
   dateLabel: string;
   href: string;
-  body?: string[];
+  publishedAt?: string;
+  draft?: boolean;
   sources?: SourceLink[];
 };
 
@@ -431,13 +432,6 @@ export const portfolioData = {
         'How expression validation, numeric evaluation, and saved scenes fit together in Vinculum.',
       dateLabel: 'Implementation note',
       href: '/writing/rust-wasm-computation-boundary',
-      body: [
-        'Vinculum uses an expression in the editor, geometry workers, and reopened scenes. Those paths need to agree on what the expression means. Parsing and symbolic work stay in TypeScript with mathjs; a bridge compiles supported expressions into a bounded numeric program for Rust/WASM.',
-        'The expression-family compilers check variables, syntax, and functions before evaluation. The Rust bridge rejects unsupported nodes instead of silently switching to a different numeric evaluator.',
-        'For implicit surfaces, TypeScript splits the sample grid into tiles and calls the WASM grid evaluator for each tile. This batches the boundary crossings. TypeScript still constructs geometry and runs several other sampling algorithms.',
-        'Saved scenes contain mathematical definitions. Compiled programs, sampled geometry, and WASM pointers are runtime data. Keeping them out of the scene document lets numeric evaluation change without introducing another saved-scene format.',
-        'The compatibility tests compare supported real-valued expressions with mathjs and cover rejected syntax, domain holes, grid ordering, and memory growth. That contract is narrower than mathematical correctness for arbitrary expressions.',
-      ],
       sources: [
         {
           label: 'Computation boundary and compatibility tests',
@@ -456,13 +450,6 @@ export const portfolioData = {
         'How Synthex separates layout state from React rendering and uses theme tokens to customize a workbench.',
       dateLabel: 'Implementation note',
       href: '/writing/designing-a-themeable-workbench',
-      body: [
-        'Synthex represents a workbench as a tree of split, tab, and panel nodes. Its TypeScript core owns layout reducers, command history, serialization, and validation. React rendering lives in a separate adapter.',
-        'The React DOM adapter renders split panes and tab groups. Applications supply each panel through a renderPanel callback. Layout actions change the engine state; the renderer consumes the resulting tree. This keeps panel content and browser rendering outside the layout model.',
-        'Theme values have a separate path. Components read semantic CSS custom properties, while theme creation merges base values, an accent preset, and consumer overrides. The workbench inherits those tokens through the CSS cascade.',
-        'Workbench-specific custom properties take precedence over the shared theme, with fallback values when neither is supplied. An application can therefore change a workbench color without changing its layout tree or editing the components.',
-        'The separation has a limit. The engine is framework-independent, but the dockable renderer targets React DOM. Supporting another renderer still requires an adapter; the native component entry point does not provide one automatically.',
-      ],
       sources: [
         {
           label: 'Layout engine and renderer responsibilities',

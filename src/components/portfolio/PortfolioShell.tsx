@@ -61,7 +61,7 @@ export default function PortfolioShell({
           </Link>
           <nav aria-label="Primary" className={styles.nav}>
             <Link href="/#projects">Projects</Link>
-            <Link href="/#writing">Writing</Link>
+            <Link href="/writing">Writing</Link>
             <a href={resumeHref} download="Rijan-Ghimire-Resume.pdf">
               Resume ↗
             </a>

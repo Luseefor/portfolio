@@ -21,6 +21,8 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.rijan.sh'),
+  alternates: { canonical: '/' },
   title: portfolioData.seo.title,
   description: portfolioData.seo.description,
   authors: [{ name: portfolioData.hero.name }],
