@@ -48,6 +48,30 @@ export default async function WritingPage({ params }: Props) {
       ) : (
         <p className="border-t border-[var(--border-default)] pt-6">Full post coming soon</p>
       )}
+      {post.sources?.length ? (
+        <section
+          aria-labelledby="sources-title"
+          className="border-t border-[var(--border-default)] pt-6"
+        >
+          <h2 id="sources-title" className="font-display text-3xl font-semibold">
+            Sources
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {post.sources.map((source) => (
+              <li key={source.href}>
+                <a
+                  href={source.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-11 items-center text-sm underline"
+                >
+                  {source.label} ↗
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </DetailShell>
   );
 }

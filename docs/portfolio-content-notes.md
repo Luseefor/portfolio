@@ -10,6 +10,7 @@ Reviewed 2026-10-19. Public repository documentation establishes implemented sco
 - [LumaWall README](https://github.com/Luseefor/LumaWall): native and overlay playback, scheduling, power policies; local builds only, no notarized download.
 - [FareDelta README](https://github.com/Luseefor/faredelta): Next.js / FastAPI / PostgreSQL architecture; cached observed fares rather than guaranteed live inventory.
 - [Synthex UI README](https://github.com/Luseefor/synthex-ui): component library, theme system, framework-independent layout engine and React adapter.
+- [Pinned project evidence](project-evidence.md): verified architecture, mechanisms, and limitations for the four selected case studies. Source links use full commit hashes.
 - Existing `public/My Resume - Main.pdf`: applied engineering dates (Jan 2023–May 2024), school-management scope, and the reported 70% administrative workload reduction. That percentage is explicitly labeled resume-reported; supply its baseline, sample, and measurement method before treating it as independently verified.
 
 Existing Aletiq and Liberty Jewelers roles/dates are retained from portfolio content; public profiles did not independently substantiate them. Resume and indexed LinkedIn disagree on expected graduation (2028 / 2029), so the page uses `2024 - Present`.
@@ -25,14 +26,14 @@ There are 11 placeholders across Experience (9) and Timeline (2). Timeline repea
 ## Assets and editorial inputs
 
 - No required asset is missing. `/My Resume - Main.pdf` is present; HTTP resolution is included in validation.
-- Two writing entries are labeled planned posts. Supply article bodies and publication dates when ready; until then their pages say “Full post coming soon”.
+- Both writing entries are implementation notes with bodies and pinned sources. They describe the documented computation boundary and workbench architecture. No publication date or performance result has been invented. The route still renders “Full post coming soon” for entries without a body.
 - Confirm expected graduation year, current GPA if desired, Aletiq/Liberty role dates, and the measurement behind the resume's 70% claim.
 
 ## Validation
 
 - `npm run lint` and `npm run build`: passed. Homepage and all eight project / two writing detail pages are prerendered.
 - `CI=1 npm test`: all 38 existing tests passed. The Vitest worker configuration disables Node's native Web Storage only on runtimes that support the flag, allowing JSDOM to provide browser storage. No dungeon source or tests were edited.
-- `e2e/portfolio.spec.ts`: all 11 tests passed against the production build using installed Chrome with a temporary Playwright config (`channel: 'chrome'`). The default Chromium launch initially could not run because its browser binary was missing.
+- `e2e/portfolio.spec.ts`: all 13 tests passed against a dedicated production preview on port 3001 using installed Chrome with a temporary Playwright config (`channel: 'chrome'`). The default Chromium launch initially could not run because its browser binary was missing. The suite also covers curated project links, case-study evidence without JavaScript, and the implementation note's body and sources.
 - Browser checks cover no-JavaScript reading, SEO, no scene asset requests, PDF content and status, all project routes, writing stubs, unknown-slug 404s, all three clipboard paths, repeat-copy feedback, mode persistence across reloads and detail pages, resolved heading fonts, and both modes at widths 360 / 390 / 768 / 1024 / 1440. Homepage checks also cover the absence of assistant-avatar and activity-feed requests.
 - Existing test warnings about mocked Three.js DOM elements and Node build warnings remain nonfatal.
 - Protected paths (`/interactive`, interactive components, store, contact API, and PersonalAssistantBlob) have no diff from `d08c60b`. No dependency files changed.
@@ -44,6 +45,7 @@ There are 11 placeholders across Experience (9) and Timeline (2). Timeline repea
 - Homepage section labels read `fig. 01 — Selected systems` through `fig. 04 — Contact`. Figure prefixes and decorative SVGs are hidden from the accessibility tree; semantic heading names remain readable.
 - Project cards use plain borders and opaque paper backgrounds. Corner ticks, rotated stamps, and the decorative hero plot were removed in the simplification pass. Live demo availability is conveyed by the actual project links.
 - The duplicate section navigation and collapsed GitHub dashboard were removed. The footer still links directly to GitHub and LinkedIn.
+- Four projects have full homepage cards. A native “More work” disclosure keeps other project details reachable without giving every project equal weight. The selected deep dives explain the problem, ownership, result, engineering decisions, and constraints.
 - Shared `base` / `wash` palette tokens in `src/utils/themes.ts` were updated at the user's explicit request. Interactive route and dungeon source remain untouched; the shared light base also updates surfaces that consume that token.
 - The selected mode remains stored in `portfolio-reading-mode` across portfolio, project, and writing routes. Portfolio colors are declared in CSS, without an inline palette calculation or synchronization into the dungeon store.
 - The floating assistant is no longer mounted on the homepage. `PersonalAssistantBlob`, its API, the activity component and API, and dungeon implementation remain unchanged.

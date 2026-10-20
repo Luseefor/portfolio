@@ -77,7 +77,7 @@ test('project links reach deep dives and missing slugs return 404', async ({ pag
   expect((await request.get('/projects/no-such-project')).status()).toBe(404);
 });
 
-test('writing cards lead to honest stubs and missing posts return 404', async ({
+test('writing cards lead to sourced notes or honest stubs and missing posts return 404', async ({
   page,
   request,
 }) => {
@@ -85,11 +85,74 @@ test('writing cards lead to honest stubs and missing posts return 404', async ({
   for (const post of portfolioData.writing) {
     await page.getByRole('link', { name: post.title, exact: true }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(post.title);
-    await expect(page.getByText('Full post coming soon', { exact: true })).toBeVisible();
+    if (post.body?.length) {
+      await expect(page.getByText('Full post coming soon', { exact: true })).toHaveCount(0);
+      for (const paragraph of post.body) {
+        await expect(page.getByText(paragraph, { exact: true })).toBeVisible();
+      }
+      for (const source of post.sources ?? []) {
+        await expect(page.getByRole('link', { name: `${source.label} ↗` })).toHaveAttribute(
+          'href',
+          source.href,
+        );
+      }
+    } else {
+      await expect(page.getByText('Full post coming soon', { exact: true })).toBeVisible();
+    }
     await expect(page.getByText(post.summary, { exact: true })).toBeVisible();
     await page.getByRole('link', { name: /Portfolio/ }).click();
   }
   expect((await request.get('/writing/no-such-post')).status()).toBe(404);
+});
+
+test('homepage curates selected projects and keeps other work reachable', async ({ page }) => {
+  await page.goto('/');
+  const cards = page.locator('#projects article');
+  const slugs = [portfolioData.featuredProject.slug, ...portfolioData.selectedProjectSlugs];
+  await expect(cards).toHaveCount(slugs.length);
+  for (const slug of slugs) {
+    const project = portfolioData.projects.find((entry) => entry.slug === slug);
+    if (!project) throw new Error(`Missing selected project: ${slug}`);
+    await expect(cards.getByRole('heading', { name: project.title, exact: true })).toBeVisible();
+  }
+  await page.getByText('More work', { exact: true }).click();
+  for (const slug of portfolioData.additionalProjectSlugs) {
+    const project = portfolioData.projects.find((entry) => entry.slug === slug);
+    if (!project) throw new Error(`Missing additional project: ${slug}`);
+    await expect(page.getByRole('link', { name: project.title, exact: true })).toHaveAttribute(
+      'href',
+      `/projects/${slug}`,
+    );
+  }
+  await page.getByRole('link', { name: 'Liberty Jewelers', exact: true }).click();
+  await expect(page).toHaveURL(/\/projects\/liberty-jewelers$/);
+  await expect(page.getByRole('heading', { name: 'What I owned' })).toBeVisible();
+});
+
+test('case studies expose decisions and pinned evidence without JavaScript', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  for (const project of portfolioData.projects) {
+    if (!project.caseStudy) continue;
+    await page.goto(`/projects/${project.slug}`);
+    for (const name of ['Problem', 'Engineering decisions', 'Constraints']) {
+      await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+    }
+    const sources = [
+      ...project.caseStudy.decisions.map((decision) => decision.source),
+      project.caseStudy.limitation.source,
+    ];
+    for (const source of sources) {
+      expect(source.href).toMatch(/github\.com\/Luseefor\/[^/]+\/blob\/[a-f0-9]{40}\//);
+      await expect(page.getByRole('link', { name: `${source.label} ↗` })).toHaveAttribute(
+        'href',
+        source.href,
+      );
+    }
+  }
+  await context.close();
 });
 
 test('copy email writes to the clipboard', async ({ page, context }) => {
@@ -197,9 +260,9 @@ test('engineering paper modes persist across portfolio routes', async ({ page })
   expect(await title.evaluate((element) => getComputedStyle(element).fontFamily)).toContain(
     'Cormorant',
   );
-  await page.goto(portfolioData.writing[0].href);
+  await page.goto(portfolioData.writing[1].href);
   await expect(shell).toHaveAttribute('data-portfolio-theme', 'light');
-  await expect(page.getByText('Full post coming soon', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sources', exact: true })).toBeVisible();
 });
 
 test('portfolio mode does not overwrite dungeon preferences', async ({ page }) => {

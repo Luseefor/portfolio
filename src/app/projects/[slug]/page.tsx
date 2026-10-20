@@ -38,7 +38,7 @@ export default async function ProjectPage({ params }: Props) {
           <PaperText text={project.summary} />
         </p>
       </header>
-      <dl className="grid gap-6 border-y border-[var(--border-default)] py-6 sm:grid-cols-2">
+      <dl className="grid grid-cols-2 gap-6 border-y border-[var(--border-default)] py-6">
         {[
           ['Status', project.status],
           ['Role', project.role],
@@ -55,13 +55,14 @@ export default async function ProjectPage({ params }: Props) {
           </div>
         ))}
       </dl>
-      {project.body.length > 0 ? (
-        <section aria-label="Project approach" className="space-y-4 text-[var(--text-secondary)]">
-          {project.body.map((paragraph) => (
-            <p key={paragraph} className="leading-8">
-              <PaperText text={paragraph} />
-            </p>
-          ))}
+      {project.caseStudy ? (
+        <section aria-labelledby="problem-title">
+          <h2 id="problem-title" className="font-display text-3xl font-semibold">
+            Problem
+          </h2>
+          <p className="mt-3 leading-8 text-[var(--text-secondary)]">
+            <PaperText text={project.caseStudy.problem} />
+          </p>
         </section>
       ) : null}
       {[
@@ -75,6 +76,49 @@ export default async function ProjectPage({ params }: Props) {
           </p>
         </section>
       ))}
+      {project.caseStudy ? (
+        <>
+          <section aria-labelledby="decisions-title">
+            <h2 id="decisions-title" className="font-display text-3xl font-semibold">
+              Engineering decisions
+            </h2>
+            <ul className="mt-5 space-y-6">
+              {project.caseStudy.decisions.map((decision) => (
+                <li key={decision.title} className="border-t border-[var(--border-default)] pt-5">
+                  <h3 className="text-2xl font-semibold">{decision.title}</h3>
+                  <p className="mt-3 leading-8 text-[var(--text-secondary)]">
+                    <PaperText text={decision.description} />
+                  </p>
+                  <a
+                    href={decision.source.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex min-h-11 items-center text-sm underline"
+                  >
+                    {decision.source.label} ↗
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section aria-labelledby="constraints-title">
+            <h2 id="constraints-title" className="font-display text-3xl font-semibold">
+              Constraints
+            </h2>
+            <p className="mt-3 leading-8 text-[var(--text-secondary)]">
+              <PaperText text={project.caseStudy.limitation.description} />
+            </p>
+            <a
+              href={project.caseStudy.limitation.source.href}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex min-h-11 items-center text-sm underline"
+            >
+              {project.caseStudy.limitation.source.label} ↗
+            </a>
+          </section>
+        </>
+      ) : null}
       <section>
         <h2 className="font-display text-3xl font-semibold">Stack</h2>
         <ul className="mt-4 flex flex-wrap gap-2">

@@ -1,3 +1,11 @@
+export type SourceLink = { label: string; href: string };
+
+export type ProjectCaseStudy = {
+  problem: string;
+  decisions: { title: string; description: string; source: SourceLink }[];
+  limitation: { description: string; source: SourceLink };
+};
+
 export type PortfolioProject = {
   slug: string;
   status: string;
@@ -10,6 +18,7 @@ export type PortfolioProject = {
   ownership: string;
   result: string;
   stack: string[];
+  caseStudy?: ProjectCaseStudy;
   demoHref?: string;
   codeHref?: string;
   demoComingSoon?: boolean;
@@ -23,6 +32,7 @@ export type WritingPost = {
   dateLabel: string;
   href: string;
   body?: string[];
+  sources?: SourceLink[];
 };
 
 export type ServiceIconKey = 'globe' | 'cpu' | 'server';
@@ -98,14 +108,8 @@ export const portfolioData = {
     ],
   },
   location: 'Hattiesburg, Mississippi',
-  selectedProjectSlugs: [
-    'vinculum',
-    'lumawall',
-    'faredelta',
-    'liberty-jewelers',
-    'aletiq',
-    'metrox',
-  ],
+  selectedProjectSlugs: ['vinculum', 'faredelta', 'lumawall'],
+  additionalProjectSlugs: ['liberty-jewelers', 'aletiq', 'metrox'],
   hero: {
     name: 'Rijan Ghimire',
     headline: 'I build mathematical software, developer tools, and web apps.',
@@ -150,6 +154,38 @@ export const portfolioData = {
         'Built the editor workflow, scene persistence, expression validation, sharing, and export systems. The documented computation boundary moves real numeric expressions and vector-field grid sampling into Rust/WASM.',
       result:
         'Supports browser-local projects, recoverable scenes, URL sharing, and JSON, PNG, and SVG exports. Symbolic algebra and several sampling algorithms remain in TypeScript.',
+      caseStudy: {
+        problem:
+          'A math editor needs to turn expressions into geometry while keeping scenes editable after saving, reopening, or sharing them.',
+        decisions: [
+          {
+            title: 'Separate expression validation from numeric evaluation',
+            description:
+              'TypeScript and mathjs parse expressions and handle symbolic work. A bridge rejects unsupported syntax and sends numeric programs to Rust/WASM. Geometry construction remains in TypeScript, so the computation boundary can move without replacing the whole editor.',
+            source: {
+              label: 'Rust/WASM boundary',
+              href: 'https://github.com/Luseefor/vinculum/blob/b5161fc3a07c5357a7ae6693b49102195f4c8437/docs/architecture/rust-wasm-boundary.md',
+            },
+          },
+          {
+            title: 'Keep runtime data out of saved scenes',
+            description:
+              'Scenes store mathematical definitions. Compiled programs, WASM pointers, and sampled geometry are derived at runtime. Moving numeric evaluation into Rust therefore keeps the existing scene format usable.',
+            source: {
+              label: 'Scene and engine architecture',
+              href: 'https://github.com/Luseefor/vinculum/blob/b5161fc3a07c5357a7ae6693b49102195f4c8437/docs/architecture/core-engine.md',
+            },
+          },
+        ],
+        limitation: {
+          description:
+            'Projects depend on browser storage quotas, and large scenes can exceed the share-link length limit. Multi-user collaboration is not available.',
+          source: {
+            label: 'Documented editor limits',
+            href: 'https://github.com/Luseefor/vinculum/blob/b5161fc3a07c5357a7ae6693b49102195f4c8437/docs/user/limits.md',
+          },
+        },
+      },
       stack: ['TypeScript', 'React', 'Rust', 'WebAssembly', 'Three.js'],
       demoHref: 'https://vinculum.rijan.sh/editor',
       codeHref: 'https://github.com/Luseefor/vinculum',
@@ -168,6 +204,38 @@ export const portfolioData = {
         'Built native and overlay playback paths with shared video decoding, playlist scheduling, and power and Reduce Motion policies.',
       result:
         'Provides a local-build app with per-display wallpaper assignments. A signed, notarized download is not yet available.',
+      caseStudy: {
+        problem:
+          'Video wallpaper has to work across displays and macOS versions while respecting power use and Reduce Motion.',
+        decisions: [
+          {
+            title: 'Separate native and overlay playback',
+            description:
+              'Supported macOS builds use an embedded WallpaperKit extension and the system wallpaper store. Older systems and overlay-only builds use a poster image with muted video over it. The app maintains both paths because their OS requirements differ.',
+            source: {
+              label: 'Playback architecture',
+              href: 'https://github.com/Luseefor/LumaWall/blob/cca2e419f13fc82bb3e9ea1f78a022431114cd50/README.md#how-apply-works',
+            },
+          },
+          {
+            title: 'Resolve playback through a shared power policy',
+            description:
+              'The policy chooses a playback tier using battery, thermal, display, and user state. Reduce Motion freezes playback to a static frame, while conditions such as display sleep or Game Mode pause it.',
+            source: {
+              label: 'Power policy implementation',
+              href: 'https://github.com/Luseefor/LumaWall/blob/cca2e419f13fc82bb3e9ea1f78a022431114cd50/Sources/LumaWallCore/PowerPolicy.swift',
+            },
+          },
+        ],
+        limitation: {
+          description:
+            'The app must be built locally. A signed, notarized download is not available, and native playback requires a supported OS and the embedded extension.',
+          source: {
+            label: 'Build and distribution requirements',
+            href: 'https://github.com/Luseefor/LumaWall/blob/cca2e419f13fc82bb3e9ea1f78a022431114cd50/README.md#build',
+          },
+        },
+      },
       stack: ['Swift', 'macOS', 'WallpaperKit'],
       codeHref: 'https://github.com/Luseefor/LumaWall',
     },
@@ -185,6 +253,38 @@ export const portfolioData = {
         'Built a Next.js interface and API proxy backed by FastAPI and PostgreSQL, with provider normalization, scheduled refreshes, and route tracking.',
       result:
         'Supports flexible-date comparisons and price alerts. Observed fares are cached provider data and do not guarantee live inventory or booking availability.',
+      caseStudy: {
+        problem:
+          'Flexible-date searches need comparable results across providers, with saved routes and alerts that can refresh without exposing provider credentials to the browser.',
+        decisions: [
+          {
+            title: 'Normalize provider results behind the API',
+            description:
+              'The browser calls same-origin Next.js routes. FastAPI validates requests and delegates searches through a provider interface. Providers return shared models, so the UI and persistence layer do not need to handle each provider payload.',
+            source: {
+              label: 'Provider and API architecture',
+              href: 'https://github.com/Luseefor/faredelta/blob/edbc77102da6ef0af7902393bde99af4d4f1a645/docs/architecture.md',
+            },
+          },
+          {
+            title: 'Refresh tracked routes and suppress repeated alerts',
+            description:
+              'Tracked routes have a refresh cadence. The job endpoint refreshes due routes with bounded concurrency and backoff. Price alerts fire when a fare falls below the last notified price, rather than repeating the same alert on every refresh.',
+            source: {
+              label: 'Refresh and alert behavior',
+              href: 'https://github.com/Luseefor/faredelta/blob/edbc77102da6ef0af7902393bde99af4d4f1a645/docs/api.md',
+            },
+          },
+        ],
+        limitation: {
+          description:
+            'Travelpayouts returns recently observed cached fares and supports economy searches only. A displayed fare does not establish current seat availability or a bookable price.',
+          source: {
+            label: 'Provider data constraints',
+            href: 'https://github.com/Luseefor/faredelta/blob/edbc77102da6ef0af7902393bde99af4d4f1a645/docs/architecture.md',
+          },
+        },
+      },
       stack: ['Next.js', 'TypeScript', 'FastAPI', 'PostgreSQL'],
       demoHref: 'https://faredelta.rijan.sh',
       codeHref: 'https://github.com/Luseefor/faredelta',
@@ -202,7 +302,39 @@ export const portfolioData = {
       ownership:
         'Owned the component library architecture, preview shell, theme model, and documentation structure. Built the preview so each component can be opened, themed, and reviewed.',
       result:
-        'Produced a usable showcase with consistent components, working theming, and docs tied to live examples.',
+        'Provides separate UI, layout-engine, and React-renderer packages. The preview includes component documentation, theme controls, and a layout playground.',
+      caseStudy: {
+        problem:
+          'A dockable workbench needs layout state, command history, and rendering to agree. The UI library also needs a consistent theme contract across components.',
+        decisions: [
+          {
+            title: 'Keep the layout engine independent of React',
+            description:
+              'A pure TypeScript package owns the layout tree, reducers, serialization, and command history. The React DOM adapter renders split panes and tabs. Consumers can use the engine without the adapter, while the adapter handles web rendering.',
+            source: {
+              label: 'Package responsibilities and runtime flow',
+              href: 'https://github.com/Luseefor/synthex-ui/blob/5df51b2f20e173d017341fc9be7847041518f4d5/docs/mermaid-architecture.md',
+            },
+          },
+          {
+            title: 'Make theme tokens the component contract',
+            description:
+              'Components read CSS custom properties. Theme creation merges base values, an accent preset, and consumer overrides. The workbench inherits those values but allows workbench-specific overrides, so customization can stay outside component code.',
+            source: {
+              label: 'Theme contract and overrides',
+              href: 'https://github.com/Luseefor/synthex-ui/blob/5df51b2f20e173d017341fc9be7847041518f4d5/docs/theming.md',
+            },
+          },
+        ],
+        limitation: {
+          description:
+            'The dockable renderer targets React DOM. The component library has web and native entry points, but the workbench adapter is web-only.',
+          source: {
+            label: 'Workbench integration',
+            href: 'https://github.com/Luseefor/synthex-ui/blob/5df51b2f20e173d017341fc9be7847041518f4d5/docs/workbench.md',
+          },
+        },
+      },
       stack: ['React', 'TypeScript', 'Design Systems', 'Theming'],
       demoHref: 'https://synthex-ui.rijan.sh',
       codeHref: 'https://github.com/Luseefor/synthex-ui',
@@ -286,10 +418,6 @@ export const portfolioData = {
       'Component library, theme system, preview environment, and documentation experience in one frontend build.',
     summary:
       'A cross-platform component library and theme system, paired with a framework-independent layout engine and a React DOM adapter for dockable workbenches.',
-    body: [
-      'The project combines the UI system with a preview shell, component documentation, dashboard examples, theme customization, and a playground route.',
-      'I focused on component consistency, theme behavior, and navigation structure so the preview stays coherent across routes.',
-    ],
     status: 'Built and live',
     role: 'Frontend Systems Engineer',
     focus: 'Design System · Theme Engine · Docs + Playground',
@@ -300,17 +428,55 @@ export const portfolioData = {
       slug: 'rust-wasm-computation-boundary',
       title: 'Drawing the Rust/WASM boundary in Vinculum',
       summary:
-        'Planned engineering note on expression validation, bounded grid sampling, and compatibility with saved scenes.',
-      dateLabel: 'Planned post',
+        'How expression validation, numeric evaluation, and saved scenes fit together in Vinculum.',
+      dateLabel: 'Implementation note',
       href: '/writing/rust-wasm-computation-boundary',
+      body: [
+        'Vinculum uses an expression in the editor, geometry workers, and reopened scenes. Those paths need to agree on what the expression means. Parsing and symbolic work stay in TypeScript with mathjs; a bridge compiles supported expressions into a bounded numeric program for Rust/WASM.',
+        'The expression-family compilers check variables, syntax, and functions before evaluation. The Rust bridge rejects unsupported nodes instead of silently switching to a different numeric evaluator.',
+        'For implicit surfaces, TypeScript splits the sample grid into tiles and calls the WASM grid evaluator for each tile. This batches the boundary crossings. TypeScript still constructs geometry and runs several other sampling algorithms.',
+        'Saved scenes contain mathematical definitions. Compiled programs, sampled geometry, and WASM pointers are runtime data. Keeping them out of the scene document lets numeric evaluation change without introducing another saved-scene format.',
+        'The compatibility tests compare supported real-valued expressions with mathjs and cover rejected syntax, domain holes, grid ordering, and memory growth. That contract is narrower than mathematical correctness for arbitrary expressions.',
+      ],
+      sources: [
+        {
+          label: 'Computation boundary and compatibility tests',
+          href: 'https://github.com/Luseefor/vinculum/blob/b5161fc3a07c5357a7ae6693b49102195f4c8437/docs/architecture/rust-wasm-boundary.md',
+        },
+        {
+          label: 'Scene persistence and engine contract',
+          href: 'https://github.com/Luseefor/vinculum/blob/b5161fc3a07c5357a7ae6693b49102195f4c8437/docs/architecture/core-engine.md',
+        },
+      ],
     },
     {
       slug: 'designing-a-themeable-workbench',
       title: 'Designing a themeable workbench',
       summary:
-        'Planned notes on separating a layout engine from its React adapter and keeping a component library consistent.',
-      dateLabel: 'Planned post',
+        'How Synthex separates layout state from React rendering and uses theme tokens to customize a workbench.',
+      dateLabel: 'Implementation note',
       href: '/writing/designing-a-themeable-workbench',
+      body: [
+        'Synthex represents a workbench as a tree of split, tab, and panel nodes. Its TypeScript core owns layout reducers, command history, serialization, and validation. React rendering lives in a separate adapter.',
+        'The React DOM adapter renders split panes and tab groups. Applications supply each panel through a renderPanel callback. Layout actions change the engine state; the renderer consumes the resulting tree. This keeps panel content and browser rendering outside the layout model.',
+        'Theme values have a separate path. Components read semantic CSS custom properties, while theme creation merges base values, an accent preset, and consumer overrides. The workbench inherits those tokens through the CSS cascade.',
+        'Workbench-specific custom properties take precedence over the shared theme, with fallback values when neither is supplied. An application can therefore change a workbench color without changing its layout tree or editing the components.',
+        'The separation has a limit. The engine is framework-independent, but the dockable renderer targets React DOM. Supporting another renderer still requires an adapter; the native component entry point does not provide one automatically.',
+      ],
+      sources: [
+        {
+          label: 'Layout engine and renderer responsibilities',
+          href: 'https://github.com/Luseefor/synthex-ui/blob/5df51b2f20e173d017341fc9be7847041518f4d5/docs/mermaid-architecture.md',
+        },
+        {
+          label: 'Workbench rendering and token cascade',
+          href: 'https://github.com/Luseefor/synthex-ui/blob/5df51b2f20e173d017341fc9be7847041518f4d5/docs/workbench.md',
+        },
+        {
+          label: 'Theme contract and overrides',
+          href: 'https://github.com/Luseefor/synthex-ui/blob/5df51b2f20e173d017341fc9be7847041518f4d5/docs/theming.md',
+        },
+      ],
     },
   ] as WritingPost[],
   experience: [
@@ -485,7 +651,7 @@ export function getPortfolioProject(slug: string) {
   if (!project) return undefined;
   return project.slug === portfolioData.featuredProject.slug
     ? { ...project, ...portfolioData.featuredProject }
-    : { ...project, body: [] as string[] };
+    : project;
 }
 
 export function getProjectAction(project: PortfolioProject) {

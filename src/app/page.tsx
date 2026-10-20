@@ -39,6 +39,9 @@ export default function Home() {
   const projects = portfolioData.selectedProjectSlugs.flatMap((slug) =>
     portfolioData.projects.filter((project) => project.slug === slug),
   );
+  const additionalProjects = portfolioData.additionalProjectSlugs.flatMap((slug) =>
+    portfolioData.projects.filter((project) => project.slug === slug),
+  );
 
   return (
     <PortfolioShell resumeHref={portfolioData.contact.resumeHref}>
@@ -65,7 +68,7 @@ export default function Home() {
             number="01"
             label="Selected systems"
             id="projects-title"
-            caption="Tools, products, and systems"
+            caption="Implementation notes and source code"
           />
           <article className={`${styles.featured} ${styles.projectCard}`}>
             <p className={styles.meta}>Featured project · {featured.status}</p>
@@ -97,6 +100,19 @@ export default function Home() {
               </div>
             </article>
           ))}
+          <details className={styles.details}>
+            <summary>More work</summary>
+            <ul className="mt-3 space-y-3">
+              {additionalProjects.map((project) => (
+                <li key={project.slug} className="flex flex-wrap items-baseline gap-x-4">
+                  <Link href={`/projects/${project.slug}`} className="underline">
+                    {project.title}
+                  </Link>
+                  <span className={styles.meta}>{project.category}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
         </section>
 
         <section id="writing" className={styles.section} aria-labelledby="writing-title">
