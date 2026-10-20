@@ -232,6 +232,8 @@ export default function PortfolioContactForm({
           </button>
 
           <div
+            role="status"
+            aria-atomic="true"
             className={`inline-flex items-start gap-2 text-sm leading-6 ${
               submitState.status === 'error' ? 'text-rose-300' : ''
             }`}

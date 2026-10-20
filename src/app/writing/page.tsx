@@ -37,7 +37,8 @@ export default function WritingIndex() {
           {posts.map((post) => (
             <article key={post.slug} className={styles.story}>
               <span className={styles.eyebrow}>
-                {post.dateLabel} · {post.readingMinutes} min read
+                {post.dateLabel} ·{' '}
+                {post.hasBody ? `${post.readingMinutes} min read` : 'Post planned'}
               </span>
               <h2>
                 <Link href={post.href}>{post.title}</Link>

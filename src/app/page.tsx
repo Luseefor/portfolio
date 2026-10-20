@@ -9,6 +9,7 @@ import ProjectActions from '@/components/portfolio/ProjectActions';
 import ProjectFigure from '@/components/portfolio/ProjectFigure';
 import styles from '@/components/portfolio/portfolio.module.css';
 import { portfolioData } from '@/content/portfolio';
+import { getWritingPosts } from '@/lib/writing';
 
 function SectionLabel({
   number,
@@ -140,12 +141,15 @@ export default function Home() {
             id="writing-title"
             caption="Notes from building"
           />
-          {portfolioData.writing
-            .filter((post) => !post.draft)
+          {getWritingPosts()
             .slice(0, 3)
             .map((post) => (
               <article key={post.slug} className={styles.writingRow}>
-                <span className={styles.meta}>{post.dateLabel}</span>
+                <span className={styles.meta}>
+                  {post.dateLabel}
+                  <br />
+                  {post.hasBody ? `${post.readingMinutes} min read` : 'Post planned'}
+                </span>
                 <div>
                   <h3>
                     <Link href={post.href}>{post.title}</Link>

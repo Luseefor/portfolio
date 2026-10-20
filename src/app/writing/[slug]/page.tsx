@@ -36,7 +36,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function WritingPage({ params }: Props) {
   const post = getWritingPost((await params).slug);
   if (!post) notFound();
-  const next = getWritingPosts().find((entry) => entry.slug !== post.slug);
+  const posts = getWritingPosts();
+  const index = posts.findIndex((entry) => entry.slug === post.slug);
+  const previous = posts[index - 1];
+  const next = posts[index + 1];
   return (
     <PortfolioShell resumeHref={portfolioData.contact.resumeHref}>
       <main id="content" className={styles.article}>
@@ -57,7 +60,7 @@ export default async function WritingPage({ params }: Props) {
                 sizes="36px"
               />
               <Link href="/">Rijan Ghimire</Link>
-              <span>{post.readingMinutes} min read</span>
+              {post.hasBody ? <span>{post.readingMinutes} min read</span> : null}
               {post.publishedAt ? (
                 <time dateTime={post.publishedAt}>
                   {new Date(post.publishedAt).toLocaleDateString('en-US', {
@@ -116,6 +119,7 @@ export default async function WritingPage({ params }: Props) {
           </div>
           <footer className={styles.articleFooter}>
             <Link href="/writing">← All writing</Link>
+            {previous ? <Link href={previous.href}>Previous: {previous.title}</Link> : null}
             {next ? <Link href={next.href}>Next: {next.title} →</Link> : null}
           </footer>
         </article>

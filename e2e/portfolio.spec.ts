@@ -109,6 +109,11 @@ test('writing archive and article contents work without JavaScript', async ({
         source.href,
       );
     }
+    const published = portfolioData.writing.filter((entry) => !entry.draft);
+    const next = published[published.findIndex((entry) => entry.slug === post.slug) + 1];
+    const nextLink = page.getByRole('link', { name: /^Next:/ });
+    if (next) await expect(nextLink).toHaveAttribute('href', next.href);
+    else await expect(nextLink).toHaveCount(0);
     await page.getByRole('link', { name: 'All writing' }).first().click();
   }
   expect((await request.get('/writing/no-such-post')).status()).toBe(404);
@@ -391,4 +396,37 @@ test('long articles keep wide code and tables contained in both modes', async ({
   await page.emulateMedia({ media: 'print' });
   await expect(page.getByRole('navigation', { name: 'Primary' })).toBeHidden();
   await expect(page.locator('main article').getByRole('heading', { level: 1 })).toBeVisible();
+});
+
+test('contact form exposes validation and delivery status without sending email', async ({
+  page,
+}) => {
+  let attempts = 0;
+  await page.route('**/api/contact', async (route) => {
+    attempts++;
+    expect(route.request().postDataJSON().email).toBe('reader@example.com');
+    await route.fulfill({
+      status: attempts === 1 ? 503 : 200,
+      contentType: 'application/json',
+      body: JSON.stringify(
+        attempts === 1
+          ? { error: 'Delivery is temporarily unavailable.' }
+          : { message: 'Message sent successfully.' },
+      ),
+    });
+  });
+  await page.goto('/');
+  await page.getByText('Prefer a form? Send a note.', { exact: true }).click();
+  const form = page.locator('#contact form');
+  await form.getByRole('button', { name: 'Send Message' }).click();
+  await expect(form.getByRole('status')).toHaveText('Name, email, and message are required.');
+  await form.getByLabel('Name', { exact: true }).fill('Reader');
+  await form.getByLabel('Email', { exact: true }).fill('reader@example.com');
+  await form.getByLabel('Message', { exact: true }).fill('A browser-only test.');
+  await form.getByRole('button', { name: 'Send Message' }).click();
+  await expect(form.getByRole('status')).toHaveText('Delivery is temporarily unavailable.');
+  await form.getByRole('button', { name: 'Send Message' }).click();
+  await expect(form.getByRole('status')).toHaveText('Message sent successfully.');
+  await expect(form.getByLabel('Message', { exact: true })).toHaveValue('');
+  expect(attempts).toBe(2);
 });

@@ -1,5 +1,3 @@
-<!-- Copy to src/content/writing/<slug>.md and register a draft in portfolio.ts. -->
-
 ## The question
 
 What prompted this work? Describe the problem and the conditions that matter.

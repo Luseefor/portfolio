@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 vi.mock('server-only', () => ({}));
 vi.mock('node:fs', () => ({
   existsSync: (p: string) => p.endsWith('ready.md'),
@@ -33,9 +33,28 @@ vi.mock('@/content/portfolio', () => ({
     ],
   },
 }));
+import { portfolioData } from '@/content/portfolio';
 import { getWritingPosts, getWritingPost } from './writing';
 
 describe('published writing', () => {
+  afterEach(() => {
+    portfolioData.writing.length = 3;
+  });
+  it.each([
+    { publishedAt: '2026-02-30' },
+    { publishedAt: 'not-a-date' },
+    { slug: '../escape' },
+    { slug: 'ready', href: '/writing/ready' },
+    { href: '/wrong-path' },
+  ])('rejects invalid publication metadata %j', (invalid) => {
+    portfolioData.writing.push({
+      ...portfolioData.writing[0],
+      slug: 'another-post',
+      href: '/writing/another-post',
+      ...invalid,
+    });
+    expect(() => getWritingPosts()).toThrow();
+  });
   it('excludes drafts from both discovery and direct lookup', () => {
     expect(getWritingPosts().map((p) => p.slug)).toEqual(['ready', 'stub']);
     expect(getWritingPost('private-draft')).toBeUndefined();
