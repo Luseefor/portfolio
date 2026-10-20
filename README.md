@@ -49,7 +49,7 @@ On a Mac with Google Chrome already installed, the browser check can use it dire
 PLAYWRIGHT_CHROME_CHANNEL=chrome npm run test:e2e:portfolio
 ```
 
-GitHub Actions runs lint, all unit tests, a production build, and the portfolio browser suite on pushes and pull requests. It installs its own Chromium and uploads failure reports. The legacy dungeon smoke test is separate: `npm run test:e2e:dungeon` requires working WebGL and pointer lock. Dungeon source remains outside this pass.
+GitHub Actions runs lint, all unit tests, a production build, and the portfolio browser suite on pushes and pull requests. It installs its own Chromium and uploads failure reports. Two dungeon smoke tests are separate: `npm run test:e2e:dungeon` requires WebGL and probes native pointer-lock capability. They cover entry, settings, and request handling, not camera or physics correctness. See [the coverage limits](docs/dungeon-smoke-audit.md). `npm run test:e2e` runs both browser suites. Dungeon source remains outside this pass.
 
 For new articles, follow [the authoring guide](docs/writing-authoring.md). The [pipeline audit](docs/pipeline-audit.md) and [portfolio comparison](docs/portfolio-benchmark.md) record validation and remaining inputs.
 
