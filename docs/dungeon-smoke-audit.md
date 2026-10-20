@@ -2,15 +2,9 @@
 
 ## Why the old test was obsolete
 
-The old spec opened `/interactive?debug=1&forcePointerLock=1`, force-clicked the
-canvas through the Welcome overlay, and asserted on `pointer lock:`, `yaw:`,
-`pitch:`, and `player:` text. None of those strings exist in the current source
-at HEAD `fe97435`. The debug overlay and the `forcePointerLock` query path are
-gone, and no component renders yaw, pitch, or player coordinates into the DOM. A
-grep for `yaw:|pitch:|player:|pointer lock:|forcePointerLock|debug=1` across
-`src` returns only camera math constants and unit tests, nothing rendered. The
-old test could never enter the dungeon because it clicked behind the overlay
-instead of through it.
+The old spec opened `/interactive?debug=1&forcePointerLock=1`, force-clicked the canvas through the Welcome overlay, and asserted on `pointer lock:`, `yaw:`, `pitch:`, and `player:` text. The current HUD does not render that telemetry.
+
+The scene still has F1-toggleable debug primitives through `useDungeonDebugOverlayToggle`; they are not a text telemetry HUD. The entry page does not consume the old query parameters. The old test attempted to click behind the overlay instead of using the entry button.
 
 ## What the new spec checks
 

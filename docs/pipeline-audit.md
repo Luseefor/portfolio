@@ -23,8 +23,8 @@ Two separate dungeon smoke tests cover entry, HUD, native pointer-lock requests,
 ## Validation
 
 - Local lint, 64 unit tests, and production build passed again after the smoke-spec cleanup. The final combined browser run passed all 22 tests against the completed build. An earlier overlapping build invalidated browser assets and caused a CSS assertion failure; that run was discarded and repeated sequentially.
-- [GitHub Actions run 39377528865](https://github.com/Luseefor/portfolio/actions/runs/39377528865) passed all pipeline steps on Node 24 for that commit.
-- Vercel deployment `dpl_D6iHeEzMUzeoGkKvT25SLVtdUTqS` reached READY for the same commit. Authenticated preview checks confirmed HTTP 404 and visible recovery links for unknown root, project, and writing URLs, plus HTTP 200 for `/writing/feed.xml`.
+- [GitHub Actions run 39378552070](https://github.com/Luseefor/portfolio/actions/runs/39378552070) passed all pipeline steps on Node 24 for application checkpoint `310d663`.
+- Vercel deployment `dpl_9fKciv14W5NrVB1tvw5eoPkeuU3s` reached READY for checkpoint `310d663`. Authenticated preview checks confirmed HTTP 404 and visible recovery links for unknown root, project, and writing URLs, plus HTTP 200 for `/writing/feed.xml`.
 - Runtime audit reports zero advisories. Five development-only high advisories remain in the Next ESLint transitive chain. Details are in [the security audit](security-and-delivery-audit.md).
 - `actionlint` validated the workflow. No production promotion or main-branch merge was performed.
 
@@ -40,3 +40,9 @@ PLAYWRIGHT_CHROME_CHANNEL=chrome npm run test:e2e -- --workers=1
 The final combined browser run includes 20 portfolio tests and two dungeon smoke tests. A successful request-path test in a browser that denies pointer lock is not evidence of working mouse look.
 
 References: [Playwright CI](https://playwright.dev/docs/ci), [production webServer](https://playwright.dev/docs/test-webserver), [browser channels](https://playwright.dev/docs/browsers#google-chrome--microsoft-edge), [setup-node](https://github.com/actions/setup-node).
+
+## Portfolio checkpoint and next phase
+
+`310d663` is the verified application checkpoint. The branch is ready for review; it has not been merged or promoted to production. Portfolio design work can pause here while original writing and measured outcomes are collected. The remaining content and asset inputs are listed in [the content notes](portfolio-content-notes.md). Live SMTP delivery, manual screen-reader checks, and host rate policy remain unverified.
+
+The interactive phase should preserve the homepage bundle boundary and begin with a baseline of entry, visible geometry, F1 debug primitives, and console errors. Then fix native pointer-lock rejection handling, verify Escape and re-entry, measure camera and movement behavior, and run the extreme input, collision, lighting, and reload checks. Current browser smoke passes do not prove those behaviors. Keep changes isolated from portfolio content and styles.
