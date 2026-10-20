@@ -140,10 +140,9 @@ no game logic, no fake desktop.
 
 Concept two, FareDelta flexibility simulator. Three inputs, earliest date,
 latest date, and party size, drawn as a schematic strip rather than a map.
-Output is a price band that recomputes live with a short note on the
-constraint logic. It shows systems thinking on real portfolio work, echoes the
-Falstad bench at a fraction of the cost, and gives hiring managers something to
-play with that is actually about the job.## What I did not do
+Output is a price band that recomputes live with a short note on the constraint logic. Any prices must be labeled illustrative, with no claim to reproduce airline pricing. The concept borrows the instrument format at a smaller proposed scope.
+
+## What I did not do
 
 No mobile or performance testing, no screen reader pass, no code written, no
 packages installed, no servers started. Stack guesses avoided throughout.
