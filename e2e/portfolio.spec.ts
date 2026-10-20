@@ -298,7 +298,7 @@ test('engineering paper modes persist across portfolio routes', async ({ page })
   await expect(page.getByRole('heading', { name: 'Sources', exact: true })).toBeVisible();
 });
 
-test('portfolio mode does not overwrite dungeon preferences', async ({ page }) => {
+test('portfolio reading mode preserves the separate assistant preferences', async ({ page }) => {
   const preferences = JSON.stringify({
     state: { currentTheme: 'bronze', isDark: false },
     version: 0,

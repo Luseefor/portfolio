@@ -376,24 +376,6 @@ export const portfolioData = {
       demoHref: 'https://www.libertygoldanddiamonds.com/',
     },
     {
-      slug: 'interactive-dungeon-portfolio',
-      title: 'Interactive Dungeon Portfolio',
-      status: 'Technical demo',
-      role: 'Software Engineer',
-      focus: 'Camera · Movement · Collision · UI state',
-      domains: 'Browser graphics · Interactive systems',
-      category: 'Technical Demo',
-      summary:
-        'Built a third-person WebGL experience that demonstrates camera systems, movement controls, collision handling, and layered UI state in the browser.',
-      ownership:
-        'Implemented the scene structure, player controller, interaction flow, and the stabilization work needed to hold up across reloads and input edge cases.',
-      result:
-        'Produced a working demo covering scene setup, player controls, collision handling, and layered UI state.',
-      stack: ['React Three Fiber', 'Three.js', 'Rapier', 'TypeScript'],
-      demoHref: '/interactive',
-      hideRepository: true,
-    },
-    {
       slug: 'metrox',
       title: 'MetroX',
       status: 'Framework in development',
@@ -586,9 +568,9 @@ export const portfolioData = {
       },
       {
         id: 'event-3',
-        title: 'Interactive systems stabilization',
+        title: 'Interactive engineering paper',
         description:
-          'Built and stabilized a browser-based third-person dungeon demo covering camera, movement, collision, and UI systems.',
+          'Explore numerical approximation through adjustable step sizes, linked paths, and computed error comparisons.',
         dateLabel: 'Current',
       },
     ] satisfies ActivityEvent[],
@@ -605,7 +587,7 @@ export const portfolioData = {
     summary: 'Download the current resume for experience, project context, and technical scope.',
     bullets: [
       'Selected product, AI, and interactive engineering work.',
-      'Experience that spans frontend delivery, backend systems, and technical demos.',
+      'Experience across frontend engineering, backend systems, and mathematical software.',
       'A concise overview of projects, roles, and tools.',
     ],
   },

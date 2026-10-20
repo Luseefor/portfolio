@@ -75,6 +75,6 @@ https://github.com/Luseefor/synthex-ui/blob/5df51b2f20e173d017341fc9be7847041518
 
 ## Portfolio use
 
-The homepage gives full cards to Synthex UI, Vinculum, FareDelta, and LumaWall. Liberty Jewelers, Aletiq, and MetroX remain reachable in a compact disclosure. All eight project routes remain available.
+The homepage gives full cards to Synthex UI, Vinculum, FareDelta, and LumaWall. Liberty Jewelers, Aletiq, and MetroX remain reachable in a compact disclosure. All seven project routes remain available.
 
 The four selected deep dives link decisions and constraints to these pinned sources. The implementation notes summarize Vinculum's computation boundary and scene contract, and Synthex's engine/renderer split and theme cascade. They describe documented behavior, not new performance measurements or the author's unrecorded intent.

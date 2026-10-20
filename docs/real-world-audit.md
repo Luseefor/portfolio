@@ -1,5 +1,9 @@
 # Real-world portfolio audit
 
+> Archive note (2026-10-20): audited with dungeon content present.
+> Dungeon records were removed after; reruns belong to the interactive
+> paper track.
+
 Reviewed 2026-10-20. This is a feature-branch audit, not a claim that main has been promoted. OpenCode Muse Spark 1.3 Contributor reviews were checked against source and fresh Chrome production-build runs.
 
 ## Verified journeys
@@ -42,4 +46,4 @@ Live SMTP delivery was not tested. Provider and mail transport tests use mocks. 
 
 Original deep essays, real measurement baselines, graduation year, role dates, and an optional LumaWall screenshot still need user input. Those facts are not inferred from the design comparison.
 
-Dungeon source and PersonalAssistantBlob are preserved. The full extreme movement, camera, physics, and render checklist remains outside this portfolio pass.
+`PersonalAssistantBlob` is preserved. Dungeon source removal and the replacement paper are owned by the paper track.

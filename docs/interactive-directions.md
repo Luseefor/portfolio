@@ -1,5 +1,8 @@
 # Five directions for the interactive rebuild
 
+> Archive note (2026-10-20): direction 1 selected and dungeon removal in
+> progress. The checkpoint instruction below is historical.
+
 Reviewed 2026-10-20. Three independent research agents compared 15 examples across spatial portfolios, interactive explainers, and interaction tools. This is a design recommendation, not an implementation plan approved by the user. The application remains unchanged.
 
 ## Strongest references by purpose
@@ -90,7 +93,7 @@ Assessment. Most distinctive visual alternative. Moderate scope. This is an orig
 
 Choose direction 1 for the closest continuation of the portfolio. Choose 2 for a bounded polished interaction, 3 for systems roles, 4 for spatial work, or 5 for creative coding and visual authorship. Prototype only the selected direction. The first prototype should answer whether its central gesture produces a useful or memorable result before adding more scenes, effects, or controls.
 
-Keep `/` and existing writing/project routes unchanged. The new experience stays on `/interactive`, with its code loaded only there. Preserve the current dungeon as a Git checkpoint until a replacement direction is chosen. No rebuild, deletion, or dependency change has happened during this research.
+Direction 1 was selected after this research. The implementation at `/interactive` now explains circular motion using Euler and explicit midpoint integration. The old game runtime, assets, dependencies, project entry, and tests have been removed; earlier versions remain in Git history. Homepage, writing, and genuine project routes retain their separate purpose. See `TESTING.md` for current verification commands.
 
 ## Evidence limits
 

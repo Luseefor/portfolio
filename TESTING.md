@@ -1,62 +1,30 @@
-# Testing Guide (Dungeon)
+# Testing guide
 
-## Automated
+Build before running browser tests. The repository Playwright config starts its own production server on port 3100 and refuses to reuse another server.
 
-```bash
+```sh
+npm run lint
 npm test
+npm run build
+npx playwright install chromium
 npm run test:e2e
 ```
 
-## Manual Edge-Case Checklist
+With installed Google Chrome, use `PLAYWRIGHT_CHROME_CHANNEL=chrome npm run test:e2e`. The `test:e2e:portfolio` and `test:e2e:interactive` scripts select one browser suite. CI requires both.
 
-### A — Movement & Input Stress
+## Portfolio
 
-1. Hold W for 5 seconds, release.
-2. Rapidly tap W/A/S/D in random order for 10 seconds.
-3. Hold W + D, release one key, then the other.
-   Expected: no stuck movement, no stuck walk/run, idle resumes within 0.2s.
+Check home, project, writing, and 404 recovery with JavaScript disabled. Check the exact resume PDF URL, clipboard and manual-copy paths, keyboard navigation, and reading-mode persistence. Homepage requests must exclude experiment code and optional assistant/activity requests.
 
-### B — Focus / Blur
+## Engineering paper
 
-1. Click outside the canvas to blur.
-2. Click the canvas and move immediately.
-   Expected: input resets on blur; movement works again after focus.
+- Read `/interactive` without JavaScript. Both SVG figures, the explanation, and comparison table remain present; disabled controls are explained by the fallback note.
+- Change steps from 16 to 128. Paths and errors update; more steps reduce the final errors for this model. Explicit midpoint remains approximate.
+- Use keyboard controls to scrub from zero to a complete revolution. Replay, pause, reset, and toggle paths. Change step count during playback and confirm the state stays in range.
+- Check 360, 390, 768, and 1440 widths in both modes. Print retains the explanation and figures. Reduced-motion reading starts still; playback is optional.
+- Compare the numeric table with the model tests. Error is distance from the exact position at the same time, not maximum trajectory error.
+- Confirm removed project and asset URLs return 404. No canvas, model, sound, or physics runtime should load.
 
-### C — Pointer Lock Edge Cases
+## API and accessibility boundaries
 
-1. Click canvas to lock.
-2. Press ESC to unlock.
-3. Click canvas to re-lock.
-   Expected: mouse look resumes, no inverted or frozen camera.
-
-### D — Camera Extremes
-
-1. Rotate camera 360° continuously.
-2. Look straight up/down (within clamp).
-3. Move while camera faces backward.
-   Expected: movement remains camera-relative, no inverted controls, no NaN.
-
-### E — Camera Follow Failure
-
-1. Teleport player rapidly (debug key if available).
-2. Move player near walls/corners.
-   Expected: camera lerps correctly, no follow loss, no jitter.
-
-### F — Physics & Collision Stress
-
-1. Spawn above floor, on floor, and near wall edge.
-2. Walk along walls at shallow angles.
-3. Run into corners repeatedly.
-   Expected: no freezing, no falls, smooth sliding.
-
-### G — Dungeon Render Validation
-
-1. Empty dungeon layout array.
-2. Use invalid node key once.
-   Expected: debug geometry visible, warnings only, no crash.
-
-### H — Performance & Safety
-
-1. Increase dust particles 3× temporarily.
-2. Hot reload scene multiple times.
-   Expected: FPS degrades gracefully, no duplicate listeners.
+Provider and mail transport tests use mocks, and browser form tests intercept responses. They do not establish live delivery or provider availability. Automated Axe scans cover both modes; manual screen-reader review remains a separate check.

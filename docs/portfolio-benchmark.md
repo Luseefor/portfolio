@@ -43,7 +43,7 @@ Exact resume href '/My Resume - Main.pdf' and the native form disclosure. Both a
 
 ## Over and under
 
-Over. The contact section offers four equivalent paths. The theme and token work is already good enough, and further polish there has falling returns. The dungeon experience stays off the homepage, which is correct.
+Over. The contact section offers four equivalent paths. The theme and token work is already good enough, and further polish there has falling returns. The interactive paper stays off the homepage as a secondary route, which is correct.
 Under. Long form writing with real numbers. Most of the sample lets long essays carry the argument for depth, and only you can provide original deep essays with measured outcomes. One essay with a comparison table would move the writing read more than any visual change.
 
 ## Subjective scores for this portfolio

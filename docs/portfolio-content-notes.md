@@ -1,5 +1,9 @@
 # Portfolio content evidence and remaining inputs
 
+> Archive note (2026-10-20): evidence collected with dungeon content
+> present. Dungeon records were removed after; validation counts below are
+> pre-removal. Reruns belong to the interactive paper track.
+
 Reviewed 2026-10-20. Public repository documentation establishes implemented scope, not user counts, business impact, or independent performance results.
 
 ## Sources used
@@ -32,11 +36,11 @@ There are 10 placeholders across Experience (9) and Timeline (1). Timeline repea
 ## Validation
 
 - `npm run lint` and `npm run build`: passed. Homepage and the archive, all eight project / two writing detail pages, social images, RSS feed, sitemap, and robots route are prerendered.
-- `CI=1 npm test`: all 64 tests passed, including Markdown rendering, safe links, unique headings, draft visibility, stubs, and publication metadata validation. The Vitest worker configuration disables Node's native Web Storage only on runtimes that support the flag, allowing JSDOM to provide browser storage. No dungeon source or unit tests were edited. The separate browser smoke spec was later updated to match the current entry flow; see [coverage limits](dungeon-smoke-audit.md).
+- `CI=1 npm test`: all 64 tests passed at that checkpoint, including Markdown rendering, safe links, unique headings, draft visibility, stubs, and publication metadata validation. The Vitest worker configuration disables Node's native Web Storage only on runtimes that support the flag, allowing JSDOM to provide browser storage. The retired dungeon smoke spec was later updated to match the old entry flow before its removal.
 - `e2e/portfolio.spec.ts`: all 20 tests passed against an isolated production server on port 3100 using the repository Playwright config and installed Chrome. The default Chromium launch initially could not run because its browser binary was missing. The suite also covers curated project links, case-study evidence without JavaScript, and the implementation note's body and sources.
 - Browser checks cover no-JavaScript reading, SEO, no scene asset requests, PDF content and status, all project routes, writing stubs, unknown-slug 404s, all three clipboard paths, repeat-copy feedback, mode persistence across reloads and detail pages, resolved heading fonts, and both modes at widths 360 / 390 / 768 / 1024 / 1440. Homepage checks also cover the absence of assistant-avatar and activity-feed requests.
 - Existing test warnings about mocked Three.js DOM elements and Node build warnings remain nonfatal. Contact-form success and error feedback is verified with intercepted browser responses; no real email was sent, and live SMTP delivery is not claimed.
-- Interactive source, store, and PersonalAssistantBlob remain unchanged. The contact API has only a Transporter type import update for Nodemailer 10; its runtime logic is preserved. Three server-only Markdown dependencies were added: markdown-it, markdown-it-footnote, and highlight.js. No Markdown parser or syntax-highlighting JavaScript is included in browser chunks. No new 3D dependencies were added.
+- Interactive source removal and the replacement paper are owned by the paper track. The contact API has only a Transporter type import update for Nodemailer 10; its runtime logic is preserved. Three server-only Markdown dependencies were added: markdown-it, markdown-it-footnote, and highlight.js. No Markdown parser or syntax-highlighting JavaScript is included in browser chunks. No new 3D dependencies were added.
 
 ## Visual direction
 
@@ -47,7 +51,7 @@ There are 10 placeholders across Experience (9) and Timeline (1). Timeline repea
 - Project cards use plain borders and opaque paper backgrounds. Corner ticks, rotated stamps, and the decorative hero plot were removed in the simplification pass. Live demo availability is conveyed by the actual project links.
 - The duplicate section navigation and collapsed GitHub dashboard were removed. The footer still links directly to GitHub and LinkedIn.
 - Four projects have full homepage cards. A native “More work” disclosure keeps other project details reachable without giving every project equal weight. The selected deep dives explain the problem, ownership, result, engineering decisions, and constraints.
-- Shared `base` / `wash` palette tokens in `src/utils/themes.ts` were updated at the user's explicit request. Interactive route and dungeon source remain untouched; the shared light base also updates surfaces that consume that token.
-- The selected mode remains stored in `portfolio-reading-mode` across portfolio, project, and writing routes. Portfolio colors are declared in CSS, without an inline palette calculation or synchronization into the dungeon store.
-- The floating assistant is no longer mounted on the homepage. `PersonalAssistantBlob`, the activity component and API, and dungeon implementation remain unchanged. The assistant API now validates and caps requests and provider output; see [the security audit](security-and-delivery-audit.md).
+- Shared `base` / `wash` palette tokens in `src/utils/themes.ts` were updated at the user's explicit request. The light base also updates surfaces that consume that token.
+- The selected mode remains stored in `portfolio-reading-mode` across portfolio, project, and writing routes. Portfolio colors are declared in CSS, without an inline palette calculation.
+- The floating assistant is no longer mounted on the homepage. `PersonalAssistantBlob`, the activity component and API remain unchanged. The assistant API now validates and caps requests and provider output; see [the security audit](security-and-delivery-audit.md).
 - Production browser checks cover both modes at 360 / 390 / 768 / 1024 / 1440, mode persistence, mono typography, grid spacing, project demo links, readable content without JavaScript, and the existing resume / email / detail-route flows.

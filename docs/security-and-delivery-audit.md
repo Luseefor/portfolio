@@ -34,4 +34,4 @@ No route implements a distributed request-rate limiter. A read of this project's
 
 Live SMTP delivery is unverified because no send was authorized. Deployment operators need the SMTP variables documented in README.md; optional Gemini and GitHub credentials support the secondary endpoints. Existing production values were not read or changed.
 
-Manual screen-reader testing and the dungeon's full extreme-case validation are separate from these API and dependency checks.
+Manual screen-reader testing remains separate from these API and dependency checks. Dungeon-era extreme-case validation is retired with that content.

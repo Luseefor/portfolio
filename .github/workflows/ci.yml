@@ -35,8 +35,8 @@ jobs:
         run: npm run test:unit
       - name: Production build
         run: npm run build
-      - name: Portfolio browser checks
-        run: npm run test:e2e:portfolio
+      - name: Portfolio and interactive paper browser checks
+        run: npm run test:e2e
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:

@@ -1,48 +1,35 @@
 # Pipeline audit
 
-Verified on 2026-10-20 in `ace/hiring-first-portfolio`. The separate checkout on port 3000 was left alone.
+Current architecture, 2026-10-20. The interactive engineering paper replaces the retired game. Historical browser and unit counts for the game are not acceptance evidence for this version.
 
-## Corrected configuration
+## Configuration
 
-- `.nvmrc` pins Node 24, matching GitHub Actions and the configured Vercel project.
-- `npm test` runs Vitest once. `npm run test:watch` is the explicit watch command.
-- Playwright starts the production build on isolated port 3100 with `reuseExistingServer: false`. `PLAYWRIGHT_PORT` selects another free port. A busy port fails instead of testing another checkout.
-- CI installs Chromium. Local runs can use installed Chrome through `PLAYWRIGHT_CHROME_CHANNEL=chrome`.
-- GitHub Actions runs `npm ci`, browser installation, the runtime dependency audit, lint, unit tests, production build, and the portfolio browser suite on pushes and pull requests.
-- The workflow has read-only repository permissions, concurrency cancellation, a 20-minute job timeout, and browser report artifacts. Failures are not allowed to continue as success.
-- Existing Vercel Git integration builds branch previews. No second deployment workflow was added.
+- Node 24 matches `.nvmrc`, GitHub Actions, and the configured Vercel project.
+- npm and `package-lock.json` are the dependency source of truth. The stale Bun lockfile was removed with the old rendering stack.
+- `npm test` runs Vitest once. `test:watch` is explicit.
+- Playwright starts a production build on isolated port 3100 with `reuseExistingServer: false`. `PLAYWRIGHT_PORT` selects a different free port. Installed Chrome is an optional local override.
+- CI runs dependency installation, Chromium installation, runtime audit, lint, unit tests, production build, and the complete browser suite. Both portfolio and paper are required.
+- The workflow has read-only repository permissions, concurrency cancellation, a 20-minute job timeout, and browser report artifacts. Failures fail the job.
+- Vercel's existing Git integration builds branch previews. There is no duplicate deployment workflow.
 
-## Coverage
+## Scope
 
-The 64 unit tests cover Markdown, writing, mocked contact and assistant routes, and the existing dungeon units. Provider tests do not send mail or make paid requests.
+The homepage remains server-readable and loads no experiment code. `/interactive` renders its prose, SVG diagrams, computed table, metadata, and social image statically. A small client component enhances only its controls. No WebGL renderer, physics engine, pointer-lock implementation, model, texture, or audio asset remains in the app.
 
-The 20 portfolio browser tests cover no-JavaScript reading, SEO, homepage scene isolation, project pages, articles, RSS, sitemap, social images, copy-email paths, contact states, responsive layout, both reading modes, and custom 404 recovery. Automated Axe checks run across home, project, archive, article, and 404 views in both modes.
+The old scene source, its tests and fixtures, build helpers, game stores, input layers, 3D and physics dependencies, and game-only assets were removed. The assistant still uses the preserved shared store, theme utilities, avatar, and animation library. Contact and assistant API behavior was not changed in this replacement.
 
-Two separate dungeon smoke tests cover entry, HUD, native pointer-lock requests, settings, and return-home navigation. They do not prove camera follow, movement displacement, or physics. A standalone capability probe distinguishes a native browser denial from application errors. See [the smoke audit](dungeon-smoke-audit.md). CI gates the portfolio browser suite; dungeon browser checks remain separately runnable.
+## Checks
 
-## Validation
+The current unit suite contains 40 tests in five files. Fourteen cover the integration model, including exact single steps, convergence, method comparison, and invalid inputs. The other tests cover Markdown, writing, and mocked contact and assistant routes.
 
-- Local lint, 64 unit tests, and production build passed again after the smoke-spec cleanup. The final combined browser run passed all 22 tests against the completed build. An earlier overlapping build invalidated browser assets and caused a CSS assertion failure; that run was discarded and repeated sequentially.
-- [GitHub Actions run 39378552070](https://github.com/Luseefor/portfolio/actions/runs/39378552070) passed all pipeline steps on Node 24 for application checkpoint `310d663`.
-- Vercel deployment `dpl_9fKciv14W5NrVB1tvw5eoPkeuU3s` reached READY for checkpoint `310d663`. Authenticated preview checks confirmed HTTP 404 and visible recovery links for unknown root, project, and writing URLs, plus HTTP 200 for `/writing/feed.xml`.
-- Runtime audit reports zero advisories. Five development-only high advisories remain in the Next ESLint transitive chain. Details are in [the security audit](security-and-delivery-audit.md).
-- `actionlint` validated the workflow. No production promotion or main-branch merge was performed.
+The browser suite contains 20 portfolio tests and eight interactive-paper tests. Paper checks cover no-JavaScript reading, precomputed numeric results, keyboard sliders, scrub/replay/pause/reset, path selection, themes and layout, reduced-motion initial state, print, metadata and discovery, retired-resource 404s, and automated accessibility in both modes.
 
-## Commands
+Local lint, 40 unit tests, and production build passed. The initial combined browser run passed 27 of 28 tests; its fallback assertion used a text selector that ignores noscript elements. Direct browser inspection confirmed the fallback was present. The selector was corrected to inspect the actual fallback paragraph. The final sequential rerun passed all 28 browser tests against the completed production build. Local lint, 40 unit tests, build, formatting checks, and the runtime dependency audit also passed; the runtime audit reports zero advisories.
 
-```sh
-npm run lint
-npm test
-npm run build
-PLAYWRIGHT_CHROME_CHANNEL=chrome npm run test:e2e -- --workers=1
-```
+Runtime audit and remote CI/deployment results must be checked for the replacement commit before claiming this version shipped. Earlier green runs establish earlier checkpoints only. No main-branch merge or production promotion is part of this pass.
 
-The final combined browser run includes 20 portfolio tests and two dungeon smoke tests. A successful request-path test in a browser that denies pointer lock is not evidence of working mouse look.
+## Remaining boundaries
 
-References: [Playwright CI](https://playwright.dev/docs/ci), [production webServer](https://playwright.dev/docs/test-webserver), [browser channels](https://playwright.dev/docs/browsers#google-chrome--microsoft-edge), [setup-node](https://github.com/actions/setup-node).
+Automated accessibility scans do not replace manual screen-reader testing. No real email or paid provider request is sent by the tests. Live mail delivery and host rate policy remain separate operational checks. See [security notes](security-and-delivery-audit.md) for the existing development-only advisories.
 
-## Portfolio checkpoint and next phase
-
-`310d663` is the verified application checkpoint. The branch is ready for review; it has not been merged or promoted to production. Portfolio design work can pause here while original writing and measured outcomes are collected. The remaining content and asset inputs are listed in [the content notes](portfolio-content-notes.md). Live SMTP delivery, manual screen-reader checks, and host rate policy remain unverified.
-
-The interactive phase should preserve the homepage bundle boundary and begin with a baseline of entry, visible geometry, F1 debug primitives, and console errors. Then fix native pointer-lock rejection handling, verify Escape and re-entry, measure camera and movement behavior, and run the extreme input, collision, lighting, and reload checks. Current browser smoke passes do not prove those behaviors. Keep changes isolated from portfolio content and styles.
+References: [Playwright CI](https://playwright.dev/docs/ci), [production webServer](https://playwright.dev/docs/test-webserver), [setup-node](https://github.com/actions/setup-node).
