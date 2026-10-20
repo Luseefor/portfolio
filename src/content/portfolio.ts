@@ -109,7 +109,7 @@ export const portfolioData = {
     ],
   },
   location: 'Hattiesburg, Mississippi',
-  selectedProjectSlugs: ['vinculum', 'faredelta', 'lumawall'],
+  selectedProjectSlugs: ['synthex-ui', 'faredelta', 'lumawall'],
   additionalProjectSlugs: ['liberty-jewelers', 'aletiq', 'metrox'],
   hero: {
     name: 'Rijan Ghimire',
@@ -413,16 +413,16 @@ export const portfolioData = {
     },
   ] as PortfolioProject[],
   featuredProject: {
-    slug: 'synthex-ui',
-    title: 'Synthex UI',
+    slug: 'vinculum',
+    title: 'Vinculum',
     subtitle:
-      'Component library, theme system, preview environment, and documentation experience in one frontend build.',
+      'A local-first mathematical workspace for equations, curves, surfaces, and vector fields.',
     summary:
-      'A cross-platform component library and theme system, paired with a framework-independent layout engine and a React DOM adapter for dockable workbenches.',
-    status: 'Built and live',
-    role: 'Frontend Systems Engineer',
-    focus: 'Design System · Theme Engine · Docs + Playground',
-    domains: 'Component Architecture · DX · Frontend Infrastructure',
+      'A local-first workspace for editing equations, curves, surfaces, and vector fields in 2D and 3D.',
+    status: 'Public editor',
+    role: 'Software Engineer',
+    focus: 'Math editor · Persistence · Rust/WASM computation',
+    domains: 'Mathematical software · Developer tools',
   },
   writing: [
     {
@@ -500,14 +500,6 @@ export const portfolioData = {
     },
   ] satisfies ExperienceEntry[],
   timeline: [
-    {
-      period: '2025 - Present',
-      title: 'Founder + Engineer',
-      organization: 'Aletiq',
-      summary:
-        'Build TODO(metric): product workflows shipped across interface and backend systems.',
-      proof: 'Product direction · Engineering ownership',
-    },
     {
       period: '2024 - Present',
       title: 'Computer Engineering + Mathematics',
@@ -602,7 +594,7 @@ export const portfolioData = {
     ] satisfies ActivityEvent[],
   },
   contact: {
-    email: 'ghimirerijan199@gmail.com',
+    email: 'contact@rijan.sh',
     github: 'https://github.com/Luseefor',
     linkedin: 'https://www.linkedin.com/in/rijanghimire/',
     resumeHref: '/My Resume - Main.pdf',
@@ -626,7 +618,7 @@ export const portfolioData = {
     },
     {
       label: 'Email',
-      url: 'mailto:ghimirerijan199@gmail.com',
+      url: 'mailto:contact@rijan.sh',
       kind: 'email',
     },
   ] satisfies SocialLink[],

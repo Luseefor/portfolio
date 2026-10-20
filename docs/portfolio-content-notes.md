@@ -17,9 +17,9 @@ Existing Aletiq and Liberty Jewelers roles/dates are retained from portfolio con
 
 ## TODO(metric) inputs
 
-There are 11 placeholders across Experience (9) and Timeline (2). Timeline repeats two Experience topics.
+There are 10 placeholders across Experience (9) and Timeline (1). Timeline repeats one Experience topic.
 
-- Aletiq: shipped workflow count (also Timeline), interface/backend milestone count, and number of product decisions tested with users.
+- Aletiq: shipped workflow count, interface/backend milestone count, and number of product decisions tested with users. The founder entry has been removed from the homepage Background section.
 - Applied engineering: automated library workflow count, energy-monitoring installation count, and supported voting-session count.
 - Liberty Jewelers: delivered commerce workflow count (also Timeline), product-update volume or time saved, and measured storefront performance before/after.
 

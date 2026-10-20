@@ -73,7 +73,7 @@ test('project links reach deep dives and missing slugs return 404', async ({ pag
   }
   await page.goto('/');
   await page.getByRole('link', { name: 'Read project details' }).first().click();
-  await expect(page).toHaveURL(/\/projects\/synthex-ui$/);
+  await expect(page).toHaveURL(new RegExp(`/projects/${portfolioData.featuredProject.slug}$`));
   await expect(page.getByRole('heading', { name: 'What I owned' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Stack' })).toBeVisible();
   expect((await request.get('/projects/no-such-project')).status()).toBe(404);
